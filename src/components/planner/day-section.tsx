@@ -38,6 +38,7 @@ type Props = {
   onSelectStop: (stopId: string, dayIndex: number) => void;
   onEditStop: (stopId: string) => void;
   onInfoStop: (stopId: string) => void;
+  onDuplicateStop: (stopId: string) => void;
   onAddStop: (dayId: string) => void;
   onReroute: (dayId: string) => void;
   rerouting: boolean;
@@ -116,6 +117,7 @@ export function DaySection({ sectionRef, ...p }: Props) {
               onSelect={() => p.onSelectStop(stop.id, p.index)}
               onEdit={() => p.onEditStop(stop.id)}
               onInfo={() => p.onInfoStop(stop.id)}
+              onDuplicate={() => p.onDuplicateStop(stop.id)}
             />
           ))}
         </SortableList>

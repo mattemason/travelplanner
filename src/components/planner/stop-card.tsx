@@ -3,7 +3,7 @@
 import { formatDistance, formatDuration } from "@/lib/trip/drive";
 import { timeLabel } from "@/lib/trip/format";
 import { tagLabel, type Place, type Segment, type Stop } from "@/lib/trip/types";
-import { GripIcon, InfoIcon, PencilIcon } from "./icons";
+import { CopyIcon, GripIcon, InfoIcon, PencilIcon } from "./icons";
 
 type Props = {
   stop: Stop;
@@ -17,13 +17,14 @@ type Props = {
   onSelect: () => void;
   onEdit: () => void;
   onInfo: () => void;
+  onDuplicate: () => void;
 };
 
 export type DriveIn = Segment | "loading" | "none";
 
 
 export function StopCard(props: Props) {
-  const { stop, place, number, driveIn, selected, editing, compact, overnight, onSelect, onEdit, onInfo } = props;
+  const { stop, place, number, driveIn, selected, editing, compact, overnight, onSelect, onEdit, onInfo, onDuplicate } = props;
   const closed = place?.businessStatus === "CLOSED_TEMPORARILY" || place?.businessStatus === "CLOSED_PERMANENTLY";
   const noMap = place && (place.lat === null || place.lng === null);
 
@@ -108,6 +109,18 @@ export function StopCard(props: Props) {
           }}
         >
           <InfoIcon />
+        </button>
+        <button
+          type="button"
+          className="edit-btn grid h-[34px] w-[34px] shrink-0 cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-line bg-paper text-ink"
+          aria-label={`Duplicate ${stop.name}`}
+          title="Duplicate this stop"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDuplicate();
+          }}
+        >
+          <CopyIcon />
         </button>
         <button
           type="button"

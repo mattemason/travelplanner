@@ -217,6 +217,35 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
     }
   };
 
+  /** Copies a stop (same place and details) to just after itself, with undo. */
+  const duplicateStop = async (stopId: string) => {
+    const original = tripRef.current.stops[stopId];
+    const container = containerOf(tripRef.current.layout, stopId);
+    if (!original || !container) return;
+    try {
+      const position = tripRef.current.layout[container]?.length ?? 0;
+      const { stop, place } = await createStop(tripRef.current.id, container, position, fieldsOf(original), {
+        kind: "existing",
+        placeId: original.placeId,
+      });
+      setTrip((t) => ({
+        ...t,
+        stops: { ...t.stops, [stop.id]: stop },
+        places: { ...t.places, [place.id]: place },
+        layout: { ...t.layout, [container]: [...(t.layout[container] ?? []), stop.id] },
+      }));
+      // It was saved at the end of the day; move it up to sit right after the original.
+      const current = { ...tripRef.current.layout, [container]: [...(tripRef.current.layout[container] ?? []), stop.id] };
+      tripRef.current = { ...tripRef.current, layout: current };
+      const index = current[container].indexOf(stopId) + 1;
+      await applyLayout(moveStop(current, stop.id, container, index), null);
+      setUndo({ label: `Duplicated ${stop.name}`, createdStopId: stop.id });
+      setToast({ text: `Duplicated ${stop.name}` });
+    } catch {
+      setToast({ text: "Couldn't duplicate that stop. Try again.", error: true });
+    }
+  };
+
   const removeFromState = (id: string) =>
     setTrip((t) => {
       const layout = Object.fromEntries(Object.entries(t.layout).map(([k, ids]) => [k, ids.filter((x) => x !== id)]));
@@ -649,6 +678,7 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
       onSelectStop={selectStop}
       onEditStop={openEditor}
       onInfoStop={setInfoStop}
+      onDuplicateStop={duplicateStop}
       onAddStop={openNew}
       onReroute={reroute}
       rerouting={rerouting === day.id}
@@ -670,6 +700,7 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
           onSelect={() => setSelectedStop(id)}
           onEdit={() => openEditor(id)}
           onInfo={() => setInfoStop(id)}
+          onDuplicate={() => duplicateStop(id)}
         />
       ))}
     </SortableList>
