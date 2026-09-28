@@ -19,10 +19,10 @@ const STARTERS = [
   { label: "Permits & fees", question: "Do I need any permits, passes or bookings, and what are the fees?" },
 ];
 
-type Props = { stopId: string; stopName: string; onClose: () => void };
+type Props = { stopId: string; stopName: string; mapsUrl: string | null; hipcampUrl: string | null; onClose: () => void };
 
 /** AI briefing about a stop, with a follow-up conversation. Streams from /api/stops/[id]/chat. */
-export function StopInfo({ stopId, stopName, onClose }: Props) {
+export function StopInfo({ stopId, stopName, mapsUrl, hipcampUrl, onClose }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [status, setStatus] = useState<string | null>(null); // progress while streaming
@@ -145,9 +145,43 @@ export function StopInfo({ stopId, stopName, onClose }: Props) {
         <div className="flex items-start justify-between gap-3 border-b border-line px-5 pt-4 pb-3">
           <div className="min-w-0">
             <span className="text-[12.5px] font-bold text-muted">About this stop</span>
-            <h2 id="stop-info-title" className="truncate text-[26px] font-bold">
-              {stopName}
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 id="stop-info-title" className="truncate text-[26px] font-bold">
+                {stopName}
+              </h2>
+              {mapsUrl && (
+                <a
+                  href={mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Open ${stopName} in Google Maps`}
+                  title="Open in Google Maps"
+                  className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border-[1.5px] border-line text-ocean hover:border-ocean"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                </a>
+              )}
+              {hipcampUrl && (
+                <a
+                  href={hipcampUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Find Hipcamps near ${stopName}`}
+                  title="Find Hipcamps nearby"
+                  className="flex h-8 shrink-0 items-center gap-1 rounded-lg border-[1.5px] border-line px-2 text-[12.5px] font-bold text-myrtle hover:border-myrtle"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M3.5 21 12 4l8.5 17" />
+                    <path d="M12 4v17" />
+                    <path d="M2 21h20" />
+                  </svg>
+                  Hipcamp
+                </a>
+              )}
+            </div>
           </div>
           <button type="button" onClick={onClose} aria-label="Close" className="cursor-pointer px-2 py-1 text-[22px] leading-none text-muted">
             ×

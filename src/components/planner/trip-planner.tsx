@@ -29,6 +29,7 @@ import { SortableList } from "./sortable-list";
 import { StopCard, type DriveIn } from "./stop-card";
 import { StopEditor, type EditorValues } from "./stop-editor";
 import { StopInfo } from "./stop-info";
+import { googleMapsLink, hipcampLink } from "@/lib/trip/maps-link";
 import { TripEditor } from "./trip-editor";
 import { MapSearch, ResultCard, type SearchResult } from "./map-search";
 import { TripMap, type MapBounds, type MapPoint, type MapRoute } from "./trip-map";
@@ -1166,7 +1167,13 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
       {body}
       {toastEl}
       {infoStop && trip.stops[infoStop] && (
-        <StopInfo stopId={infoStop} stopName={trip.stops[infoStop].name} onClose={() => setInfoStop(null)} />
+        <StopInfo
+          stopId={infoStop}
+          stopName={trip.stops[infoStop].name}
+          mapsUrl={googleMapsLink(trip.places[trip.stops[infoStop].placeId], trip.stops[infoStop].name)}
+          hipcampUrl={hipcampLink(trip.places[trip.stops[infoStop].placeId], trip.stops[infoStop].name)}
+          onClose={() => setInfoStop(null)}
+        />
       )}
     </APIProvider>
   );

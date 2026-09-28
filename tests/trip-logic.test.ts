@@ -6,6 +6,7 @@ import { dayWarnings } from "@/lib/trip/warnings";
 import { applyOrder, rerouteParts } from "@/lib/trip/reroute";
 import { formatCost, fuelCost } from "@/lib/trip/fuel";
 import { cleanStay, staySummary, transportSummary } from "@/lib/trip/details";
+import { googleMapsLink, hipcampLink } from "@/lib/trip/maps-link";
 
 const place = (id: string, lat: number | null, lng: number | null, businessStatus: string | null = null) => ({
   id,
@@ -213,5 +214,22 @@ describe("travel and stay details", () => {
   it("summarises a stay and drops empty fields", () => {
     expect(staySummary({ checkIn: "14:00", checkOut: "10:00", bookingRef: "XYZ" })).toBe("in 2:00pm · out 10:00am · Ref XYZ");
     expect(cleanStay({ checkIn: "", phone: " ", bookingRef: "R1" })).toEqual({ bookingRef: "R1" });
+  });
+});
+
+describe("googleMapsLink", () => {
+  it("prefers the saved Maps link, then coordinates, then the name", () => {
+    const base = { id: "p", name: "Stanley", lat: -40.76, lng: 145.29, businessStatus: null, mapsUrl: null };
+    expect(googleMapsLink({ ...base, mapsUrl: "https://maps.google.com/?cid=1" }, "x")).toBe("https://maps.google.com/?cid=1");
+    expect(googleMapsLink(base, "x")).toBe("https://www.google.com/maps/search/?api=1&query=-40.76%2C145.29");
+    expect(googleMapsLink({ ...base, lat: null, lng: null }, "x")).toBe("https://www.google.com/maps/search/?api=1&query=Stanley");
+  });
+});
+
+describe("hipcampLink", () => {
+  it("searches Hipcamp around the place, or gives up without coordinates", () => {
+    const base = { id: "p", name: "Sawtell", lat: -30.37071, lng: 153.09581, businessStatus: null, mapsUrl: null };
+    expect(hipcampLink(base, "Sawtell")).toBe("https://www.hipcamp.com/en-AU/search?q=Sawtell&lat=-30.3707&lng=153.0958");
+    expect(hipcampLink({ ...base, lat: null, lng: null }, "Sawtell")).toBeNull();
   });
 });
