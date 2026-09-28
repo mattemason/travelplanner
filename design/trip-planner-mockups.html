@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trip Planner mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E9EEEC; --paper:#FFFFFF; --ink:#17272B; --muted:#5B6B6E; --line:#D5DDDA; --soft:#F3F6F5;
+  --myrtle:#2F6B4F; --lichen:#C75A1C; --ocean:#1F5A7A;
+  --warn-ink:#8A5300; --warn-bg:#FFF3D6; --bad-ink:#A3261A; --bad-bg:#FDE7E4; --good-ink:#2F6B4F; --good-bg:#E3F1E9;
+  --bezel:#1B282B; --contour:#CFDAD6;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E181A; --paper:#162428; --ink:#E4ECEA; --muted:#9AADAD; --line:#2B3C40; --soft:#1C2D31;
+    --myrtle:#62B08A; --lichen:#F0894A; --ocean:#62A8D0;
+    --warn-ink:#F4C46B; --warn-bg:#3A2E14; --bad-ink:#F59C90; --bad-bg:#3B1E1A; --good-ink:#7FCBA3; --good-bg:#1B3528;
+    --bezel:#050A0B; --contour:#23363A;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E181A; --paper:#162428; --ink:#E4ECEA; --muted:#9AADAD; --line:#2B3C40; --soft:#1C2D31;
+  --myrtle:#62B08A; --lichen:#F0894A; --ocean:#62A8D0;
+  --warn-ink:#F4C46B; --warn-bg:#3A2E14; --bad-ink:#F59C90; --bad-bg:#3B1E1A; --good-ink:#7FCBA3; --good-bg:#1B3528;
+  --bezel:#050A0B; --contour:#23363A;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.45}
+.intro{max-width:760px;margin:0 auto;padding:40px 24px 8px}
+.intro h1{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:700;font-size:44px;line-height:1;margin:0 0 12px;letter-spacing:.2px}
+.intro p{margin:0;color:var(--muted);max-width:62ch}
+.gallery{display:flex;gap:32px;padding:32px 24px 56px;overflow-x:auto;justify-content:flex-start}
+@media (min-width:1640px){.gallery{justify-content:center}}
+@media (max-width:820px){.gallery{flex-direction:column;align-items:center;overflow-x:visible}}
+figure{margin:0;flex:0 0 auto;width:360px;max-width:100%}
+figcaption{margin-top:14px;font-size:14px;color:var(--muted);max-width:340px}
+figcaption strong{color:var(--ink);display:block;font-size:15px}
+.phone{width:360px;max-width:100%;height:740px;border:10px solid var(--bezel);border-radius:38px;background:var(--paper);overflow:hidden;display:flex;flex-direction:column}
+.scr{flex:1;overflow-y:auto;overflow-x:hidden}
+.status{height:26px;display:flex;justify-content:space-between;align-items:center;padding:0 22px;font-size:12px;font-weight:700;color:var(--ink)}
+.head{padding:6px 18px 12px}
+.eyebrow-back{font-size:14px;color:var(--ocean);background:none;border:0;padding:0;font:inherit;cursor:pointer}
+h2{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:700;font-size:32px;line-height:1.05;margin:2px 0 2px}
+h3{font-family:"Barlow Condensed","Arial Narrow",sans-serif;font-weight:600;font-size:20px;margin:0}
+.sub{color:var(--muted);font-size:14px;margin:0}
+.actions{display:flex;gap:8px;margin-top:12px}
+.btn{font:inherit;font-size:14px;font-weight:700;border-radius:999px;padding:8px 14px;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.btn:focus-visible,.day:focus-visible,.check input:focus-visible+span{outline:3px solid var(--ocean);outline-offset:2px}
+/* map */
+.map{position:relative;height:190px;background:var(--soft);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.map svg{width:100%;height:100%;display:block}
+.map .contour{fill:none;stroke:var(--contour);stroke-width:1.2}
+.map .coast{fill:none;stroke:var(--muted);stroke-width:1.6;stroke-dasharray:1 5;stroke-linecap:round;opacity:.6}
+.map .route{fill:none;stroke:var(--legc,var(--ocean));stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round}
+.map .pin circle{fill:var(--paper);stroke:var(--legc,var(--ocean));stroke-width:3}
+.map .pin text{font:700 11px "Atkinson Hyperlegible",sans-serif;fill:var(--ink);text-anchor:middle}
+.map .lbl{font:600 12px "Barlow Condensed",sans-serif;fill:var(--muted)}
+/* legs + day strip */
+.legs{display:flex;gap:14px;padding:12px 18px 6px;font-size:12.5px;color:var(--muted)}
+.legs span{display:flex;align-items:center;gap:6px}
+.legs i{width:14px;height:4px;border-radius:2px;display:inline-block}
+.strip{display:flex;gap:6px;overflow-x:auto;padding:6px 18px 12px;scrollbar-width:none}
+.strip::-webkit-scrollbar{display:none}
+.day{flex:0 0 auto;width:52px;border:1.5px solid var(--line);border-radius:12px;background:var(--paper);padding:0 0 6px;text-align:center;cursor:pointer;font:inherit;color:var(--ink);overflow:hidden}
+.day b{display:block;height:5px;background:var(--legc)}
+.day small{display:block;font-size:11px;color:var(--muted);margin-top:5px}
+.day em{display:block;font-style:normal;font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:22px;line-height:1.05}
+.day[aria-pressed="true"]{border-color:var(--legc);box-shadow:inset 0 0 0 1.5px var(--legc)}
+.panel{padding:4px 18px 24px}
+.panel-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:8px}
+.legtag{font-size:12.5px;font-weight:700;color:var(--legc)}
+.stops{list-style:none;margin:0;padding:0}
+.stops li{display:flex;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.stops li:first-child{border-top:0}
+.num{flex:0 0 24px;height:24px;border-radius:50%;border:2px solid var(--legc);font-size:12px;font-weight:700;display:grid;place-items:center}
+.stopname{font-weight:700}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.chip{font-size:11.5px;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--muted);border:1px solid var(--line)}
+.chip.closed{background:var(--bad-bg);color:var(--bad-ink);border-color:transparent;font-weight:700}
+.notice{border-radius:12px;padding:10px 12px;font-size:13.5px;margin:0 0 8px}
+.notice.warn{background:var(--warn-bg);color:var(--warn-ink)}
+.notice.bad{background:var(--bad-bg);color:var(--bad-ink)}
+.notice b{display:block;font-size:14px}
+.overnight{margin-top:12px;font-size:13.5px;color:var(--muted)}
+.overnight b{color:var(--ink)}
+/* day view timeline */
+.tl{list-style:none;margin:0;padding:0 18px 8px}
+.tl .stop{position:relative;padding:12px 0 12px 64px}
+.tl .time{position:absolute;left:0;top:14px;font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:17px}
+.tl .stop::before{content:"";position:absolute;left:47px;top:18px;width:12px;height:12px;border-radius:50%;background:var(--paper);border:3px solid var(--ocean)}
+.tl .leg{position:relative;padding:4px 0 4px 64px;font-size:13px;color:var(--muted)}
+.tl .leg::before{content:"";position:absolute;left:52px;top:-6px;bottom:-6px;width:3px;background:var(--ocean);border-radius:2px}
+.tl .leg.hard::before{background:repeating-linear-gradient(var(--ocean) 0 6px,transparent 6px 10px)}
+.tl .leg b{color:var(--ink)}
+.stop .note{font-size:13.5px;color:var(--muted);margin:4px 0 6px}
+.nav{font:inherit;font-size:13px;font-weight:700;color:var(--ocean);background:none;border:1.5px solid var(--line);border-radius:999px;padding:4px 12px;cursor:pointer}
+.planb{margin:8px 18px 24px;border:1.5px dashed var(--line);border-radius:14px;padding:12px 14px}
+.planb p{margin:4px 0 10px;font-size:13.5px;color:var(--muted)}
+.summary{display:flex;gap:8px;padding:0 18px 12px}
+.summary div{flex:1;background:var(--soft);border-radius:12px;padding:8px 10px}
+.summary em{display:block;font-style:normal;font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:22px;line-height:1.1}
+.summary small{color:var(--muted);font-size:12px}
+/* sync */
+.src{margin:0 18px 14px;padding:12px 14px;border-radius:14px;background:var(--soft);font-size:13.5px}
+.src b{display:block;font-size:14.5px}
+.group{padding:0 18px 12px}
+.group h3{display:flex;justify-content:space-between;align-items:baseline;margin:6px 0 4px}
+.group h3 small{font-family:"Atkinson Hyperlegible",sans-serif;font-size:12.5px;color:var(--muted);font-weight:400}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line);font-size:14px}
+.row span small{display:block;color:var(--muted);font-size:12.5px}
+.badge{font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:999px;white-space:nowrap}
+.badge.new{background:var(--good-bg);color:var(--good-ink)}
+.badge.gone{background:var(--soft);color:var(--muted)}
+.badge.closed{background:var(--bad-bg);color:var(--bad-ink)}
+.footer{position:sticky;bottom:0;background:var(--paper);border-top:1px solid var(--line);padding:12px 18px 16px;display:flex;gap:8px}
+.footer .btn{flex:1}
+/* checklist */
+.progress{margin:0 18px 16px}
+.bar{height:8px;border-radius:4px;background:var(--soft);overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;width:0;background:var(--myrtle);transition:width .25s}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+.check{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-top:1px solid var(--line);cursor:pointer}
+.check input{position:absolute;opacity:0;pointer-events:none}
+.check span.box{flex:0 0 22px;height:22px;border-radius:7px;border:2px solid var(--line);display:grid;place-items:center;margin-top:1px}
+.check input:checked+span.box{background:var(--myrtle);border-color:var(--myrtle)}
+.check input:checked+span.box::after{content:"";width:6px;height:11px;border:solid var(--paper);border-width:0 2.5px 2.5px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.check .t{flex:1;font-size:14.5px}
+.check .t small{display:block;color:var(--muted);font-size:12.5px}
+.check input:checked~.t{color:var(--muted);text-decoration:line-through}
+.due{font-size:12px;font-weight:700;white-space:nowrap;color:var(--muted)}
+.due.soon{color:var(--warn-ink)}
+/* continuous trip list */
+[hidden]{display:none!important}
+.phone{position:relative}
+.scr{position:relative}
+.sticky{position:sticky;top:0;z-index:5;background:var(--paper);border-bottom:1px solid var(--line)}
+.dsec{padding:0 18px 4px}
+.dhead{display:flex;justify-content:space-between;align-items:baseline;padding:18px 0 8px;border-bottom:2px solid var(--legc);margin-bottom:4px}
+.dsec .legtag{color:var(--legc)}
+.warns .notice{margin:8px 0}
+.stops .item{align-items:flex-start;padding:10px 6px;margin:0 -6px;border-radius:10px;background:var(--paper);cursor:grab;user-select:none;-webkit-user-select:none}
+.stops .item:hover{background:var(--soft)}
+.stops .num{border-color:var(--legc);margin-top:1px}
+.item .body{flex:1;min-width:0}
+.meta{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.meta b{color:var(--ink);font-weight:700}
+.chip.ref{background:var(--good-bg);color:var(--good-ink);border-color:transparent}
+.edit{flex:0 0 32px;height:32px;border-radius:9px;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);display:grid;place-items:center;cursor:pointer;opacity:0;transition:opacity .15s}
+.item:hover .edit,.item:focus-within .edit,.edit:focus-visible{opacity:1}
+.edit:focus-visible{outline:3px solid var(--ocean);outline-offset:2px}
+@media (hover:none){.edit{opacity:1}}
+.ghost{opacity:.3}
+.chosen{background:var(--soft)!important;box-shadow:0 8px 22px rgba(10,20,22,.18)}
+.stops:empty{min-height:48px;border:1.5px dashed var(--line);border-radius:10px;margin:6px 0}
+.stops:empty::before{content:"Drag stops here";display:block;padding:13px;font-size:13px;color:var(--muted)}
+.end{margin:0;padding:22px 18px 380px;color:var(--muted);font-size:13px;text-align:center}
+/* edit sheet */
+.backdrop{position:absolute;inset:0;background:rgba(10,20,22,.45);z-index:20}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:21;background:var(--paper);border-radius:22px 22px 0 0;padding:10px 18px 18px;max-height:86%;overflow-y:auto;animation:sheetUp .22s ease-out}
+@keyframes sheetUp{from{transform:translateY(40px);opacity:0}}
+@media (prefers-reduced-motion:reduce){.sheet{animation:none}.edit{transition:none}}
+.grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 10px}
+.fld{display:block;font-size:13px;font-weight:700;color:var(--muted);margin:10px 0}
+.fld input,.fld textarea{display:block;width:100%;margin-top:4px;font:inherit;font-weight:400;font-size:15px;color:var(--ink);background:var(--soft);border:1.5px solid var(--line);border-radius:10px;padding:9px 11px;resize:vertical}
+.fld input:focus,.fld textarea:focus{outline:3px solid var(--ocean);outline-offset:1px}
+.tagpick{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.tagpick button{font:inherit;font-size:13px;padding:5px 11px;border-radius:999px;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer}
+.tagpick button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.tagpick button:focus-visible{outline:3px solid var(--ocean);outline-offset:2px}
+.sheet-actions{display:flex;gap:8px;margin-top:16px}
+.sheet-actions .btn{flex:1}
+</style>
+</head>
+<body>
+
+<header class="intro">
+  <h1>Trip Planner mockups</h1>
+  <p>Four core screens from the spec, filled with the real Tasmania trip. Tap a day on the first screen to switch days, and tick items on the checklist. Drive times and map are placeholders until the Google APIs are wired in.</p>
+</header>
+
+<main class="gallery">
+
+  <!-- 1. Trip view -->
+  <figure>
+    <div class="phone"><div class="scr" id="tripScreen">
+      <div class="status"><span>9:41</span><span>No signal</span></div>
+      <div class="head">
+        <h2>Tasmania</h2>
+        <p class="sub">18 Jan to 3 Feb 2027, 17 days, Devonport return</p>
+        <div class="actions">
+          <button class="btn">Sync</button>
+          <button class="btn primary">Build plan</button>
+          <button class="btn">Share</button>
+        </div>
+      </div>
+      <div class="map" aria-label="Map preview of the selected day">
+        <svg viewBox="0 0 340 190" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <path class="contour" d="M-10 40 C60 10 120 60 190 30 S300 10 360 40"/>
+          <path class="contour" d="M-10 70 C50 45 130 95 200 62 S290 40 360 72"/>
+          <path class="contour" d="M-10 105 C70 80 140 130 215 98 S300 78 360 108"/>
+          <path class="contour" d="M-10 140 C60 118 150 165 225 132 S310 115 360 144"/>
+          <path class="contour" d="M-10 172 C80 152 160 196 240 166 S320 150 360 178"/>
+          <path class="coast" d="M40 -5 C30 40 55 70 38 110 S45 170 30 200"/>
+          <text class="lbl" x="10" y="182">Southern Ocean</text>
+          <path class="route" d="M92 160 C120 140 110 118 88 104 S72 70 104 58 S150 40 178 32"/>
+          <g class="pin"><circle cx="92" cy="160" r="11"/><text x="92" y="164">1</text></g>
+          <g class="pin"><circle cx="88" cy="104" r="11"/><text x="88" y="108">2</text></g>
+          <g class="pin"><circle cx="104" cy="58" r="11"/><text x="104" y="62">3</text></g>
+          <g class="pin"><circle cx="178" cy="32" r="11"/><text x="178" y="36">4</text></g>
+        </svg>
+      </div>
+      <div class="sticky" id="sticky">
+        <div class="legs">
+          <span><i style="background:var(--myrtle)"></i>Solo, 18–20 Jan</span>
+          <span><i style="background:var(--lichen)"></i>Family, 21–25 Jan</span>
+          <span><i style="background:var(--ocean)"></i>Solo, 26 Jan–3 Feb</span>
+        </div>
+        <div class="strip" id="strip" role="group" aria-label="Jump to day"></div>
+      </div>
+      <div id="tripList"></div>
+      <p class="end">End of trip. Spirit of Tasmania home.</p>
+    </div>
+    <div class="backdrop" id="backdrop" hidden></div>
+    <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden>
+      <div class="grab"></div>
+      <h3 id="sheetTitle">Edit stop</h3>
+      <label class="fld">Name<input id="fName" autocomplete="off"></label>
+      <label class="fld">Arrival time<input id="fTime" type="time"></label>
+      <div class="fld">Tags<div class="tagpick" id="fTags"></div></div>
+      <label class="fld">Notes<textarea id="fNotes" rows="3" placeholder="Tides, fuel, who's driving, anything useful"></textarea></label>
+      <label class="fld">Booking reference<input id="fBooking" autocomplete="off"></label>
+      <label class="fld">Link<input id="fLink" type="url" placeholder="https://"></label>
+      <div class="sheet-actions"><button class="btn" id="fCancel" type="button">Cancel</button><button class="btn primary" id="fSave" type="button">Save</button></div>
+    </div>
+    </div>
+    <figcaption><strong>Trip view</strong>The whole trip as one list, split by date. Tap a date to jump to it, drag any stop up, down or onto another day, and use the pencil to add details.</figcaption>
+  </figure>
+
+  <!-- 2. Day view -->
+  <figure>
+    <div class="phone"><div class="scr" style="--legc:var(--ocean)">
+      <div class="status"><span>9:41</span><span>No signal</span></div>
+      <div class="head">
+        <button class="eyebrow-back">‹ Tasmania</button>
+        <h2>Sat 30 Jan</h2>
+        <p class="sub"><span class="legtag">Solo</span>, Strahan to Corinna</p>
+      </div>
+      <div class="summary">
+        <div><em>4h 15m</em><small>driving</small></div>
+        <div><em>4</em><small>stops</small></div>
+        <div><em>Corinna</em><small>tonight</small></div>
+      </div>
+      <div style="padding:0 18px 6px">
+        <p class="notice warn"><b>Weather-dependent day</b>Climies Track is for experienced drivers only. Check conditions the night before and turn back if bog holes look deep.</p>
+        <p class="notice bad"><b>No mobile coverage</b>From Trial Harbour to Corinna. Leave your plan with someone and carry the PLB.</p>
+      </div>
+      <ol class="tl">
+        <li class="stop"><span class="time">7:30</span><div class="stopname">Strahan</div><div class="note">Fuel up here. Nothing until Zeehan if you turn back.</div><button class="nav">Navigate</button></li>
+        <li class="leg"><b>55 min</b>, sealed then gravel</li>
+        <li class="stop"><span class="time">8:30</span><div class="stopname">Trial Harbour</div><div class="chips"><span class="chip">Camp</span></div><div class="note">Air down tyres before the track.</div><button class="nav">Navigate</button></li>
+        <li class="leg hard"><b>2h 30m</b>, 4WD, Climies Track</li>
+        <li class="stop"><span class="time">11:15</span><div class="stopname">Granville Harbour</div><div class="chips"><span class="chip">4WD</span><span class="chip">Weather</span></div><div class="note">Lunch stop. Air back up.</div><button class="nav">Navigate</button></li>
+        <li class="leg"><b>50 min</b>, gravel</li>
+        <li class="stop"><span class="time">1:00</span><div class="stopname">Corinna</div><div class="chips"><span class="chip">Book ahead</span></div><div class="note">Pieman River cruise if there's time.</div><button class="nav">Navigate</button></li>
+      </ol>
+      <div class="planb">
+        <h3>If Climies is closed</h3>
+        <p>Go round on the bitumen via Zeehan. It adds about an hour and skips Trial Harbour.</p>
+        <button class="btn">Re-plan from here</button>
+      </div>
+    </div></div>
+    <figcaption><strong>Day view</strong>One day in order, with drive legs between stops, quiet warnings on top and a plan B for the hard 4WD day.</figcaption>
+  </figure>
+
+  <!-- 3. Sync -->
+  <figure>
+    <div class="phone"><div class="scr">
+      <div class="status"><span>9:41</span><span>5G</span></div>
+      <div class="head">
+        <button class="eyebrow-back">‹ Tasmania</button>
+        <h2>Sync from Google</h2>
+        <p class="sub">Review the changes before they touch your plan.</p>
+      </div>
+      <div class="src"><b>Tasmania list, 40 places</b>From your Takeout archive in Google Drive, created 26 Sep 2026. Last sync 12 Sep.</div>
+      <div class="group">
+        <h3>New places <small>go to the tray</small></h3>
+        <div class="row"><span>Hansons Peak<small>Cradle Mountain area</small></span><span class="badge new">New</span></div>
+        <div class="row"><span>Lake Gairdner Free Camping Area<small>Near Tullah</small></span><span class="badge new">New</span></div>
+        <div class="row"><span>Peppermint Campground (PWS)<small>Location to confirm</small></span><span class="badge new">New</span></div>
+      </div>
+      <div class="group">
+        <h3>Now closed <small>stays scheduled, flagged</small></h3>
+        <div class="row"><span>Montezuma Falls<small>Scheduled Thu 28 Jan</small></span><span class="badge closed">Temporarily closed</span></div>
+        <div class="row"><span>Tasmans Arch<small>Scheduled Fri 22 Jan</small></span><span class="badge closed">Temporarily closed</span></div>
+      </div>
+      <div class="group">
+        <h3>Removed from list <small>kept until you delete</small></h3>
+        <div class="row"><span>The Neck Lookout<small>Bruny Island, not scheduled</small></span><span class="badge gone">Removed</span></div>
+      </div>
+      <div class="footer">
+        <button class="btn">Cancel</button>
+        <button class="btn primary">Apply 6 changes</button>
+      </div>
+    </div></div>
+    <figcaption><strong>Sync</strong>Every import lands as a diff first. New places wait in the tray, and closures get flagged on the days they affect.</figcaption>
+  </figure>
+
+  <!-- 4. Checklist -->
+  <figure>
+    <div class="phone"><div class="scr">
+      <div class="status"><span>9:41</span><span>5G</span></div>
+      <div class="head">
+        <button class="eyebrow-back">‹ Tasmania</button>
+        <h2>Checklist</h2>
+        <p class="sub">Bookings, passes and gear for the trip.</p>
+      </div>
+      <div class="progress"><span id="doneCount">0 of 9 done</span><div class="bar"><i id="doneBar"></i></div></div>
+      <div class="group" id="checklist">
+        <h3>Book now</h3>
+        <label class="check"><input type="checkbox"><span class="box"></span><span class="t">Spirit of Tasmania return crossing<small>4WD, back on 3 Feb</small></span><span class="due soon">Now</span></label>
+        <label class="check"><input type="checkbox"><span class="box"></span><span class="t">Family flights<small>Into Hobart 21 Jan, out of Launceston 26 Jan</small></span><span class="due soon">Now</span></label>
+        <label class="check"><input type="checkbox"><span class="box"></span><span class="t">Fortescue Bay campsite<small>Thu 21 Jan</small></span><span class="due soon">Now</span></label>
+        <label class="check"><input type="checkbox"><span class="box"></span><span class="t">Coles Bay or Bicheno stay<small>Sat 23 Jan</small></span><span class="due soon">Now</span></label>
+        <h3 style="margin-top:14px">Before you go</h3>
+        <label class="check"><input type="checkbox"><span class="box"></span><span class="t">West Coast Wilderness Railway<small>Return trip from Strahan, Fri 29 Jan</small></span><span class="due">Dec</span></label>
+        <label class="check"><input type="checkbox"><span class="box"></span><span class="t">Corinna accommodation<small>Sat 30 Jan</small></span><span class="due">Dec</span></label>
+        <label class="check"><input type="checkbox"><span class="box"></span><span class="t">Tasmanian Parks Holiday Pass<small>Mt Field, Freycinet, Cradle, Tasman</small></span><span class="due">17 Jan</span></label>
+        <label class="check"><input type="checkbox"><span class="box"></span><span class="t">Arthur-Pieman Recreational Driver Pass<small>Online or at Arthur River</small></span><span class="due">31 Jan</span></label>
+        <label class="check"><input type="checkbox"><span class="box"></span><span class="t">PLB or satellite messenger, UHF radio<small>For both solo legs</small></span><span class="due">17 Jan</span></label>
+      </div>
+    </div></div>
+    <figcaption><strong>Checklist</strong>Bookings and permits sorted by urgency. Anything due in the next 14 days also shows on the trip view.</figcaption>
+  </figure>
+
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+<script>
+const LEG = {s1:'var(--myrtle)', fam:'var(--lichen)', s2:'var(--ocean)'};
+const LEGNAME = {s1:'Solo', fam:'Family', s2:'Solo'};
+const CLOSED = ['Montezuma Falls','Tasmans Arch'];
+const days = [
+ ['Mon','18','Jan','s1','Tungatinah Lagoon',[['Devonport',[]],['Central Plateau lakes',['4WD']],['Tungatinah Lagoon',['Camp']]]],
+ ['Tue','19','Jan','s1','Cockle Creek',[['Horseshoe Falls',['Walk']],['Russell Falls',['Walk']],['Cockle Creek',['Camp']]]],
+ ['Wed','20','Jan','s1','Hobart',[['Cockle Creek',[]],['Hobart',[]]]],
+ ['Thu','21','Jan','fam','Fortescue Bay',[['Hobart airport',[]],['Fortescue Bay',['Camp','Book ahead']]]],
+ ['Fri','22','Jan','fam','Hobart',[['Cape Hauy',['Walk','Weather']],['Tasmans Arch',[]],['Remarkable Cave',[]],['Tessellated Pavement',[]],['kunanyi/Mt Wellington',['Weather']]]],
+ ['Sat','23','Jan','fam','Coles Bay',[['Salamanca Market',[]],['Coles Bay',['Book ahead']],['Cape Tourville',[]]]],
+ ['Sun','24','Jan','fam','Bicheno',[['Wineglass Bay or Mt Amos',['Walk']],['Bluestone Bay',['4WD']],['Bicheno Blowhole',[]],['Redbill Beach',[]]]],
+ ['Mon','25','Jan','fam','Launceston',[['Binalong Bay',[]],['Cosy Corner',[]],['Sloop Reef',[]],['Halls Falls',['Walk']]]],
+ ['Tue','26','Jan','s2','Cradle Mountain',[['Launceston airport',[]],['Cradle Mountain',[]]]],
+ ['Wed','27','Jan','s2','Lake Gairdner',[['Hansons Peak',['Walk']],['Tullah',[]],['Lake Rosebery',[]],['Lake Gairdner',['Camp']]]],
+ ['Thu','28','Jan','s2','Strahan',[['Montezuma Falls',['Walk']],['Horsetail Falls',[]],['Nelson Falls',['Walk']],['Strahan',[]]]],
+ ['Fri','29','Jan','s2','Strahan',[['West Coast Wilderness Railway',['Book ahead']]]],
+ ['Sat','30','Jan','s2','Corinna',[['Strahan',[]],['Trial Harbour',['Camp']],['Granville Harbour',['4WD','Weather']],['Corinna',['Book ahead']]]],
+ ['Sun','31','Jan','s2','Arthur River',[['Fatman Barge',[]],['Western Explorer',['4WD']],['Arthur River',['Permit']]]],
+ ['Mon','1','Feb','s2','Sandy Cape',[['Temma',['4WD']],['Sandy Cape Track',['4WD','Camp','Weather']]]],
+ ['Tue','2','Feb','s2','Devonport',[['Arthur River',[]],['Stanley',[]],['Devonport',[]]]],
+ ['Wed','3','Feb','s2','On the ferry',[['Spirit of Tasmania',['Book ahead']]]]
+];
+const trip = document.getElementById('tripScreen');
+const strip = document.getElementById('strip');
+const sticky = document.getElementById('sticky');
+const tripList = document.getElementById('tripList');
+const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+const TAGS = ['4WD','Walk','Camp','Permit','Book ahead','Weather'];
+const DETAILS = {
+  '30-Strahan': {time:'07:30', notes:'Fuel up here. Nothing until Zeehan if you turn back.'},
+  '30-Trial Harbour': {time:'08:30', notes:'Air down tyres before Climies.'},
+  '30-Granville Harbour': {time:'11:15', notes:'Lunch, then air back up.'},
+  '30-Corinna': {time:'13:00', notes:"Pieman River cruise if there's time."},
+  '21-Hobart airport': {time:'11:00', notes:'Family lands. Check flight number.'},
+  '3-Spirit of Tasmania': {notes:'Return sailing from Devonport.'}
+};
+const STOPS = {};
+let uid = 0;
+const model = days.map(d => ({
+  dow:d[0], dd:d[1], mon:d[2], leg:d[3], night:d[4],
+  stops: d[5].map(s => { const o = {id:'s'+(uid++), name:s[0], tags:[...s[1]], time:'', notes:'', booking:'', link:'', ...(DETAILS[d[1]+'-'+s[0]]||{})}; STOPS[o.id]=o; return o; })
+}));
+
+const fmtTime = t => { if(!t) return ''; let [h,m] = t.split(':').map(Number); const ap = h>=12?'pm':'am'; h = h%12||12; return `${h}:${String(m).padStart(2,'0')}${ap}`; };
+const PENCIL = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+
+function itemHTML(s, n){
+  const chips = s.tags.map(t=>`<span class="chip">${esc(t)}</span>`).join('')
+    + (CLOSED.includes(s.name) ? '<span class="chip closed">Temporarily closed</span>' : '')
+    + (s.booking ? `<span class="chip ref">Ref ${esc(s.booking)}</span>` : '')
+    + (s.link ? `<a class="chip" href="${esc(s.link)}" target="_blank" rel="noopener">Link</a>` : '');
+  const meta = (s.time || s.notes) ? `<div class="meta">${s.time?`<b>${fmtTime(s.time)}</b> `:''}${esc(s.notes)}</div>` : '';
+  return `<li class="item" data-id="${s.id}"><span class="num">${n}</span><div class="body"><div class="stopname">${esc(s.name)}</div>${meta}${chips?`<div class="chips">${chips}</div>`:''}</div><button class="edit" type="button" aria-label="Edit ${esc(s.name)}">${PENCIL}</button></li>`;
+}
+function warnHTML(d){
+  const all = d.stops.flatMap(s=>s.tags);
+  const closed = d.stops.filter(s=>CLOSED.includes(s.name)).map(s=>s.name);
+  let h = '';
+  if (closed.length) h += `<p class="notice bad"><b>Temporarily closed</b>${esc(closed.join(' and '))}. Check before you go.</p>`;
+  if (all.includes('Weather')) h += `<p class="notice warn"><b>Weather-dependent day</b>Check conditions the night before.</p>`;
+  if (all.includes('Permit')) h += `<p class="notice warn"><b>Permit needed</b>Arthur-Pieman Recreational Driver Pass isn't ticked off yet.</p>`;
+  return h;
+}
+tripList.innerHTML = model.map((d,i)=>`<section class="dsec" data-i="${i}" style="--legc:${LEG[d.leg]}"><div class="dhead"><h3>${d.dow} ${d.dd} ${d.mon}</h3><span class="legtag">${LEGNAME[d.leg]}</span></div><div class="warns">${warnHTML(d)}</div><ol class="stops" data-i="${i}">${d.stops.map((s,k)=>itemHTML(s,k+1)).join('')}</ol><p class="overnight">Overnight: <b>${esc(d.night)}</b></p></section>`).join('');
+const secs = [...tripList.querySelectorAll('.dsec')];
+
+function refreshDay(i){
+  const sec = secs[i];
+  sec.querySelectorAll('.item .num').forEach((n,k)=>n.textContent = k+1);
+  sec.querySelector('.warns').innerHTML = warnHTML(model[i]);
+}
+function syncModel(){
+  secs.forEach((sec,i)=>{ model[i].stops = [...sec.querySelectorAll('.item')].map(li=>STOPS[li.dataset.id]); refreshDay(i); });
+}
+if (window.Sortable) {
+  tripList.querySelectorAll('.stops').forEach(ol => Sortable.create(ol, {
+    group:'trip', animation: reduce?0:150, delay:180, delayOnTouchOnly:true,
+    filter:'.edit, a', preventOnFilter:false,
+    ghostClass:'ghost', chosenClass:'chosen', scroll:true, scrollSensitivity:70, scrollSpeed:12,
+    onEnd: syncModel
+  }));
+}
+
+// day strip + scroll spy
+model.forEach((d,i)=>{
+  const b = document.createElement('button');
+  b.className = 'day'; b.type = 'button';
+  b.style.setProperty('--legc', LEG[d.leg]);
+  b.setAttribute('aria-label', `Jump to ${d.dow} ${d.dd} ${d.mon}`);
+  b.innerHTML = `<b></b><small>${d.dow}</small><em>${d.dd}</em>`;
+  b.addEventListener('click', ()=>goTo(i));
+  strip.appendChild(b);
+});
+let active = -1;
+function setActive(i){
+  if (i === active) return; active = i;
+  [...strip.children].forEach((b,j)=>b.setAttribute('aria-pressed', j===i?'true':'false'));
+  trip.style.setProperty('--legc', LEG[model[i].leg]);
+  const b = strip.children[i];
+  strip.scrollTo({left: b.offsetLeft - strip.clientWidth/2 + b.offsetWidth/2, behavior: reduce?'auto':'smooth'});
+}
+function goTo(i){ trip.scrollTo({top: secs[i].offsetTop - sticky.offsetHeight + 1, behavior: reduce?'auto':'smooth'}); }
+function spy(){
+  const y = trip.scrollTop + sticky.offsetHeight + 8;
+  let cur = 0; secs.forEach((s,i)=>{ if (s.offsetTop <= y) cur = i; });
+  setActive(cur);
+}
+trip.addEventListener('scroll', spy, {passive:true});
+spy();
+
+// edit sheet
+const sheet = document.getElementById('sheet'), backdrop = document.getElementById('backdrop');
+const $ = id => document.getElementById(id);
+const f = {name:$('fName'), time:$('fTime'), notes:$('fNotes'), booking:$('fBooking'), link:$('fLink')};
+const tagBox = document.getElementById('fTags');
+tagBox.innerHTML = TAGS.map(t=>`<button type="button" aria-pressed="false">${t}</button>`).join('');
+tagBox.addEventListener('click', e=>{ const b = e.target.closest('button'); if (b) b.setAttribute('aria-pressed', b.getAttribute('aria-pressed')==='true'?'false':'true'); });
+let editing = null, lastFocus = null;
+function openSheet(id){
+  editing = STOPS[id]; lastFocus = document.activeElement;
+  for (const k in f) f[k].value = editing[k] || '';
+  tagBox.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed', editing.tags.includes(b.textContent)?'true':'false'));
+  sheet.hidden = false; backdrop.hidden = false; f.name.focus();
+}
+function closeSheet(){ sheet.hidden = true; backdrop.hidden = true; editing = null; if (lastFocus) lastFocus.focus(); }
+function save(){
+  if (!editing) return;
+  for (const k in f) editing[k] = f[k].value.trim();
+  if (!editing.name) editing.name = 'Untitled stop';
+  editing.tags = [...tagBox.querySelectorAll('button[aria-pressed="true"]')].map(b=>b.textContent);
+  const li = tripList.querySelector(`[data-id="${editing.id}"]`);
+  const i = Number(li.closest('.dsec').dataset.i);
+  li.outerHTML = itemHTML(editing, 0);
+  refreshDay(i);
+  const id = editing.id; closeSheet();
+  tripList.querySelector(`[data-id="${id}"] .edit`).focus();
+}
+tripList.addEventListener('click', e=>{ const b = e.target.closest('.edit'); if (b) openSheet(b.closest('.item').dataset.id); });
+document.getElementById('fCancel').addEventListener('click', closeSheet);
+document.getElementById('fSave').addEventListener('click', save);
+backdrop.addEventListener('click', closeSheet);
+sheet.addEventListener('keydown', e=>{ if (e.key==='Escape') closeSheet(); if (e.key==='Enter' && e.target.tagName==='INPUT') save(); });
+
+const boxes = document.querySelectorAll('#checklist input');
+function tally(){
+  const n = [...boxes].filter(b=>b.checked).length;
+  document.getElementById('doneCount').textContent = `${n} of ${boxes.length} done`;
+  document.getElementById('doneBar').style.width = (n / boxes.length * 100) + '%';
+}
+boxes.forEach(b=>b.addEventListener('change', tally));
+tally();
+</script>
+</body>
+</html>

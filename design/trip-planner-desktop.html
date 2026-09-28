@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trip Planner desktop mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E9EEEC; --paper:#FFFFFF; --ink:#17272B; --muted:#5B6B6E; --line:#D5DDDA; --soft:#F3F6F5;
+  --myrtle:#2F6B4F; --lichen:#C75A1C; --ocean:#1F5A7A;
+  --warn-ink:#8A5300; --warn-bg:#FFF3D6; --bad-ink:#A3261A; --bad-bg:#FDE7E4; --good-ink:#2F6B4F; --good-bg:#E3F1E9;
+  --contour:#CFDAD6;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E181A; --paper:#162428; --ink:#E4ECEA; --muted:#9AADAD; --line:#2B3C40; --soft:#1C2D31;
+    --myrtle:#62B08A; --lichen:#F0894A; --ocean:#62A8D0;
+    --warn-ink:#F4C46B; --warn-bg:#3A2E14; --bad-ink:#F59C90; --bad-bg:#3B1E1A; --good-ink:#7FCBA3; --good-bg:#1B3528;
+    --contour:#23363A;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E181A; --paper:#162428; --ink:#E4ECEA; --muted:#9AADAD; --line:#2B3C40; --soft:#1C2D31;
+  --myrtle:#62B08A; --lichen:#F0894A; --ocean:#62A8D0;
+  --warn-ink:#F4C46B; --warn-bg:#3A2E14; --bad-ink:#F59C90; --bad-bg:#3B1E1A; --good-ink:#7FCBA3; --good-bg:#1B3528;
+  --contour:#23363A;
+}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+[hidden]{display:none!important}
+body{margin:0;height:100%;display:flex;flex-direction:column;background:var(--bg);color:var(--ink);font-family:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.45}
+h1,h2,h3{font-family:"Barlow Condensed","Arial Narrow",sans-serif;margin:0;line-height:1.05}
+.btn{font:inherit;font-size:14px;font-weight:700;border-radius:999px;padding:8px 16px;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.btn.quiet{border-style:dashed;color:var(--muted);font-weight:400}
+.btn:focus-visible,button:focus-visible,select:focus-visible{outline:3px solid var(--ocean);outline-offset:2px}
+
+/* top bar */
+.top{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:14px 24px;background:var(--paper);border-bottom:1px solid var(--line)}
+.top h1{font-size:34px;font-weight:700}
+.top p{margin:2px 0 0;color:var(--muted);font-size:14px}
+.top .actions{display:flex;gap:8px}
+
+/* three columns */
+.app{flex:1;min-height:0;display:grid;grid-template-columns:270px minmax(0,1fr) 400px}
+@media (max-width:1180px){.app{grid-template-columns:240px minmax(0,1fr) 340px}}
+@media (max-width:960px){.app{grid-template-columns:minmax(0,1fr)}.rail,.side{display:none}}
+.rail,.plan,.side{overflow-y:auto;min-height:0}
+.rail{background:var(--paper);border-right:1px solid var(--line);padding:18px 16px 40px}
+.side{background:var(--paper);border-left:1px solid var(--line)}
+.rh{font-size:19px;font-weight:600;margin:22px 0 8px;display:flex;justify-content:space-between;align-items:baseline}
+.rh:first-child{margin-top:0}
+.rh small{font-family:"Atkinson Hyperlegible",sans-serif;font-size:12.5px;font-weight:400;color:var(--muted)}
+.legs{list-style:none;margin:0;padding:0;font-size:13.5px}
+.legs li{display:flex;align-items:center;gap:8px;padding:3px 0}
+.legs i{width:16px;height:5px;border-radius:3px;display:inline-block}
+.legs span{color:var(--muted);margin-left:auto;font-size:12.5px}
+
+/* day nav */
+.daynav{display:flex;flex-direction:column;gap:2px}
+.dn{display:flex;gap:10px;align-items:center;text-align:left;width:100%;font:inherit;color:var(--ink);background:none;border:0;border-radius:10px;padding:6px 8px;cursor:pointer}
+.dn:hover{background:var(--soft)}
+.dn b{flex:0 0 4px;align-self:stretch;border-radius:2px;background:var(--legc)}
+.dn .d{flex:0 0 76px;font-family:"Barlow Condensed",sans-serif;font-weight:600;font-size:17px}
+.dn small{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dn[aria-current="true"]{background:var(--soft);box-shadow:inset 0 0 0 1.5px var(--legc)}
+
+/* centre plan */
+.plan{padding:0 32px 60vh}
+.plan-inner{max-width:760px;margin:0 auto}
+.dsec{padding-top:26px}
+.dhead{position:sticky;top:0;z-index:3;background:var(--bg);display:flex;align-items:baseline;gap:12px;padding:12px 0 8px;border-bottom:2px solid var(--legc)}
+.dhead h2{font-size:28px;font-weight:700}
+.legtag{font-size:13px;font-weight:700;color:var(--legc)}
+.dhead .night{margin-left:auto;font-size:13.5px;color:var(--muted)}
+.dhead .night b{color:var(--ink)}
+.warns{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.notice{border-radius:12px;padding:9px 12px;font-size:13.5px;margin:0}
+.notice b{margin-right:6px}
+.notice.warn{background:var(--warn-bg);color:var(--warn-ink)}
+.notice.bad{background:var(--bad-bg);color:var(--bad-ink)}
+.stops{list-style:none;margin:8px 0 0;padding:0}
+.item{display:flex;gap:12px;align-items:flex-start;padding:12px 12px 12px 8px;margin-bottom:6px;background:var(--paper);border:1px solid var(--line);border-radius:12px;cursor:grab;user-select:none;-webkit-user-select:none}
+.item:hover{border-color:var(--muted)}
+.grip{flex:0 0 10px;align-self:center;opacity:.25;color:var(--muted)}
+.item:hover .grip{opacity:1}
+.num{flex:0 0 26px;height:26px;border-radius:50%;border:2px solid var(--legc);font-size:12.5px;font-weight:700;display:grid;place-items:center}
+.body{flex:1;min-width:0}
+.stopname{font-weight:700;font-size:15.5px}
+.stopname .t{font-weight:400;color:var(--muted);margin-right:8px}
+.notes{font-size:13.5px;color:var(--muted);margin-top:2px}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.chip{font-size:11.5px;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--muted);border:1px solid var(--line);text-decoration:none}
+.chip.closed{background:var(--bad-bg);color:var(--bad-ink);border-color:transparent;font-weight:700}
+.chip.ref{background:var(--good-bg);color:var(--good-ink);border-color:transparent}
+.edit{flex:0 0 34px;height:34px;border-radius:9px;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);display:grid;place-items:center;cursor:pointer;opacity:0;transition:opacity .15s}
+.item:hover .edit,.item:focus-within .edit,.item.editing .edit{opacity:1}
+.item.editing{border-color:var(--ocean);box-shadow:0 0 0 2px var(--ocean)}
+@media (hover:none){.edit{opacity:1}}
+.ghost{opacity:.3}
+.chosen{box-shadow:0 10px 26px rgba(10,20,22,.2)}
+.stops:empty{min-height:52px;border:1.5px dashed var(--line);border-radius:12px}
+.stops:empty::before{content:"Drag stops here";display:block;padding:15px;font-size:13px;color:var(--muted)}
+.add{margin-top:2px}
+.end{text-align:center;color:var(--muted);font-size:13.5px;padding:30px 0}
+
+/* tray */
+.tray .item{padding:9px 10px;margin-bottom:6px}
+.tray .num{display:none}
+.tray .stopname{font-size:14px}
+.tray:empty::before{content:"Everything's scheduled"}
+
+/* right side */
+.map{position:relative;background:var(--soft);border-bottom:1px solid var(--line)}
+.map svg{display:block;width:100%;height:auto}
+.contour{fill:none;stroke:var(--contour);stroke-width:1.2}
+.coast{fill:none;stroke:var(--muted);stroke-width:1.6;stroke-dasharray:1 5;stroke-linecap:round;opacity:.6}
+.route{fill:none;stroke:var(--legc,var(--ocean));stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+.pin circle{fill:var(--paper);stroke:var(--legc,var(--ocean));stroke-width:3}
+.pin text{font:700 12px "Atkinson Hyperlegible",sans-serif;fill:var(--ink);text-anchor:middle}
+.pin .lab{font:600 14px "Barlow Condensed",sans-serif;text-anchor:start;paint-order:stroke;stroke:var(--soft);stroke-width:4px}
+.map .note{position:absolute;right:10px;bottom:8px;font-size:11.5px;color:var(--muted)}
+.panel{padding:18px 20px 30px}
+.panel h2{font-size:30px;font-weight:700}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}
+.stats div{background:var(--soft);border-radius:12px;padding:9px 11px}
+.stats em{display:block;font-style:normal;font-family:"Barlow Condensed",sans-serif;font-weight:700;font-size:21px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stats small{font-size:12px;color:var(--muted)}
+.due{list-style:none;margin:0;padding:0}
+.due li{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:14px}
+.due li span:last-child{font-size:12.5px;font-weight:700;color:var(--warn-ink);white-space:nowrap}
+
+/* editor */
+.editor{padding:18px 20px 30px}
+.editor .eh{display:flex;justify-content:space-between;align-items:center}
+.editor h2{font-size:28px;font-weight:700}
+.x{font:inherit;font-size:22px;line-height:1;background:none;border:0;color:var(--muted);cursor:pointer;padding:4px 8px;border-radius:8px}
+.fld{display:block;font-size:13px;font-weight:700;color:var(--muted);margin:12px 0}
+.fld input,.fld textarea,.fld select{display:block;width:100%;margin-top:4px;font:inherit;font-weight:400;font-size:15px;color:var(--ink);background:var(--soft);border:1.5px solid var(--line);border-radius:10px;padding:9px 11px;resize:vertical}
+.fld input:focus,.fld textarea:focus,.fld select:focus{outline:3px solid var(--ocean);outline-offset:1px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.two .fld{margin:0}
+.tagpick{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.tagpick button{font:inherit;font-size:13px;padding:5px 11px;border-radius:999px;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer}
+.tagpick button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.ed-actions{display:flex;gap:8px;margin-top:18px}
+.ed-actions .btn{flex:1}
+.remove{margin-top:14px;font:inherit;font-size:13.5px;color:var(--bad-ink);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline}
+.kbd{font-size:12px;color:var(--muted);margin-top:14px}
+@media (prefers-reduced-motion:reduce){.edit{transition:none}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div>
+    <h1>Tasmania</h1>
+    <p>18 Jan to 3 Feb 2027, 17 days, Devonport return</p>
+  </div>
+  <div class="actions">
+    <button class="btn" type="button">Sync from Google</button>
+    <button class="btn" type="button">Share</button>
+    <button class="btn primary" type="button">Build plan</button>
+  </div>
+</header>
+
+<div class="app">
+  <aside class="rail" aria-label="Trip navigation">
+    <h2 class="rh">Legs</h2>
+    <ul class="legs">
+      <li><i style="background:var(--myrtle)"></i>Solo<span>18–20 Jan</span></li>
+      <li><i style="background:var(--lichen)"></i>Family<span>21–25 Jan</span></li>
+      <li><i style="background:var(--ocean)"></i>Solo<span>26 Jan–3 Feb</span></li>
+    </ul>
+    <h2 class="rh">Days</h2>
+    <nav class="daynav" id="dayNav" aria-label="Jump to day"></nav>
+    <h2 class="rh">Not yet scheduled <small id="trayCount"></small></h2>
+    <ol class="stops tray" id="tray"></ol>
+  </aside>
+
+  <main class="plan" id="plan">
+    <div class="plan-inner">
+      <div id="days"></div>
+      <p class="end">End of trip. Spirit of Tasmania home.</p>
+    </div>
+  </main>
+
+  <aside class="side" id="side">
+    <div id="dayPanel">
+      <div class="map">
+        <svg viewBox="0 0 400 290" aria-label="Map preview of the day in view" role="img">
+          <path class="contour" d="M-10 40 C70 10 140 70 220 34 S350 10 420 44"/>
+          <path class="contour" d="M-10 90 C60 60 150 120 235 82 S340 55 420 92"/>
+          <path class="contour" d="M-10 140 C80 112 160 170 250 132 S350 108 420 144"/>
+          <path class="contour" d="M-10 190 C70 165 170 222 262 184 S360 160 420 196"/>
+          <path class="contour" d="M-10 240 C90 214 180 272 280 236 S370 214 420 250"/>
+          <path class="coast" d="M44 -5 C30 60 64 110 42 170 S52 250 34 300"/>
+          <path class="route" id="routePath" d="M96 256 C140 226 124 190 96 168 S74 118 116 96 S180 66 214 40"/>
+          <g id="pins"></g>
+        </svg>
+        <span class="note">Map placeholder</span>
+      </div>
+      <div class="panel" id="panel"></div>
+    </div>
+
+    <div class="editor" id="editor" hidden>
+      <div class="eh"><h2 id="edTitle">Edit stop</h2><button class="x" id="edClose" type="button" aria-label="Close">×</button></div>
+      <label class="fld">Name<input id="fName" autocomplete="off"></label>
+      <div class="two">
+        <label class="fld">Day<select id="fDay"></select></label>
+        <label class="fld">Arrival time<input id="fTime" type="time"></label>
+      </div>
+      <div class="fld">Tags<div class="tagpick" id="fTags"></div></div>
+      <label class="fld">Notes<textarea id="fNotes" rows="4" placeholder="Tides, fuel, who's driving, anything useful"></textarea></label>
+      <div class="two">
+        <label class="fld">Booking reference<input id="fBooking" autocomplete="off"></label>
+        <label class="fld">Link<input id="fLink" type="url" placeholder="https://"></label>
+      </div>
+      <div class="ed-actions"><button class="btn" id="fCancel" type="button">Cancel</button><button class="btn primary" id="fSave" type="button">Save</button></div>
+      <button class="remove" id="fRemove" type="button">Move to not yet scheduled</button>
+      <p class="kbd">Esc closes without saving.</p>
+    </div>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+<script>
+const LEG = {s1:'var(--myrtle)', fam:'var(--lichen)', s2:'var(--ocean)'};
+const LEGNAME = {s1:'Solo', fam:'Family', s2:'Solo'};
+const CLOSED = ['Montezuma Falls','Tasmans Arch'];
+const TAGS = ['4WD','Walk','Camp','Permit','Book ahead','Weather'];
+const days = [
+ ['Mon','18','Jan','s1','Tungatinah Lagoon',[['Devonport',[]],['Central Plateau lakes',['4WD']],['Tungatinah Lagoon',['Camp']]]],
+ ['Tue','19','Jan','s1','Cockle Creek',[['Horseshoe Falls',['Walk']],['Russell Falls',['Walk']],['Cockle Creek',['Camp']]]],
+ ['Wed','20','Jan','s1','Hobart',[['Cockle Creek',[]],['Hobart',[]]]],
+ ['Thu','21','Jan','fam','Fortescue Bay',[['Hobart airport',[]],['Fortescue Bay',['Camp','Book ahead']]]],
+ ['Fri','22','Jan','fam','Hobart',[['Cape Hauy',['Walk','Weather']],['Tasmans Arch',[]],['Remarkable Cave',[]],['Tessellated Pavement',[]],['kunanyi/Mt Wellington',['Weather']]]],
+ ['Sat','23','Jan','fam','Coles Bay',[['Salamanca Market',[]],['Coles Bay',['Book ahead']],['Cape Tourville',[]]]],
+ ['Sun','24','Jan','fam','Bicheno',[['Wineglass Bay or Mt Amos',['Walk']],['Bluestone Bay',['4WD']],['Bicheno Blowhole',[]],['Redbill Beach',[]]]],
+ ['Mon','25','Jan','fam','Launceston',[['Binalong Bay',[]],['Cosy Corner',[]],['Sloop Reef',[]],['Halls Falls',['Walk']]]],
+ ['Tue','26','Jan','s2','Cradle Mountain',[['Launceston airport',[]],['Cradle Mountain',[]]]],
+ ['Wed','27','Jan','s2','Lake Gairdner',[['Hansons Peak',['Walk']],['Tullah',[]],['Lake Rosebery',[]],['Lake Gairdner',['Camp']]]],
+ ['Thu','28','Jan','s2','Strahan',[['Montezuma Falls',['Walk']],['Horsetail Falls',[]],['Nelson Falls',['Walk']],['Strahan',[]]]],
+ ['Fri','29','Jan','s2','Strahan',[['West Coast Wilderness Railway',['Book ahead']]]],
+ ['Sat','30','Jan','s2','Corinna',[['Strahan',[]],['Trial Harbour',['Camp']],['Granville Harbour',['4WD','Weather']],['Corinna',['Book ahead']]]],
+ ['Sun','31','Jan','s2','Arthur River',[['Fatman Barge',[]],['Western Explorer',['4WD']],['Arthur River',['Permit']]]],
+ ['Mon','1','Feb','s2','Sandy Cape',[['Temma',['4WD']],['Sandy Cape Track',['4WD','Camp','Weather']]]],
+ ['Tue','2','Feb','s2','Devonport',[['Arthur River',[]],['Stanley',[]],['Devonport',[]]]],
+ ['Wed','3','Feb','s2','On the ferry',[['Spirit of Tasmania',['Book ahead']]]]
+];
+const TRAY = [['Peppermint Campground (PWS)',['Camp'],'Location to confirm.'],['Lime Bay State Reserve',[],'Tasman Peninsula.'],['Cape Raoul Track',['Walk'],'About 5 hours return. Alternative to Cape Hauy.']];
+const DETAILS = {
+  '30-Strahan': {time:'07:30', notes:'Fuel up here. Nothing until Zeehan if you turn back.'},
+  '30-Trial Harbour': {time:'08:30', notes:'Air down tyres before Climies.'},
+  '30-Granville Harbour': {time:'11:15', notes:'Lunch, then air back up.'},
+  '30-Corinna': {time:'13:00', notes:"Pieman River cruise if there's time."},
+  '21-Hobart airport': {time:'11:00', notes:'Family lands. Check flight number.'},
+  '3-Spirit of Tasmania': {notes:'Return sailing from Devonport.'}
+};
+
+const $ = id => document.getElementById(id);
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+const fmtTime = t => { if(!t) return ''; let [h,m] = t.split(':').map(Number); const ap = h>=12?'pm':'am'; h = h%12||12; return `${h}:${String(m).padStart(2,'0')}${ap}`; };
+const STOPS = {}; let uid = 0;
+const mk = (name,tags,extra={}) => { const o = {id:'s'+(uid++), name, tags:[...tags], time:'', notes:'', booking:'', link:'', ...extra}; STOPS[o.id]=o; return o; };
+const model = days.map(d => ({dow:d[0], dd:d[1], mon:d[2], leg:d[3], night:d[4], stops:d[5].map(s=>mk(s[0],s[1],DETAILS[d[1]+'-'+s[0]]||{}))}));
+let tray = TRAY.map(t=>mk(t[0],t[1],{notes:t[2]}));
+const label = d => `${d.dow} ${d.dd} ${d.mon}`;
+
+const PENCIL = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+const GRIP = '<svg class="grip" width="10" height="16" viewBox="0 0 10 16" aria-hidden="true" fill="currentColor"><circle cx="2" cy="2" r="1.6"/><circle cx="8" cy="2" r="1.6"/><circle cx="2" cy="8" r="1.6"/><circle cx="8" cy="8" r="1.6"/><circle cx="2" cy="14" r="1.6"/><circle cx="8" cy="14" r="1.6"/></svg>';
+
+function itemHTML(s){
+  const chips = s.tags.map(t=>`<span class="chip">${esc(t)}</span>`).join('')
+    + (CLOSED.includes(s.name) ? '<span class="chip closed">Temporarily closed</span>' : '')
+    + (s.booking ? `<span class="chip ref">Ref ${esc(s.booking)}</span>` : '')
+    + (s.link ? `<a class="chip" href="${esc(s.link)}" target="_blank" rel="noopener">Link</a>` : '');
+  return `<li class="item" data-id="${s.id}">${GRIP}<span class="num"></span><div class="body"><div class="stopname">${s.time?`<span class="t">${fmtTime(s.time)}</span>`:''}${esc(s.name)}</div>${s.notes?`<div class="notes">${esc(s.notes)}</div>`:''}${chips?`<div class="chips">${chips}</div>`:''}</div><button class="edit" type="button" aria-label="Edit ${esc(s.name)}">${PENCIL}</button></li>`;
+}
+function warnHTML(d){
+  const all = d.stops.flatMap(s=>s.tags);
+  const closed = d.stops.filter(s=>CLOSED.includes(s.name)).map(s=>s.name);
+  let h = '';
+  if (closed.length) h += `<p class="notice bad"><b>Temporarily closed</b>${esc(closed.join(' and '))}. Check before you go.</p>`;
+  if (all.includes('Weather')) h += `<p class="notice warn"><b>Weather-dependent</b>Check conditions the night before.</p>`;
+  if (all.includes('Permit')) h += `<p class="notice warn"><b>Permit needed</b>Arthur-Pieman Recreational Driver Pass isn't ticked off yet.</p>`;
+  return h;
+}
+
+// render centre + nav
+$('days').innerHTML = model.map((d,i)=>`<section class="dsec" data-i="${i}" style="--legc:${LEG[d.leg]}"><div class="dhead"><h2>${label(d)}</h2><span class="legtag">${LEGNAME[d.leg]}</span><span class="night">Overnight <b>${esc(d.night)}</b></span></div><div class="warns"></div><ol class="stops" data-i="${i}">${d.stops.map(itemHTML).join('')}</ol><button class="btn quiet add" type="button" data-add="${i}">Add a stop</button></section>`).join('');
+const secs = [...document.querySelectorAll('.dsec')];
+$('dayNav').innerHTML = model.map((d,i)=>`<button class="dn" type="button" data-i="${i}" style="--legc:${LEG[d.leg]}"><b></b><span class="d">${label(d)}</span><small></small></button>`).join('');
+const navs = [...document.querySelectorAll('.dn')];
+$('tray').innerHTML = tray.map(itemHTML).join('');
+
+function refreshDay(i){
+  const d = model[i], sec = secs[i];
+  sec.querySelectorAll('.item .num').forEach((n,k)=>n.textContent = k+1);
+  sec.querySelector('.warns').innerHTML = warnHTML(d);
+  navs[i].querySelector('small').textContent = `${d.stops.length} ${d.stops.length===1?'stop':'stops'}, ${d.night}`;
+}
+function refreshAll(){
+  model.forEach((_,i)=>refreshDay(i));
+  $('trayCount').textContent = tray.length ? `${tray.length} places` : '';
+  if (active >= 0) drawSide(active);
+}
+function syncModel(){
+  secs.forEach((sec,i)=>{ model[i].stops = [...sec.querySelectorAll('.item')].map(li=>STOPS[li.dataset.id]); });
+  tray = [...$('tray').querySelectorAll('.item')].map(li=>STOPS[li.dataset.id]);
+  refreshAll();
+}
+if (window.Sortable) {
+  document.querySelectorAll('.stops').forEach(ol => Sortable.create(ol, {
+    group:'trip', animation: reduce?0:150, delay:180, delayOnTouchOnly:true,
+    filter:'.edit, a', preventOnFilter:false, ghostClass:'ghost', chosenClass:'chosen',
+    scroll:true, scrollSensitivity:80, scrollSpeed:14, onEnd: syncModel
+  }));
+}
+
+// right side: map + day panel
+const plan = $('plan'), routePath = $('routePath');
+function drawSide(i){
+  const d = model[i];
+  $('side').style.setProperty('--legc', LEG[d.leg]);
+  const n = d.stops.length, L = routePath.getTotalLength();
+  $('pins').innerHTML = d.stops.map((s,k)=>{
+    const p = routePath.getPointAtLength(n===1 ? L/2 : L*(0.04 + 0.92*k/(n-1)));
+    const name = s.name.length > 22 ? s.name.slice(0,21)+'…' : s.name;
+    return `<g class="pin"><circle cx="${p.x}" cy="${p.y}" r="12"/><text x="${p.x}" y="${p.y+4}">${k+1}</text><text class="lab" x="${p.x+18}" y="${p.y+5}">${esc(name)}</text></g>`;
+  }).join('');
+  $('panel').innerHTML = `<span class="legtag">${LEGNAME[d.leg]} leg</span><h2>${label(d)}</h2>
+    <div class="stats"><div><em>${n}</em><small>stops</small></div><div><em>${esc(d.night)}</em><small>overnight</small></div><div><em>–</em><small>driving</small></div></div>
+    <div class="warns">${warnHTML(d)}</div>
+    <h2 class="rh">Due soon</h2>
+    <ul class="due"><li><span>Spirit of Tasmania return crossing</span><span>Now</span></li><li><span>Family flights</span><span>Now</span></li><li><span>Fortescue Bay campsite</span><span>Now</span></li></ul>`;
+}
+let active = -1;
+function setActive(i){
+  if (i === active) return; active = i;
+  navs.forEach((b,j)=>b.setAttribute('aria-current', j===i?'true':'false'));
+  navs[i].scrollIntoView({block:'nearest'});
+  if ($('editor').hidden) drawSide(i);
+}
+function goTo(i){ plan.scrollTo({top: secs[i].offsetTop - plan.offsetTop - 4, behavior: reduce?'auto':'smooth'}); }
+function spy(){
+  const y = plan.scrollTop + plan.offsetTop + 80;
+  let cur = 0; secs.forEach((s,i)=>{ if (s.offsetTop <= y) cur = i; });
+  setActive(cur);
+}
+$('dayNav').addEventListener('click', e=>{ const b = e.target.closest('.dn'); if (b) goTo(Number(b.dataset.i)); });
+plan.addEventListener('scroll', spy, {passive:true});
+
+// editor
+const f = {name:$('fName'), time:$('fTime'), notes:$('fNotes'), booking:$('fBooking'), link:$('fLink')};
+$('fDay').innerHTML = model.map((d,i)=>`<option value="${i}">${label(d)}</option>`).join('') + '<option value="tray">Not yet scheduled</option>';
+$('fTags').innerHTML = TAGS.map(t=>`<button type="button" aria-pressed="false">${t}</button>`).join('');
+$('fTags').addEventListener('click', e=>{ const b = e.target.closest('button'); if (b) b.setAttribute('aria-pressed', b.getAttribute('aria-pressed')==='true'?'false':'true'); });
+let editing = null, isNew = false;
+const whereIs = id => { const li = document.querySelector(`.item[data-id="${id}"]`); const sec = li && li.closest('.dsec'); return sec ? String(sec.dataset.i) : 'tray'; };
+function openEditor(id, fresh=false){
+  document.querySelectorAll('.item.editing').forEach(el=>el.classList.remove('editing'));
+  editing = STOPS[id]; isNew = fresh;
+  for (const k in f) f[k].value = editing[k] || '';
+  $('fDay').value = whereIs(id);
+  document.querySelectorAll('#fTags button').forEach(b=>b.setAttribute('aria-pressed', editing.tags.includes(b.textContent)?'true':'false'));
+  $('edTitle').textContent = fresh ? 'New stop' : 'Edit stop';
+  $('fRemove').hidden = fresh;
+  document.querySelector(`.item[data-id="${id}"]`).classList.add('editing');
+  $('dayPanel').hidden = true; $('editor').hidden = false; $('side').scrollTop = 0; f.name.focus();
+}
+function closeEditor(cancel=true){
+  if (!editing) return;
+  const id = editing.id;
+  if (cancel && isNew) { document.querySelector(`.item[data-id="${id}"]`).remove(); delete STOPS[id]; syncModel(); }
+  else { const li = document.querySelector(`.item[data-id="${id}"]`); if (li) { li.classList.remove('editing'); li.querySelector('.edit').focus(); } }
+  editing = null; $('editor').hidden = true; $('dayPanel').hidden = false; drawSide(active);
+}
+function place(li, target){
+  const ol = target === 'tray' ? $('tray') : secs[Number(target)].querySelector('.stops');
+  if (li.parentElement !== ol) ol.appendChild(li);
+}
+function save(){
+  if (!editing) return;
+  for (const k in f) editing[k] = f[k].value.trim();
+  if (!editing.name) editing.name = 'Untitled stop';
+  editing.tags = [...document.querySelectorAll('#fTags button[aria-pressed="true"]')].map(b=>b.textContent);
+  const old = document.querySelector(`.item[data-id="${editing.id}"]`);
+  const tmp = document.createElement('div'); tmp.innerHTML = itemHTML(editing); const li = tmp.firstElementChild;
+  old.replaceWith(li); place(li, $('fDay').value);
+  syncModel(); closeEditor(false);
+}
+$('days').addEventListener('click', e=>{
+  const add = e.target.closest('[data-add]');
+  if (add) { const i = Number(add.dataset.add); const s = mk('',[]); const tmp = document.createElement('div'); tmp.innerHTML = itemHTML(s); secs[i].querySelector('.stops').appendChild(tmp.firstElementChild); syncModel(); openEditor(s.id, true); return; }
+});
+document.addEventListener('click', e=>{ const b = e.target.closest('.edit'); if (b) openEditor(b.closest('.item').dataset.id); });
+$('fSave').addEventListener('click', save);
+$('fCancel').addEventListener('click', ()=>closeEditor(true));
+$('edClose').addEventListener('click', ()=>closeEditor(true));
+$('fRemove').addEventListener('click', ()=>{ $('fDay').value = 'tray'; save(); });
+$('editor').addEventListener('keydown', e=>{ if (e.key==='Enter' && e.target.tagName==='INPUT') save(); });
+document.addEventListener('keydown', e=>{ if (e.key==='Escape' && editing) closeEditor(true); });
+
+refreshAll();
+spy();
+</script>
+</body>
+</html>
