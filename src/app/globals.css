@@ -30,8 +30,10 @@
   color-scheme: light;
 }
 
+/* Dark: follow the device unless the user picked Light, or force it when they picked Dark.
+   The theme button sets data-theme on <html>. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #0e181a;
     --paper: #162428;
     --ink: #e4ecea;
@@ -49,6 +51,27 @@
     --good-bg: #1b3528;
     color-scheme: dark;
   }
+}
+:root[data-theme="dark"] {
+  --bg: #0e181a;
+  --paper: #162428;
+  --ink: #e4ecea;
+  --muted: #9aadad;
+  --line: #2b3c40;
+  --soft: #1c2d31;
+  --myrtle: #62b08a;
+  --lichen: #f0894a;
+  --ocean: #62a8d0;
+  --warn-ink: #f4c46b;
+  --warn-bg: #3a2e14;
+  --bad-ink: #f59c90;
+  --bad-bg: #3b1e1a;
+  --good-ink: #7fcba3;
+  --good-bg: #1b3528;
+  color-scheme: dark;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
 }
 
 @theme inline {

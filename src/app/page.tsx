@@ -9,6 +9,7 @@ import { currentUser } from "@/lib/auth";
 import { getProfile } from "@/lib/profile";
 import { dateRange, dayCount, daysUntil } from "@/lib/trip/format";
 import { SignOutButton } from "./sign-out-button";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 type TripCard = {
   id: string;
@@ -86,6 +87,7 @@ export default async function HomePage() {
           <Link href="/profile" className="rounded-full px-3 py-2 font-bold text-ink hover:bg-paper">
             Profile
           </Link>
+          <ThemeToggle />
           <SignOutButton />
         </nav>
       </header>

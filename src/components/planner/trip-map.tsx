@@ -29,20 +29,23 @@ type Props = {
   className?: string;
   labels?: boolean;
   onBoundsChanged?: (bounds: MapBounds) => void;
+  dark?: boolean; // the app's theme, so the map matches Light/Dark choices
 };
 
 const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID;
 const TASMANIA = { lat: -42.0, lng: 146.6 };
 
 /** A Google map of pins and drive routes: one day, or the whole trip. */
-export function TripMap({ points, routes, selectedId, onSelect, fitKey, className, labels = true, onBoundsChanged }: Props) {
+export function TripMap(props: Props) {
+  const { points, routes, selectedId, onSelect, fitKey, className, labels = true, onBoundsChanged, dark = false } = props;
   return (
     <div className={`relative ${className ?? ""}`}>
       <Map
+        key={dark ? "dark" : "light"} // the colour scheme is fixed when the map is created
         mapId={MAP_ID}
         defaultCenter={TASMANIA}
         defaultZoom={7}
-        colorScheme="FOLLOW_SYSTEM"
+        colorScheme={dark ? "DARK" : "LIGHT"}
         gestureHandling="cooperative"
         disableDefaultUI
         zoomControl

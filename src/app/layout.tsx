@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Atkinson_Hyperlegible, Barlow_Condensed } from "next/font/google";
 import "./globals.css";
+import { themeBootScript } from "@/lib/theme-boot";
 
 // Barlow Condensed for dates and headings; Atkinson Hyperlegible for everything else,
 // chosen for readability in sunlight.
@@ -33,7 +34,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en-AU" className={`${barlow.variable} ${atkinson.variable} h-full antialiased`}>
+    // data-theme is set by the boot script before hydration, so React shouldn't flag it.
+    <html lang="en-AU" className={`${barlow.variable} ${atkinson.variable} h-full antialiased`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+      </head>
       <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );

@@ -41,7 +41,9 @@ import { TripEditor } from "./trip-editor";
 import { MapSearch, ResultCard, type SearchResult } from "./map-search";
 import { TripMap, type MapBounds, type MapPoint, type MapRoute } from "./trip-map";
 import { TripSummary } from "./trip-summary";
-import { legColour, useIsDesktop, usePrefersDark } from "./use-media";
+import { legColour, useIsDesktop } from "./use-media";
+import { useIsDark } from "@/components/theme";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useLayoutPrefs } from "./use-layout-prefs";
 
 type Editor =
@@ -89,7 +91,7 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
   const [toast, setToast] = useState<{ text: string; error?: boolean } | null>(null);
   const isDesktop = useIsDesktop();
   const [prefs, setPrefs] = useLayoutPrefs();
-  const dark = usePrefersDark();
+  const dark = useIsDark();
 
   const tripRef = useRef(trip);
   useEffect(() => {
@@ -839,6 +841,7 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
       <TripMap
         points={mapPoints}
         routes={mapRoutes}
+        dark={dark}
         selectedId={selectedResult ? `result:${selectedResult}` : selectedStop}
         onSelect={onMapSelect}
         onBoundsChanged={(b) => {
@@ -924,7 +927,8 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
   );
 
   const actions = (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap items-center gap-2">
+      <ThemeToggle />
       <Link href={`/checklists?trip=${trip.id}`} className="btn">
         Checklists
       </Link>

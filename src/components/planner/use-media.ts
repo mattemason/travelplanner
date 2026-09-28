@@ -16,7 +16,6 @@ function useMedia(query: string, serverValue: boolean): boolean {
 
 /** 960px and wider gets the three-column planning view. */
 export const useIsDesktop = () => useMedia("(min-width: 960px)", true);
-export const usePrefersDark = () => useMedia("(prefers-color-scheme: dark)", false);
 
 // Leg colours are stored as their light-mode hex; the design's dark variants are lighter.
 const DARK_VARIANT: Record<string, string> = {
