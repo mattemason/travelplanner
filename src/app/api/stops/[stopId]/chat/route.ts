@@ -12,12 +12,13 @@ import { stopContext } from "@/lib/stop-info";
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
 const MODEL = process.env.STOP_INFO_MODEL || "claude-opus-5";
-const FIRST_QUESTION = "Tell me about this stop.";
+// Early conversations began with this hidden automatic question; it's hidden when shown.
+const LEGACY_FIRST_QUESTION = "Tell me about this stop.";
 const MAX_MESSAGES = 40;
 
 const body = z.object({
-  message: z.string().trim().min(1).max(2000).optional(), // omitted = the automatic first briefing
-  reset: z.boolean().optional(), // start the conversation over
+  message: z.string().trim().min(1).max(2000).optional(),
+  reset: z.boolean().optional(), // clear the conversation (with no message: just clear it)
 });
 
 async function load(stopId: string): Promise<ChatMessage[]> {
@@ -25,7 +26,10 @@ async function load(stopId: string): Promise<ChatMessage[]> {
   return row?.messages ?? [];
 }
 
-/** The saved conversation, without the hidden first question. */
+const visible = (messages: ChatMessage[]) =>
+  messages[0]?.role === "user" && messages[0].content === LEGACY_FIRST_QUESTION ? messages.slice(1) : messages;
+
+/** The saved conversation. */
 export async function GET(_req: Request, ctx: RouteContext<"/api/stops/[stopId]/chat">) {
   const user = await currentUser();
   if (!user) return Response.json({ error: "Not signed in" }, { status: 401 });
@@ -33,7 +37,7 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/stops/[stopId]/
   if (!z.string().uuid().safeParse(stopId).success || !(await stopContext(user.id, stopId))) {
     return Response.json({ error: "Stop not found" }, { status: 404 });
   }
-  return Response.json({ messages: (await load(stopId)).slice(1) });
+  return Response.json({ messages: visible(await load(stopId)) });
 }
 
 export async function POST(request: Request, ctx: RouteContext<"/api/stops/[stopId]/chat">) {
@@ -47,13 +51,10 @@ export async function POST(request: Request, ctx: RouteContext<"/api/stops/[stop
   const parsed = body.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) return Response.json({ error: "Bad request" }, { status: 400 });
 
+  if (parsed.data.reset) await getDb().delete(stopChats).where(eq(stopChats.stopId, stopId));
+  if (!parsed.data.message) return Response.json({ messages: [] });
   const history = parsed.data.reset ? [] : await load(stopId);
-  const messages: ChatMessage[] = [...history];
-  if (!messages.length) messages.push({ role: "user", content: FIRST_QUESTION });
-  if (parsed.data.message) messages.push({ role: "user", content: parsed.data.message });
-  else if (messages.at(-1)?.role !== "user") {
-    return Response.json({ messages: messages.slice(1) }); // nothing new to answer
-  }
+  const messages: ChatMessage[] = [...history, { role: "user", content: parsed.data.message }];
   if (messages.length > MAX_MESSAGES) {
     return Response.json({ error: "This conversation is full. Start over to ask more." }, { status: 400 });
   }
@@ -90,7 +91,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/stops/[stop
                 {
                   type: "web_search_20260209",
                   name: "web_search",
-                  max_uses: 4,
+                  max_uses: 3,
                   user_location: { type: "approximate", country: "AU" },
                 },
               ],
@@ -104,7 +105,12 @@ export async function POST(request: Request, ctx: RouteContext<"/api/stops/[stop
               if (kind === "server_tool_use") emit({ t: "status", v: "Searching the web…" });
               else if (kind === "web_search_tool_result") emit({ t: "status", v: "Reading results…" });
               else if (kind === "thinking") emit({ t: "status", v: "Thinking…" });
-              else if (kind === "text") emit({ t: "status", v: "Writing…" });
+              else if (kind === "text") {
+                emit({ t: "status", v: "Writing…" });
+                // A new text block after a heading line needs a line break, or they run together.
+                const lastLine = reply.slice(reply.lastIndexOf("\n") + 1);
+                if (/^#{1,6} /.test(lastLine)) send("\n\n");
+              }
             }
           }
           const final = await response.finalMessage();

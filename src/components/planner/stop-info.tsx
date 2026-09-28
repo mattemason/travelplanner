@@ -5,6 +5,20 @@ import ReactMarkdown from "react-markdown";
 
 type Message = { role: "user" | "assistant"; content: string };
 
+// Starter prompts. The label is the pill; the question is what's sent (and shown as your message).
+const STARTERS = [
+  { label: "Tell me about this", question: "Give me a quick overview: what it is, why it's worth the stop, and how long to allow." },
+  { label: "Latest info", question: "Any current closures, alerts, or track and road conditions I should know about?" },
+  { label: "Getting there", question: "How do I get in? Road surface, 4WD or tide needs, and parking." },
+  { label: "Things to do", question: "What are the best things to do or see here?" },
+  { label: "Where to eat", question: "Where are good places to eat or grab a coffee nearby?" },
+  { label: "Where to stay", question: "What campsites or accommodation are nearby, and do they need booking?" },
+  { label: "Fuel & supplies", question: "Where's the nearest fuel, water and groceries, and is there phone signal?" },
+  { label: "Weather then", question: "What's the weather usually like here on my dates?" },
+  { label: "Good for kids?", question: "Is this good for kids? Any hazards, and are there toilets?" },
+  { label: "Permits & fees", question: "Do I need any permits, passes or bookings, and what are the fees?" },
+];
+
 type Props = { stopId: string; stopName: string; onClose: () => void };
 
 /** AI briefing about a stop, with a follow-up conversation. Streams from /api/stops/[id]/chat. */
@@ -23,7 +37,6 @@ export function StopInfo({ stopId, stopName, onClose }: Props) {
     async (payload: { message?: string; reset?: boolean }) => {
       setError(null);
       setStreaming(true);
-      if (payload.reset) setMessages([]);
       if (payload.message) setMessages((m) => [...m, { role: "user", content: payload.message! }]);
       setMessages((m) => [...m, { role: "assistant", content: "" }]);
       const ctrl = new AbortController();
@@ -87,7 +100,7 @@ export function StopInfo({ stopId, stopName, onClose }: Props) {
         if (cancelled) return;
         setLoading(false);
         if (saved.length) setMessages(saved);
-        else void ask({});
+        // An empty conversation waits for a starter pill or a typed question.
       } catch (err) {
         if (!cancelled) {
           setLoading(false);
@@ -143,6 +156,36 @@ export function StopInfo({ stopId, stopName, onClose }: Props) {
 
         <div className="min-h-[200px] flex-1 overflow-y-auto px-5 py-4" aria-live="polite">
           {loading && <p className="text-muted">Loading…</p>}
+          {!loading && messages.length === 0 && !streaming && (
+            <div>
+              <p className="mb-3 text-[14px] text-muted">Ask anything about this stop, or start with one of these.</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {STARTERS.slice(0, 2).map((s) => (
+                  <button
+                    key={s.label}
+                    type="button"
+                    onClick={() => void ask({ message: s.question })}
+                    className="cursor-pointer rounded-xl border-[1.5px] border-line bg-soft px-3.5 py-3 text-left hover:border-ocean"
+                  >
+                    <span className="block font-bold">{s.label}</span>
+                    <span className="text-[13px] text-muted">{s.question}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {STARTERS.slice(2).map((s) => (
+                  <button
+                    key={s.label}
+                    type="button"
+                    onClick={() => void ask({ message: s.question })}
+                    className="min-h-9 cursor-pointer rounded-full border-[1.5px] border-line bg-paper px-3 text-[13.5px] hover:border-ocean"
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {messages.map((m, i) =>
             m.role === "user" ? (
               <p key={i} className="my-3 ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-sm bg-ink px-3.5 py-2 text-paper">
@@ -192,6 +235,21 @@ export function StopInfo({ stopId, stopName, onClose }: Props) {
             send();
           }}
         >
+          {messages.length > 0 && (
+            <div className="-mx-1 mb-2 flex gap-1.5 overflow-x-auto px-1 pb-0.5 no-scrollbar" aria-label="Suggested questions">
+              {STARTERS.map((s) => (
+                <button
+                  key={s.label}
+                  type="button"
+                  disabled={streaming}
+                  onClick={() => void ask({ message: s.question })}
+                  className="min-h-8 shrink-0 cursor-pointer rounded-full border-[1.5px] border-line bg-paper px-2.5 text-[12.5px] hover:border-ocean disabled:opacity-50"
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="flex items-end gap-2">
             <textarea
               ref={inputRef}
@@ -204,7 +262,7 @@ export function StopInfo({ stopId, stopName, onClose }: Props) {
                   send();
                 }
               }}
-              placeholder="Ask a follow-up, e.g. is it suitable for kids?"
+              placeholder={messages.length ? "Ask a follow-up…" : "Or type your own question…"}
               aria-label="Ask a follow-up question"
               maxLength={2000}
               className="min-w-0 flex-1 resize-none rounded-[10px] border-[1.5px] border-line bg-soft px-3 py-2 text-[16px]"
@@ -218,7 +276,16 @@ export function StopInfo({ stopId, stopName, onClose }: Props) {
             <button
               type="button"
               disabled={streaming}
-              onClick={() => void ask({ reset: true })}
+              onClick={async () => {
+                setMessages([]);
+                setError(null);
+                await fetch(`/api/stops/${stopId}/chat`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ reset: true }),
+                }).catch(() => setError("Couldn't clear the conversation. Try again."));
+                inputRef.current?.focus();
+              }}
               className="ml-3 shrink-0 cursor-pointer font-bold text-ocean disabled:opacity-50"
             >
               Start over
