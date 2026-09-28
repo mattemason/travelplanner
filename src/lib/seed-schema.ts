@@ -16,12 +16,13 @@ const place = z.object({
 
 const stop = z.object({
   place: z.string(),
+  time: z.string().regex(/^\d{2}:\d{2}$/).optional(),
   tags: z.array(z.enum(STOP_TAGS)).optional(),
   notes: z.string().optional(),
 });
 
 export const seedSchema = z.object({
-  meta: z.object({ seedKey: z.string(), notes: z.string() }),
+  meta: z.object({ seedKey: z.string(), version: z.number().int().positive(), notes: z.string() }),
   trip: z.object({
     name: z.string(),
     startDate: isoDate,
@@ -59,7 +60,7 @@ export const seedSchema = z.object({
       stops: z.array(stop),
     }),
   ),
-  tray: z.array(z.string()),
+  tray: z.array(stop),
   checklist: z.array(z.object({ title: z.string(), category: z.string() })),
 });
 
@@ -80,7 +81,7 @@ export function parseSeed(raw: unknown): Seed {
   checkPlace(seed.trip.startPoint, "trip.startPoint");
   checkPlace(seed.trip.endPoint, "trip.endPoint");
   seed.fixedEvents.forEach((e) => checkPlace(e.location, `fixedEvent ${e.type}`));
-  seed.tray.forEach((k) => checkPlace(k, "tray"));
+  seed.tray.forEach((s) => checkPlace(s.place, "tray"));
   for (const day of seed.days) {
     if (!legKeys.has(day.leg)) problems.push(`${day.date}: unknown leg "${day.leg}"`);
     checkPlace(day.overnight, `${day.date} overnight`);

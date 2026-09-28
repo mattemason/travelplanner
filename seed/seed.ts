@@ -3,7 +3,11 @@
  * Re-running replaces that user's copy of the trip and its seeded places.
  *
  *   npm run seed                 (reads .env.local; replaces the trip)
- *   npm run seed -- --if-missing (only seeds when the owner has no such trip; runs on every start)
+ *   npm run seed -- --if-missing (runs on every start)
+ *
+ * --if-missing seeds when the owner has no such trip, or has one made from an older seed
+ * version (meta.version). Bumping meta.version therefore REPLACES the live trip on the next
+ * deploy, edits included: only bump it while the trip has no real edits.
  *
  * Needs DATABASE_URL and SEED_OWNER_EMAIL. The owner's user row is created if missing.
  */
@@ -37,10 +41,10 @@ async function main() {
 
     if (ifMissing) {
       const [existing] = await tx
-        .select({ id: t.trips.id })
+        .select({ seedVersion: t.trips.seedVersion })
         .from(t.trips)
         .where(and(eq(t.trips.ownerId, owner.id), eq(t.trips.name, seed.trip.name)));
-      if (existing) return false;
+      if (existing && (existing.seedVersion ?? 0) >= seed.meta.version) return false;
     }
 
     // Clear any previous run: the trip cascades to days, stops, legs, events and checklist.
@@ -60,6 +64,7 @@ async function main() {
         startPoint: placeName(seed.trip.startPoint),
         endPoint: placeName(seed.trip.endPoint),
         maxDriveHoursPerDay: seed.trip.maxDriveHoursPerDay,
+        seedVersion: seed.meta.version,
       })
       .returning({ id: t.trips.id });
 
@@ -125,17 +130,22 @@ async function main() {
       )
       .returning({ id: t.days.id });
 
-    await tx.insert(t.stops).values(
-      seed.days.flatMap((d, di) =>
-        d.stops.map((s, i) => ({
-          dayId: dayRows[di].id,
-          placeId: placeId.get(s.place)!,
-          position: i,
-          tags: s.tags ?? [],
-          notes: s.notes ?? null,
-        })),
-      ),
-    );
+    type SeedStop = (typeof seed.tray)[number];
+    const stopRow = (s: SeedStop, dayId: string | null, position: number) => ({
+      tripId: trip.id,
+      dayId,
+      placeId: placeId.get(s.place)!,
+      position,
+      plannedTime: s.time ?? null,
+      tags: s.tags ?? [],
+      notes: s.notes ?? null,
+    });
+    await tx
+      .insert(t.stops)
+      .values([
+        ...seed.days.flatMap((d, di) => d.stops.map((s, i) => stopRow(s, dayRows[di].id, i))),
+        ...seed.tray.map((s, i) => stopRow(s, null, i)),
+      ]);
 
     await tx.insert(t.checklistItems).values(
       seed.checklist.map((c, i) => ({ tripId: trip.id, title: c.title, category: c.category, position: i })),

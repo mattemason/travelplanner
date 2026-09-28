@@ -1,9 +1,11 @@
 /**
  * Database schema (Railway Postgres, Drizzle ORM). See SPEC.md "Data model".
- * Apply changes with `npm run db:push`.
+ * After changing it, run `npm run db:generate` and commit the new migration in drizzle/.
  *
  * Deviations from the spec table, all additive:
  *   - stops.order is stops.position ("order" is a reserved word).
+ *   - trips.seed_version records which seed file version created the trip.
+ *   - route_segments also stores the encoded route polyline for drawing on the map.
  *   - place_list_items joins places to lists (a place can sit in several Google lists);
  *     places.source_list keeps the list it first came from.
  *   - route_segments caches Routes API results.
@@ -68,6 +70,7 @@ export const trips = pgTable(
     maxDriveHoursPerDay: numeric("max_drive_hours_per_day", { precision: 4, scale: 2, mode: "number" })
       .notNull()
       .default(5),
+    seedVersion: integer("seed_version"),
     createdAt: createdAt(),
   },
   (t) => [check("trips_dates", sql`${t.endDate} >= ${t.startDate}`)],
@@ -154,21 +157,27 @@ export const days = pgTable(
   (t) => [uniqueIndex("days_trip_date").on(t.tripId, t.date)],
 );
 
+// A stop with no day sits in the trip's "Not yet scheduled" tray and keeps its details.
+// label overrides the place name for this stop only (the editor's Name field).
 export const stops = pgTable(
   "stops",
   {
     id: id(),
-    dayId: uuid("day_id").notNull().references(() => days.id, { onDelete: "cascade" }),
+    tripId: uuid("trip_id").notNull().references(() => trips.id, { onDelete: "cascade" }),
+    dayId: uuid("day_id").references(() => days.id, { onDelete: "set null" }),
     placeId: uuid("place_id").notNull().references(() => places.id, { onDelete: "restrict" }),
     position: integer("position").notNull(),
+    label: text("label"),
     plannedTime: time("planned_time"),
     durationMins: integer("duration_mins"),
     tags: text("tags").array().notNull().default(sql`'{}'`),
     notes: text("notes"),
+    bookingRef: text("booking_ref"),
+    link: text("link"),
     status: text("status").notNull().default("planned"),
   },
   (t) => [
-    index("stops_day_position").on(t.dayId, t.position),
+    index("stops_trip_day_position").on(t.tripId, t.dayId, t.position),
     check("stops_tags", sql`${t.tags} <@ array['4wd','walk','camp','permit','book_ahead','weather']`),
     check("stops_status", sql`${t.status} in ('planned', 'done', 'skipped')`),
   ],
@@ -227,6 +236,7 @@ export const routeSegments = pgTable(
     destination: text("destination").notNull(),
     durationS: integer("duration_s").notNull(),
     distanceM: integer("distance_m").notNull(),
+    polyline: text("polyline"), // Google encoded polyline
     fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.origin, t.destination] })],

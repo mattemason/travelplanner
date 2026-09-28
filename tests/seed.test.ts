@@ -38,10 +38,12 @@ describe("Tasmania 2027 seed", () => {
     expect(closed.sort()).toEqual(["Montezuma Falls", "Tasmans Arch"]);
   });
 
-  it("puts Peppermint Campground in the tray, unscheduled", () => {
-    expect(seed.tray).toContain("peppermint-campground");
+  it("puts Peppermint Campground and Cape Raoul Track in the tray, unscheduled", () => {
+    const tray = seed.tray.map((s) => s.place);
+    expect(tray).toEqual(expect.arrayContaining(["peppermint-campground", "cape-raoul"]));
     const scheduled = new Set(seed.days.flatMap((d) => d.stops.map((s) => s.place)));
-    seed.tray.forEach((key) => expect(scheduled.has(key)).toBe(false));
+    tray.forEach((key) => expect(scheduled.has(key)).toBe(false));
+    expect(seed.tray.find((s) => s.place === "cape-raoul")?.notes).toMatch(/Alternative to Cape Hauy/);
   });
 
   it("seeds the nine checklist items", () => {

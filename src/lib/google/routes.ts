@@ -1,0 +1,99 @@
+import "server-only";
+import { and, gt, inArray, sql } from "drizzle-orm";
+import { getDb } from "@/db";
+import { routeSegments } from "@/db/schema";
+import type { LatLng, Segment } from "@/lib/trip/types";
+import { pairKey, pointKey } from "@/lib/trip/drive";
+
+// Google's terms limit how long Maps content may be cached; keep route results for 30 days.
+const CACHE_DAYS = 30;
+const MAX_CONCURRENT = 4;
+
+/** Drive time, distance and route line for each pair, from cache or the Routes API. */
+export async function getSegments(pairs: [LatLng, LatLng][]): Promise<Record<string, Segment>> {
+  const unique = new Map(pairs.map(([a, b]) => [pairKey(a, b), [a, b] as [LatLng, LatLng]]));
+  if (!unique.size) return {};
+
+  const db = getDb();
+  const cached = await db
+    .select()
+    .from(routeSegments)
+    .where(
+      and(
+        inArray(
+          sql`${routeSegments.origin} || '|' || ${routeSegments.destination}`,
+          [...unique.keys()],
+        ),
+        gt(routeSegments.fetchedAt, sql`now() - make_interval(days => ${CACHE_DAYS})`),
+      ),
+    );
+
+  const result: Record<string, Segment> = {};
+  for (const row of cached) {
+    result[`${row.origin}|${row.destination}`] = {
+      durationS: row.durationS,
+      distanceM: row.distanceM,
+      polyline: row.polyline,
+    };
+  }
+
+  const missing = [...unique].filter(([key]) => !result[key]);
+  for (let i = 0; i < missing.length; i += MAX_CONCURRENT) {
+    const batch = missing.slice(i, i + MAX_CONCURRENT);
+    const fetched = await Promise.all(batch.map(([, [a, b]]) => computeRoute(a, b)));
+    const rows = batch.flatMap(([key, [a, b]], j) => {
+      const seg = fetched[j];
+      if (!seg) return [];
+      result[key] = seg;
+      return [{ origin: pointKey(a), destination: pointKey(b), ...seg, fetchedAt: new Date() }];
+    });
+    if (rows.length) {
+      await db
+        .insert(routeSegments)
+        .values(rows)
+        .onConflictDoUpdate({
+          target: [routeSegments.origin, routeSegments.destination],
+          set: {
+            durationS: sql`excluded.duration_s`,
+            distanceM: sql`excluded.distance_m`,
+            polyline: sql`excluded.polyline`,
+            fetchedAt: sql`excluded.fetched_at`,
+          },
+        });
+    }
+  }
+  return result;
+}
+
+async function computeRoute(a: LatLng, b: LatLng): Promise<Segment | null> {
+  const key = process.env.GOOGLE_MAPS_SERVER_KEY;
+  if (!key) throw new Error("GOOGLE_MAPS_SERVER_KEY is not set");
+  const res = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Goog-Api-Key": key,
+      "X-Goog-FieldMask": "routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline",
+    },
+    body: JSON.stringify({
+      origin: { location: { latLng: { latitude: a.lat, longitude: a.lng } } },
+      destination: { location: { latLng: { latitude: b.lat, longitude: b.lng } } },
+      travelMode: "DRIVE",
+    }),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    console.error(`Routes API ${res.status}: ${(await res.text()).slice(0, 300)}`);
+    return null;
+  }
+  const body = (await res.json()) as {
+    routes?: { duration?: string; distanceMeters?: number; polyline?: { encodedPolyline?: string } }[];
+  };
+  const route = body.routes?.[0];
+  if (!route?.duration) return null; // no drivable route (e.g. off-road track)
+  return {
+    durationS: Number.parseInt(route.duration, 10),
+    distanceM: route.distanceMeters ?? 0,
+    polyline: route.polyline?.encodedPolyline ?? null,
+  };
+}

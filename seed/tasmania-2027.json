@@ -1,7 +1,8 @@
 {
   "meta": {
     "seedKey": "tasmania-2027",
-    "notes": "Coordinates are approximate and hand-entered; Places API enrichment (Phase 2) replaces them. Fixed-event times are assumptions until bookings are confirmed."
+    "notes": "Coordinates are approximate and hand-entered; Places API enrichment (Phase 2) replaces them. Fixed-event times are assumptions until bookings are confirmed.",
+    "version": 2
   },
   "trip": {
     "name": "Tasmania 2027",
@@ -12,167 +13,834 @@
     "maxDriveHoursPerDay": 5
   },
   "legs": [
-    { "key": "solo1", "name": "Solo 1", "startDate": "2027-01-18", "endDate": "2027-01-20", "travellers": ["Chief"], "colour": "#0f766e" },
-    { "key": "family", "name": "Family", "startDate": "2027-01-21", "endDate": "2027-01-25", "travellers": ["Chief", "Family"], "colour": "#c2410c" },
-    { "key": "solo2", "name": "Solo 2", "startDate": "2027-01-26", "endDate": "2027-02-03", "travellers": ["Chief"], "colour": "#4338ca" }
+    {
+      "key": "solo1",
+      "name": "Solo 1",
+      "startDate": "2027-01-18",
+      "endDate": "2027-01-20",
+      "travellers": [
+        "Chief"
+      ],
+      "colour": "#0f766e"
+    },
+    {
+      "key": "family",
+      "name": "Family",
+      "startDate": "2027-01-21",
+      "endDate": "2027-01-25",
+      "travellers": [
+        "Chief",
+        "Family"
+      ],
+      "colour": "#c2410c"
+    },
+    {
+      "key": "solo2",
+      "name": "Solo 2",
+      "startDate": "2027-01-26",
+      "endDate": "2027-02-03",
+      "travellers": [
+        "Chief"
+      ],
+      "colour": "#4338ca"
+    }
   ],
   "fixedEvents": [
-    { "type": "ferry_arrive", "date": "2027-01-18", "time": null, "location": "devonport", "notes": "Spirit of Tasmania arrives Devonport. Time to confirm from booking." },
-    { "type": "flight_in", "date": "2027-01-21", "time": null, "location": "hobart-airport", "notes": "Family flies in. Assumed Hobart; not yet confirmed." },
-    { "type": "flight_out", "date": "2027-01-26", "time": null, "location": "launceston-airport", "notes": "Family flies out. Assumed Launceston; not yet confirmed." },
-    { "type": "ferry_depart", "date": "2027-02-03", "time": null, "location": "devonport", "notes": "Spirit of Tasmania departs Devonport. Time to confirm from booking." }
+    {
+      "type": "ferry_arrive",
+      "date": "2027-01-18",
+      "time": null,
+      "location": "devonport",
+      "notes": "Spirit of Tasmania arrives Devonport. Time to confirm from booking."
+    },
+    {
+      "type": "flight_in",
+      "date": "2027-01-21",
+      "time": null,
+      "location": "hobart-airport",
+      "notes": "Family flies in. Assumed Hobart; not yet confirmed."
+    },
+    {
+      "type": "flight_out",
+      "date": "2027-01-26",
+      "time": null,
+      "location": "launceston-airport",
+      "notes": "Family flies out. Assumed Launceston; not yet confirmed."
+    },
+    {
+      "type": "ferry_depart",
+      "date": "2027-02-03",
+      "time": null,
+      "location": "devonport",
+      "notes": "Spirit of Tasmania departs Devonport. Time to confirm from booking."
+    }
   ],
   "places": [
-    { "key": "devonport", "name": "Spirit of Tasmania terminal, Devonport", "lat": -41.1806, "lng": 146.3622 },
-    { "key": "central-plateau-lakes", "name": "Central Plateau lakes", "lat": -41.95, "lng": 146.75 },
-    { "key": "tungatinah-lagoon", "name": "Tungatinah Lagoon", "lat": -42.3, "lng": 146.47 },
-    { "key": "horseshoe-falls", "name": "Horseshoe Falls, Mt Field", "lat": -42.6795, "lng": 146.711 },
-    { "key": "russell-falls", "name": "Russell Falls, Mt Field", "lat": -42.6817, "lng": 146.7148 },
-    { "key": "cockle-creek", "name": "Cockle Creek", "lat": -43.581, "lng": 146.893 },
-    { "key": "hobart", "name": "Hobart", "lat": -42.8821, "lng": 147.3272 },
-    { "key": "hobart-airport", "name": "Hobart Airport", "lat": -42.8361, "lng": 147.5103 },
-    { "key": "tasman-peninsula", "name": "Tasman Peninsula (Eaglehawk Neck)", "lat": -43.0167, "lng": 147.9167 },
-    { "key": "fortescue-bay", "name": "Fortescue Bay", "lat": -43.1378, "lng": 147.9642 },
-    { "key": "cape-hauy", "name": "Cape Hauy", "lat": -43.14, "lng": 148.006 },
-    { "key": "tasmans-arch", "name": "Tasmans Arch", "lat": -43.0597, "lng": 147.9479, "businessStatus": "CLOSED_TEMPORARILY" },
-    { "key": "remarkable-cave", "name": "Remarkable Cave", "lat": -43.1886, "lng": 147.8497 },
-    { "key": "tessellated-pavement", "name": "Tessellated Pavement", "lat": -43.0322, "lng": 147.9311 },
-    { "key": "kunanyi", "name": "kunanyi/Mt Wellington", "lat": -42.8959, "lng": 147.237 },
-    { "key": "salamanca-market", "name": "Salamanca Market", "lat": -42.887, "lng": 147.331 },
-    { "key": "coles-bay", "name": "Coles Bay", "lat": -42.1236, "lng": 148.2833 },
-    { "key": "cape-tourville", "name": "Cape Tourville", "lat": -42.1175, "lng": 148.34 },
-    { "key": "wineglass-bay-lookout", "name": "Wineglass Bay Lookout", "lat": -42.15, "lng": 148.3 },
-    { "key": "mt-amos", "name": "Mt Amos", "lat": -42.145, "lng": 148.29 },
-    { "key": "bluestone-bay", "name": "Bluestone Bay", "lat": -42.131, "lng": 148.344 },
-    { "key": "bicheno-blowhole", "name": "Bicheno Blowhole", "lat": -41.876, "lng": 148.305 },
-    { "key": "redbill-beach", "name": "Redbill Beach", "lat": -41.87, "lng": 148.299 },
-    { "key": "bicheno", "name": "Bicheno", "lat": -41.874, "lng": 148.302 },
-    { "key": "lagoons-beach", "name": "Lagoons Beach campground", "lat": -41.64, "lng": 148.3 },
-    { "key": "st-helens", "name": "St Helens", "lat": -41.32, "lng": 148.24 },
-    { "key": "binalong-bay", "name": "Binalong Bay", "lat": -41.25, "lng": 148.31 },
-    { "key": "cosy-corner", "name": "Cosy Corner, Bay of Fires", "lat": -41.218, "lng": 148.295 },
-    { "key": "sloop-reef", "name": "Sloop Reef, Bay of Fires", "lat": -41.215, "lng": 148.3 },
-    { "key": "halls-falls", "name": "Halls Falls", "lat": -41.26, "lng": 147.97 },
-    { "key": "launceston", "name": "Launceston", "lat": -41.4332, "lng": 147.1441 },
-    { "key": "launceston-airport", "name": "Launceston Airport", "lat": -41.5453, "lng": 147.2142 },
-    { "key": "cradle-mountain", "name": "Cradle Mountain", "lat": -41.5935, "lng": 145.9295 },
-    { "key": "hansons-peak", "name": "Hansons Peak", "lat": -41.662, "lng": 145.955 },
-    { "key": "tullah", "name": "Tullah", "lat": -41.734, "lng": 145.619 },
-    { "key": "lake-rosebery", "name": "Lake Rosebery", "lat": -41.77, "lng": 145.57 },
-    { "key": "lake-gairdner", "name": "Lake Gairdner", "lat": -41.67, "lng": 145.73 },
-    { "key": "montezuma-falls", "name": "Montezuma Falls", "lat": -41.8585, "lng": 145.4815, "businessStatus": "CLOSED_TEMPORARILY" },
-    { "key": "queenstown", "name": "Queenstown", "lat": -42.08, "lng": 145.556 },
-    { "key": "horsetail-falls", "name": "Horsetail Falls", "lat": -42.058, "lng": 145.577 },
-    { "key": "nelson-falls", "name": "Nelson Falls", "lat": -42.11, "lng": 145.74 },
-    { "key": "strahan", "name": "Strahan", "lat": -42.153, "lng": 145.327 },
-    { "key": "wcwr-strahan", "name": "West Coast Wilderness Railway (Strahan)", "lat": -42.16, "lng": 145.319 },
-    { "key": "trial-harbour", "name": "Trial Harbour", "lat": -41.93, "lng": 145.17 },
-    { "key": "climies-track", "name": "Climies Track", "lat": -41.87, "lng": 145.16, "manual": true },
-    { "key": "granville-harbour", "name": "Granville Harbour", "lat": -41.81, "lng": 145.03 },
-    { "key": "corinna", "name": "Corinna", "lat": -41.651, "lng": 145.078 },
-    { "key": "fatman-barge", "name": "Fatman Barge", "lat": -41.6505, "lng": 145.08 },
-    { "key": "western-explorer", "name": "Western Explorer", "lat": -41.45, "lng": 144.95, "manual": true },
-    { "key": "arthur-river", "name": "Arthur River", "lat": -41.049, "lng": 144.669 },
-    { "key": "sandy-cape", "name": "Sandy Cape Track", "lat": -41.42, "lng": 144.75, "manual": true },
-    { "key": "stanley", "name": "Stanley", "lat": -40.762, "lng": 145.295 },
-    { "key": "peppermint-campground", "name": "Peppermint Campground", "lat": null, "lng": null, "manual": true, "notes": "Location not confirmed." }
+    {
+      "key": "devonport",
+      "name": "Spirit of Tasmania terminal, Devonport",
+      "lat": -41.1806,
+      "lng": 146.3622
+    },
+    {
+      "key": "central-plateau-lakes",
+      "name": "Central Plateau lakes",
+      "lat": -41.95,
+      "lng": 146.75
+    },
+    {
+      "key": "tungatinah-lagoon",
+      "name": "Tungatinah Lagoon",
+      "lat": -42.3,
+      "lng": 146.47
+    },
+    {
+      "key": "horseshoe-falls",
+      "name": "Horseshoe Falls, Mt Field",
+      "lat": -42.6795,
+      "lng": 146.711
+    },
+    {
+      "key": "russell-falls",
+      "name": "Russell Falls, Mt Field",
+      "lat": -42.6817,
+      "lng": 146.7148
+    },
+    {
+      "key": "cockle-creek",
+      "name": "Cockle Creek",
+      "lat": -43.581,
+      "lng": 146.893
+    },
+    {
+      "key": "hobart",
+      "name": "Hobart",
+      "lat": -42.8821,
+      "lng": 147.3272
+    },
+    {
+      "key": "hobart-airport",
+      "name": "Hobart Airport",
+      "lat": -42.8361,
+      "lng": 147.5103
+    },
+    {
+      "key": "tasman-peninsula",
+      "name": "Tasman Peninsula (Eaglehawk Neck)",
+      "lat": -43.0167,
+      "lng": 147.9167
+    },
+    {
+      "key": "fortescue-bay",
+      "name": "Fortescue Bay",
+      "lat": -43.1378,
+      "lng": 147.9642
+    },
+    {
+      "key": "cape-hauy",
+      "name": "Cape Hauy",
+      "lat": -43.14,
+      "lng": 148.006
+    },
+    {
+      "key": "tasmans-arch",
+      "name": "Tasmans Arch",
+      "lat": -43.0597,
+      "lng": 147.9479,
+      "businessStatus": "CLOSED_TEMPORARILY"
+    },
+    {
+      "key": "remarkable-cave",
+      "name": "Remarkable Cave",
+      "lat": -43.1886,
+      "lng": 147.8497
+    },
+    {
+      "key": "cape-raoul",
+      "name": "Cape Raoul Track",
+      "lat": -43.2006,
+      "lng": 147.7738
+    },
+    {
+      "key": "lime-bay",
+      "name": "Lime Bay State Reserve",
+      "lat": -42.9667,
+      "lng": 147.7
+    },
+    {
+      "key": "tessellated-pavement",
+      "name": "Tessellated Pavement",
+      "lat": -43.0322,
+      "lng": 147.9311
+    },
+    {
+      "key": "kunanyi",
+      "name": "kunanyi/Mt Wellington",
+      "lat": -42.8959,
+      "lng": 147.237
+    },
+    {
+      "key": "salamanca-market",
+      "name": "Salamanca Market",
+      "lat": -42.887,
+      "lng": 147.331
+    },
+    {
+      "key": "coles-bay",
+      "name": "Coles Bay",
+      "lat": -42.1236,
+      "lng": 148.2833
+    },
+    {
+      "key": "cape-tourville",
+      "name": "Cape Tourville",
+      "lat": -42.1175,
+      "lng": 148.34
+    },
+    {
+      "key": "wineglass-bay-lookout",
+      "name": "Wineglass Bay Lookout",
+      "lat": -42.15,
+      "lng": 148.3
+    },
+    {
+      "key": "mt-amos",
+      "name": "Mt Amos",
+      "lat": -42.145,
+      "lng": 148.29
+    },
+    {
+      "key": "bluestone-bay",
+      "name": "Bluestone Bay",
+      "lat": -42.131,
+      "lng": 148.344
+    },
+    {
+      "key": "bicheno-blowhole",
+      "name": "Bicheno Blowhole",
+      "lat": -41.876,
+      "lng": 148.305
+    },
+    {
+      "key": "redbill-beach",
+      "name": "Redbill Beach",
+      "lat": -41.87,
+      "lng": 148.299
+    },
+    {
+      "key": "bicheno",
+      "name": "Bicheno",
+      "lat": -41.874,
+      "lng": 148.302
+    },
+    {
+      "key": "lagoons-beach",
+      "name": "Lagoons Beach campground",
+      "lat": -41.64,
+      "lng": 148.3
+    },
+    {
+      "key": "st-helens",
+      "name": "St Helens",
+      "lat": -41.32,
+      "lng": 148.24
+    },
+    {
+      "key": "binalong-bay",
+      "name": "Binalong Bay",
+      "lat": -41.25,
+      "lng": 148.31
+    },
+    {
+      "key": "cosy-corner",
+      "name": "Cosy Corner, Bay of Fires",
+      "lat": -41.218,
+      "lng": 148.295
+    },
+    {
+      "key": "sloop-reef",
+      "name": "Sloop Reef, Bay of Fires",
+      "lat": -41.215,
+      "lng": 148.3
+    },
+    {
+      "key": "halls-falls",
+      "name": "Halls Falls",
+      "lat": -41.26,
+      "lng": 147.97
+    },
+    {
+      "key": "launceston",
+      "name": "Launceston",
+      "lat": -41.4332,
+      "lng": 147.1441
+    },
+    {
+      "key": "launceston-airport",
+      "name": "Launceston Airport",
+      "lat": -41.5453,
+      "lng": 147.2142
+    },
+    {
+      "key": "cradle-mountain",
+      "name": "Cradle Mountain",
+      "lat": -41.5935,
+      "lng": 145.9295
+    },
+    {
+      "key": "hansons-peak",
+      "name": "Hansons Peak",
+      "lat": -41.662,
+      "lng": 145.955
+    },
+    {
+      "key": "tullah",
+      "name": "Tullah",
+      "lat": -41.734,
+      "lng": 145.619
+    },
+    {
+      "key": "lake-rosebery",
+      "name": "Lake Rosebery",
+      "lat": -41.77,
+      "lng": 145.57
+    },
+    {
+      "key": "lake-gairdner",
+      "name": "Lake Gairdner",
+      "lat": -41.67,
+      "lng": 145.73
+    },
+    {
+      "key": "montezuma-falls",
+      "name": "Montezuma Falls",
+      "lat": -41.8585,
+      "lng": 145.4815,
+      "businessStatus": "CLOSED_TEMPORARILY"
+    },
+    {
+      "key": "queenstown",
+      "name": "Queenstown",
+      "lat": -42.08,
+      "lng": 145.556
+    },
+    {
+      "key": "horsetail-falls",
+      "name": "Horsetail Falls",
+      "lat": -42.058,
+      "lng": 145.577
+    },
+    {
+      "key": "nelson-falls",
+      "name": "Nelson Falls",
+      "lat": -42.11,
+      "lng": 145.74
+    },
+    {
+      "key": "strahan",
+      "name": "Strahan",
+      "lat": -42.153,
+      "lng": 145.327
+    },
+    {
+      "key": "wcwr-strahan",
+      "name": "West Coast Wilderness Railway (Strahan)",
+      "lat": -42.16,
+      "lng": 145.319
+    },
+    {
+      "key": "trial-harbour",
+      "name": "Trial Harbour",
+      "lat": -41.93,
+      "lng": 145.17
+    },
+    {
+      "key": "climies-track",
+      "name": "Climies Track",
+      "lat": -41.87,
+      "lng": 145.16,
+      "manual": true
+    },
+    {
+      "key": "granville-harbour",
+      "name": "Granville Harbour",
+      "lat": -41.81,
+      "lng": 145.03
+    },
+    {
+      "key": "corinna",
+      "name": "Corinna",
+      "lat": -41.651,
+      "lng": 145.078
+    },
+    {
+      "key": "fatman-barge",
+      "name": "Fatman Barge",
+      "lat": -41.6505,
+      "lng": 145.08
+    },
+    {
+      "key": "western-explorer",
+      "name": "Western Explorer",
+      "lat": -41.45,
+      "lng": 144.95,
+      "manual": true
+    },
+    {
+      "key": "arthur-river",
+      "name": "Arthur River",
+      "lat": -41.049,
+      "lng": 144.669
+    },
+    {
+      "key": "sandy-cape",
+      "name": "Sandy Cape Track",
+      "lat": -41.42,
+      "lng": 144.75,
+      "manual": true
+    },
+    {
+      "key": "stanley",
+      "name": "Stanley",
+      "lat": -40.762,
+      "lng": 145.295
+    },
+    {
+      "key": "peppermint-campground",
+      "name": "Peppermint Campground",
+      "lat": null,
+      "lng": null,
+      "manual": true,
+      "notes": "Location not confirmed."
+    }
   ],
   "days": [
-    { "date": "2027-01-18", "leg": "solo1", "overnight": "tungatinah-lagoon", "stops": [
-      { "place": "devonport" },
-      { "place": "central-plateau-lakes", "tags": ["4wd"] },
-      { "place": "tungatinah-lagoon", "tags": ["camp"] }
-    ] },
-    { "date": "2027-01-19", "leg": "solo1", "overnight": "cockle-creek", "stops": [
-      { "place": "horseshoe-falls", "tags": ["walk"] },
-      { "place": "russell-falls", "tags": ["walk"] },
-      { "place": "cockle-creek", "tags": ["camp"] }
-    ] },
-    { "date": "2027-01-20", "leg": "solo1", "overnight": "hobart", "stops": [
-      { "place": "cockle-creek" },
-      { "place": "hobart" }
-    ] },
-    { "date": "2027-01-21", "leg": "family", "overnight": "fortescue-bay", "stops": [
-      { "place": "hobart-airport" },
-      { "place": "tasman-peninsula" },
-      { "place": "fortescue-bay", "tags": ["camp", "book_ahead"] }
-    ] },
-    { "date": "2027-01-22", "leg": "family", "overnight": "hobart", "stops": [
-      { "place": "cape-hauy", "tags": ["walk", "weather"] },
-      { "place": "tasmans-arch" },
-      { "place": "remarkable-cave", "tags": ["walk"] },
-      { "place": "tessellated-pavement" },
-      { "place": "kunanyi", "tags": ["weather"] }
-    ] },
-    { "date": "2027-01-23", "leg": "family", "overnight": "coles-bay", "stops": [
-      { "place": "salamanca-market", "notes": "Saturdays only." },
-      { "place": "coles-bay", "tags": ["book_ahead"] },
-      { "place": "cape-tourville" }
-    ] },
-    { "date": "2027-01-24", "leg": "family", "overnight": "bicheno", "notes": "Overnight Bicheno or Lagoons Beach.", "stops": [
-      { "place": "wineglass-bay-lookout", "tags": ["walk"], "notes": "Or Mt Amos (in the tray)." },
-      { "place": "bluestone-bay", "tags": ["4wd"] },
-      { "place": "bicheno-blowhole" },
-      { "place": "redbill-beach" }
-    ] },
-    { "date": "2027-01-25", "leg": "family", "overnight": "launceston", "stops": [
-      { "place": "st-helens" },
-      { "place": "binalong-bay" },
-      { "place": "cosy-corner" },
-      { "place": "sloop-reef" },
-      { "place": "halls-falls", "tags": ["walk"] }
-    ] },
-    { "date": "2027-01-26", "leg": "solo2", "overnight": "cradle-mountain", "stops": [
-      { "place": "launceston-airport" },
-      { "place": "cradle-mountain" }
-    ] },
-    { "date": "2027-01-27", "leg": "solo2", "overnight": "lake-gairdner", "stops": [
-      { "place": "hansons-peak", "tags": ["walk"] },
-      { "place": "tullah" },
-      { "place": "lake-rosebery" },
-      { "place": "lake-gairdner", "tags": ["camp"] }
-    ] },
-    { "date": "2027-01-28", "leg": "solo2", "overnight": "strahan", "stops": [
-      { "place": "montezuma-falls", "tags": ["walk"] },
-      { "place": "queenstown" },
-      { "place": "horsetail-falls", "tags": ["walk"] },
-      { "place": "nelson-falls", "tags": ["walk"] }
-    ] },
-    { "date": "2027-01-29", "leg": "solo2", "overnight": "strahan", "stops": [
-      { "place": "wcwr-strahan", "tags": ["book_ahead"], "notes": "Return trip from Strahan." }
-    ] },
-    { "date": "2027-01-30", "leg": "solo2", "overnight": "corinna", "stops": [
-      { "place": "trial-harbour" },
-      { "place": "climies-track", "tags": ["4wd", "weather"] },
-      { "place": "granville-harbour" },
-      { "place": "corinna" }
-    ] },
-    { "date": "2027-01-31", "leg": "solo2", "overnight": "arthur-river", "stops": [
-      { "place": "fatman-barge" },
-      { "place": "western-explorer", "tags": ["4wd", "permit"] },
-      { "place": "arthur-river" }
-    ] },
-    { "date": "2027-02-01", "leg": "solo2", "overnight": "sandy-cape", "stops": [
-      { "place": "sandy-cape", "tags": ["4wd", "camp", "weather"] }
-    ] },
-    { "date": "2027-02-02", "leg": "solo2", "overnight": "devonport", "stops": [
-      { "place": "arthur-river" },
-      { "place": "stanley" }
-    ] },
-    { "date": "2027-02-03", "leg": "solo2", "overnight": null, "stops": [
-      { "place": "devonport", "notes": "Spirit of Tasmania departs." }
-    ] }
+    {
+      "date": "2027-01-18",
+      "leg": "solo1",
+      "overnight": "tungatinah-lagoon",
+      "stops": [
+        {
+          "place": "devonport"
+        },
+        {
+          "place": "central-plateau-lakes",
+          "tags": [
+            "4wd"
+          ]
+        },
+        {
+          "place": "tungatinah-lagoon",
+          "tags": [
+            "camp"
+          ]
+        }
+      ]
+    },
+    {
+      "date": "2027-01-19",
+      "leg": "solo1",
+      "overnight": "cockle-creek",
+      "stops": [
+        {
+          "place": "horseshoe-falls",
+          "tags": [
+            "walk"
+          ]
+        },
+        {
+          "place": "russell-falls",
+          "tags": [
+            "walk"
+          ]
+        },
+        {
+          "place": "cockle-creek",
+          "tags": [
+            "camp"
+          ]
+        }
+      ]
+    },
+    {
+      "date": "2027-01-20",
+      "leg": "solo1",
+      "overnight": "hobart",
+      "stops": [
+        {
+          "place": "cockle-creek"
+        },
+        {
+          "place": "hobart"
+        }
+      ]
+    },
+    {
+      "date": "2027-01-21",
+      "leg": "family",
+      "overnight": "fortescue-bay",
+      "stops": [
+        {
+          "place": "hobart-airport",
+          "time": "11:00",
+          "notes": "Family lands. Check flight number."
+        },
+        {
+          "place": "tasman-peninsula"
+        },
+        {
+          "place": "fortescue-bay",
+          "tags": [
+            "camp",
+            "book_ahead"
+          ]
+        }
+      ]
+    },
+    {
+      "date": "2027-01-22",
+      "leg": "family",
+      "overnight": "hobart",
+      "stops": [
+        {
+          "place": "cape-hauy",
+          "tags": [
+            "walk",
+            "weather"
+          ]
+        },
+        {
+          "place": "tasmans-arch"
+        },
+        {
+          "place": "remarkable-cave",
+          "tags": [
+            "walk"
+          ]
+        },
+        {
+          "place": "tessellated-pavement"
+        },
+        {
+          "place": "kunanyi",
+          "tags": [
+            "weather"
+          ]
+        }
+      ]
+    },
+    {
+      "date": "2027-01-23",
+      "leg": "family",
+      "overnight": "coles-bay",
+      "stops": [
+        {
+          "place": "salamanca-market",
+          "notes": "Saturdays only."
+        },
+        {
+          "place": "coles-bay",
+          "tags": [
+            "book_ahead"
+          ]
+        },
+        {
+          "place": "cape-tourville"
+        }
+      ]
+    },
+    {
+      "date": "2027-01-24",
+      "leg": "family",
+      "overnight": "bicheno",
+      "notes": "Overnight Bicheno or Lagoons Beach.",
+      "stops": [
+        {
+          "place": "wineglass-bay-lookout",
+          "tags": [
+            "walk"
+          ],
+          "notes": "Or Mt Amos (in the tray)."
+        },
+        {
+          "place": "bluestone-bay",
+          "tags": [
+            "4wd"
+          ]
+        },
+        {
+          "place": "bicheno-blowhole"
+        },
+        {
+          "place": "redbill-beach"
+        }
+      ]
+    },
+    {
+      "date": "2027-01-25",
+      "leg": "family",
+      "overnight": "launceston",
+      "stops": [
+        {
+          "place": "st-helens"
+        },
+        {
+          "place": "binalong-bay"
+        },
+        {
+          "place": "cosy-corner"
+        },
+        {
+          "place": "sloop-reef"
+        },
+        {
+          "place": "halls-falls",
+          "tags": [
+            "walk"
+          ]
+        }
+      ]
+    },
+    {
+      "date": "2027-01-26",
+      "leg": "solo2",
+      "overnight": "cradle-mountain",
+      "stops": [
+        {
+          "place": "launceston-airport"
+        },
+        {
+          "place": "cradle-mountain"
+        }
+      ]
+    },
+    {
+      "date": "2027-01-27",
+      "leg": "solo2",
+      "overnight": "lake-gairdner",
+      "stops": [
+        {
+          "place": "hansons-peak",
+          "tags": [
+            "walk"
+          ]
+        },
+        {
+          "place": "tullah"
+        },
+        {
+          "place": "lake-rosebery"
+        },
+        {
+          "place": "lake-gairdner",
+          "tags": [
+            "camp"
+          ]
+        }
+      ]
+    },
+    {
+      "date": "2027-01-28",
+      "leg": "solo2",
+      "overnight": "strahan",
+      "stops": [
+        {
+          "place": "montezuma-falls",
+          "tags": [
+            "walk"
+          ]
+        },
+        {
+          "place": "queenstown"
+        },
+        {
+          "place": "horsetail-falls",
+          "tags": [
+            "walk"
+          ]
+        },
+        {
+          "place": "nelson-falls",
+          "tags": [
+            "walk"
+          ]
+        }
+      ]
+    },
+    {
+      "date": "2027-01-29",
+      "leg": "solo2",
+      "overnight": "strahan",
+      "stops": [
+        {
+          "place": "wcwr-strahan",
+          "tags": [
+            "book_ahead"
+          ],
+          "notes": "Return trip from Strahan."
+        }
+      ]
+    },
+    {
+      "date": "2027-01-30",
+      "leg": "solo2",
+      "overnight": "corinna",
+      "stops": [
+        {
+          "place": "trial-harbour",
+          "time": "08:30",
+          "notes": "Air down tyres before Climies."
+        },
+        {
+          "place": "climies-track",
+          "tags": [
+            "4wd",
+            "weather"
+          ],
+          "notes": "Experienced drivers only. Check conditions the night before; turn back if bog holes look deep."
+        },
+        {
+          "place": "granville-harbour",
+          "time": "11:15",
+          "notes": "Lunch, then air back up."
+        },
+        {
+          "place": "corinna",
+          "time": "13:00",
+          "notes": "Pieman River cruise if there's time."
+        }
+      ]
+    },
+    {
+      "date": "2027-01-31",
+      "leg": "solo2",
+      "overnight": "arthur-river",
+      "stops": [
+        {
+          "place": "fatman-barge"
+        },
+        {
+          "place": "western-explorer",
+          "tags": [
+            "4wd",
+            "permit"
+          ]
+        },
+        {
+          "place": "arthur-river"
+        }
+      ]
+    },
+    {
+      "date": "2027-02-01",
+      "leg": "solo2",
+      "overnight": "sandy-cape",
+      "stops": [
+        {
+          "place": "sandy-cape",
+          "tags": [
+            "4wd",
+            "camp",
+            "weather"
+          ]
+        }
+      ]
+    },
+    {
+      "date": "2027-02-02",
+      "leg": "solo2",
+      "overnight": "devonport",
+      "stops": [
+        {
+          "place": "arthur-river"
+        },
+        {
+          "place": "stanley"
+        }
+      ]
+    },
+    {
+      "date": "2027-02-03",
+      "leg": "solo2",
+      "overnight": null,
+      "stops": [
+        {
+          "place": "devonport",
+          "notes": "Spirit of Tasmania departs."
+        }
+      ]
+    }
   ],
-  "tray": ["peppermint-campground", "mt-amos", "lagoons-beach"],
+  "tray": [
+    {
+      "place": "peppermint-campground",
+      "tags": [
+        "camp"
+      ],
+      "notes": "Location to confirm."
+    },
+    {
+      "place": "lime-bay",
+      "notes": "Tasman Peninsula."
+    },
+    {
+      "place": "cape-raoul",
+      "tags": [
+        "walk"
+      ],
+      "notes": "About 5 hours return. Alternative to Cape Hauy."
+    },
+    {
+      "place": "mt-amos",
+      "tags": [
+        "walk"
+      ],
+      "notes": "Harder alternative to the Wineglass Bay Lookout."
+    },
+    {
+      "place": "lagoons-beach",
+      "tags": [
+        "camp"
+      ],
+      "notes": "Alternative overnight to Bicheno on 24 Jan."
+    }
+  ],
   "checklist": [
-    { "title": "Spirit of Tasmania return crossing (4WD)", "category": "booking" },
-    { "title": "Family flights: into Hobart 21 Jan, out of Launceston 26 Jan", "category": "booking" },
-    { "title": "Tasmanian Parks Holiday Pass", "category": "pass" },
-    { "title": "Arthur-Pieman Recreational Driver Pass", "category": "permit" },
-    { "title": "Fortescue Bay campsite", "category": "booking" },
-    { "title": "Coles Bay or Bicheno accommodation", "category": "booking" },
-    { "title": "West Coast Wilderness Railway tickets", "category": "booking" },
-    { "title": "Corinna accommodation", "category": "booking" },
-    { "title": "PLB or satellite messenger, and UHF radio", "category": "gear" }
+    {
+      "title": "Spirit of Tasmania return crossing (4WD)",
+      "category": "booking"
+    },
+    {
+      "title": "Family flights: into Hobart 21 Jan, out of Launceston 26 Jan",
+      "category": "booking"
+    },
+    {
+      "title": "Tasmanian Parks Holiday Pass",
+      "category": "pass"
+    },
+    {
+      "title": "Arthur-Pieman Recreational Driver Pass",
+      "category": "permit"
+    },
+    {
+      "title": "Fortescue Bay campsite",
+      "category": "booking"
+    },
+    {
+      "title": "Coles Bay or Bicheno accommodation",
+      "category": "booking"
+    },
+    {
+      "title": "West Coast Wilderness Railway tickets",
+      "category": "booking"
+    },
+    {
+      "title": "Corinna accommodation",
+      "category": "booking"
+    },
+    {
+      "title": "PLB or satellite messenger, and UHF radio",
+      "category": "gear"
+    }
   ]
 }

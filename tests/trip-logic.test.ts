@@ -1,0 +1,111 @@
+import { describe, expect, it } from "vitest";
+import { dayDrive, dayRoute, formatDuration, pairKey } from "@/lib/trip/drive";
+import { changedContainers, moveStop } from "@/lib/trip/layout";
+import { TRAY, type TripData } from "@/lib/trip/types";
+import { dayWarnings } from "@/lib/trip/warnings";
+
+const place = (id: string, lat: number | null, lng: number | null, businessStatus: string | null = null) => ({
+  id,
+  name: id,
+  lat,
+  lng,
+  businessStatus,
+  mapsUrl: null,
+});
+const stop = (id: string, placeId: string, tags: string[] = []) => ({
+  id,
+  placeId,
+  name: placeId,
+  time: null,
+  tags: tags as TripData["stops"][string]["tags"],
+  notes: "",
+  bookingRef: "",
+  link: "",
+});
+
+function trip(): TripData {
+  return {
+    id: "t",
+    name: "Test",
+    startDate: "2027-01-18",
+    endDate: "2027-01-19",
+    maxDriveHours: 5,
+    legs: [],
+    days: [
+      { id: "d1", date: "2027-01-18", legId: null, overnightPlaceId: "camp", notes: "" },
+      { id: "d2", date: "2027-01-19", legId: null, overnightPlaceId: "town", notes: "" },
+    ],
+    places: {
+      port: place("port", -41, 146),
+      camp: place("camp", -42, 146),
+      falls: place("falls", -42.5, 146.5, "CLOSED_TEMPORARILY"),
+      track: place("track", null, null),
+      town: place("town", -43, 147),
+    },
+    stops: {
+      s1: stop("s1", "port"),
+      s2: stop("s2", "camp", ["camp"]),
+      s3: stop("s3", "falls", ["weather"]),
+      s4: stop("s4", "track", ["permit"]),
+      s5: stop("s5", "town"),
+    },
+    layout: { d1: ["s1", "s2"], d2: ["s3", "s4"], [TRAY]: ["s5"] },
+    checklist: [{ id: "c1", title: "Driver pass", category: "permit", dueDate: null, status: "todo" }],
+  };
+}
+
+describe("dayRoute", () => {
+  it("runs from last night's overnight through the stops to tonight's, skipping repeats and unmapped places", () => {
+    const t = trip();
+    expect(dayRoute(t, 0).map((p) => p.placeId)).toEqual(["port", "camp"]); // stop at the overnight counts once
+    expect(dayRoute(t, 1).map((p) => p.placeId)).toEqual(["camp", "falls", "town"]); // "track" has no coordinates
+  });
+});
+
+describe("dayDrive", () => {
+  it("totals cached segments and reports when some are missing", () => {
+    const route = dayRoute(trip(), 1);
+    const cache = { [pairKey(route[0], route[1])]: { durationS: 3600, distanceM: 80_000, polyline: null } };
+    const drive = dayDrive(route, cache);
+    expect(drive.totalS).toBe(3600);
+    expect(drive.complete).toBe(false);
+  });
+});
+
+describe("moveStop", () => {
+  it("moves a stop between days and out of the tray", () => {
+    const t = trip();
+    const moved = moveStop(t.layout, "s3", "d1", 1);
+    expect(moved.d1).toEqual(["s1", "s3", "s2"]);
+    expect(moved.d2).toEqual(["s4"]);
+    const scheduled = moveStop(moved, "s5", "d2", 99);
+    expect(scheduled.d2).toEqual(["s4", "s5"]);
+    expect(scheduled[TRAY]).toEqual([]);
+    expect(changedContainers(t.layout, scheduled).sort()).toEqual(["d1", "d2", TRAY].sort());
+  });
+});
+
+describe("dayWarnings", () => {
+  it("flags closed places, weather days, open permits and long drives", () => {
+    const titles = dayWarnings(trip(), "d2", 6 * 3600).map((w) => w.title);
+    expect(titles).toEqual(["Closed", "Long driving day", "Weather-dependent", "Permit needed"]);
+  });
+
+  it("stays quiet on a normal day", () => {
+    expect(dayWarnings(trip(), "d1", 2 * 3600)).toEqual([]);
+  });
+
+  it("drops the permit warning once the permit is ticked off", () => {
+    const t = trip();
+    t.checklist[0].status = "done";
+    expect(dayWarnings(t, "d2", 0).map((w) => w.title)).not.toContain("Permit needed");
+  });
+});
+
+describe("formatDuration", () => {
+  it("formats minutes and hours", () => {
+    expect(formatDuration(55 * 60)).toBe("55 min");
+    expect(formatDuration(4 * 3600 + 15 * 60)).toBe("4h 15m");
+    expect(formatDuration(2 * 3600)).toBe("2h");
+  });
+});

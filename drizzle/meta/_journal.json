@@ -15,6 +15,13 @@
       "when": 1790584417079,
       "tag": "0001_auth_email",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790590140357,
+      "tag": "0002_tray_stops",
+      "breakpoints": true
     }
   ]
 }
