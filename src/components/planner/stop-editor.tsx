@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { PlaceSearch, type Suggestion } from "./place-search";
 import { dayLabel } from "@/lib/trip/format";
 import { TAGS, TRAY, type Day, type Stop, type Tag } from "@/lib/trip/types";
 
@@ -12,9 +13,11 @@ export type EditorValues = {
   notes: string;
   bookingRef: string;
   link: string;
+  picked: (Suggestion & { session: string }) | null; // new stops: the Google place chosen
 };
 
 type Props = {
+  tripId: string;
   variant: "panel" | "sheet";
   isNew: boolean;
   stop: Stop | null; // null for a new stop
@@ -25,9 +28,12 @@ type Props = {
   onSave: (values: EditorValues) => void;
   onCancel: () => void;
   onUnschedule: () => void;
+  onDelete: () => void;
 };
 
-export function StopEditor({ variant, isNew, stop, container, days, saving, error, onSave, onCancel, onUnschedule }: Props) {
+export function StopEditor(props: Props) {
+  const { tripId, variant, isNew, stop, container, days, saving, error, onSave, onCancel, onUnschedule, onDelete } = props;
+  const [session] = useState(() => crypto.randomUUID());
   const [values, setValues] = useState<EditorValues>(() => ({
     name: stop?.name ?? "",
     container,
@@ -36,6 +42,7 @@ export function StopEditor({ variant, isNew, stop, container, days, saving, erro
     notes: stop?.notes ?? "",
     bookingRef: stop?.bookingRef ?? "",
     link: stop?.link ?? "",
+    picked: null,
   }));
   const nameRef = useRef<HTMLInputElement>(null);
   const set = <K extends keyof EditorValues>(key: K, value: EditorValues[K]) => setValues((v) => ({ ...v, [key]: value }));
@@ -85,16 +92,29 @@ export function StopEditor({ variant, isNew, stop, container, days, saving, erro
       </div>
 
       <label className="field">
-        Name
-        <input
-          ref={nameRef}
-          value={values.name}
-          onChange={(e) => set("name", e.target.value)}
-          autoComplete="off"
-          placeholder={isNew ? "A place name, e.g. Cape Raoul Track" : undefined}
-        />
+        {isNew ? "Place" : "Name"}
+        {isNew ? (
+          <PlaceSearch
+            tripId={tripId}
+            session={session}
+            inputRef={nameRef}
+            value={values.name}
+            onChange={(text) => setValues((v) => ({ ...v, name: text, picked: null }))}
+            onPick={(sug) => setValues((v) => ({ ...v, name: sug.main, picked: { ...sug, session } }))}
+          />
+        ) : (
+          <input ref={nameRef} value={values.name} onChange={(e) => set("name", e.target.value)} autoComplete="off" />
+        )}
       </label>
-      {isNew && <p className="-mt-2 text-[12.5px] text-muted">We&apos;ll look it up on Google Maps when you save.</p>}
+      {isNew && (
+        <p className={`-mt-2 text-[12.5px] ${values.picked ? "text-good-ink" : "text-muted"}`}>
+          {values.picked
+            ? `On the map: ${values.picked.main}${values.picked.secondary ? `, ${values.picked.secondary}` : ""}`
+            : values.name.trim()
+              ? "Pick a match to put it on the map, or save to add it without a location."
+              : "Search Google Maps and pick the right place."}
+        </p>
+      )}
 
       <div className="grid grid-cols-2 gap-2.5">
         <label className="field">
@@ -171,14 +191,17 @@ export function StopEditor({ variant, isNew, stop, container, days, saving, erro
           {saving ? "Saving…" : "Save"}
         </button>
       </div>
-      {!isNew && container !== TRAY && (
-        <button
-          type="button"
-          onClick={onUnschedule}
-          className="mt-3.5 cursor-pointer text-[13.5px] text-bad-ink underline"
-        >
-          Move to not yet scheduled
-        </button>
+      {!isNew && (
+        <div className="mt-3.5 flex flex-wrap gap-x-5 gap-y-2">
+          {container !== TRAY && (
+            <button type="button" onClick={onUnschedule} className="cursor-pointer text-[13.5px] text-ink underline">
+              Move to not yet scheduled
+            </button>
+          )}
+          <button type="button" onClick={onDelete} className="cursor-pointer text-[13.5px] text-bad-ink underline">
+            Delete stop
+          </button>
+        </div>
       )}
       <p className="mt-3.5 text-[12px] text-muted">Esc closes without saving.</p>
     </form>

@@ -3,22 +3,35 @@
 import { APIProvider } from "@vis.gl/react-google-maps";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { createStop, saveLayout, updateStop, deleteStop } from "@/app/trips/[tripId]/actions";
+import {
+  createStop,
+  deleteStop,
+  saveLayout,
+  updateStop,
+  updateTrip,
+  type PlaceRef,
+  type TripDetails,
+} from "@/app/trips/[tripId]/actions";
 import { dayRoute, pairKey, type RoutePoint } from "@/lib/trip/drive";
 import { dateRange, dayCount, dayLabel } from "@/lib/trip/format";
 import { changedContainers, containerOf, moveStop } from "@/lib/trip/layout";
 import { TRAY, type Layout, type Segment, type Stop, type TripData } from "@/lib/trip/types";
 import { dayWarnings } from "@/lib/trip/warnings";
 import { DaySection, type DayDriveInfo } from "./day-section";
-import { SidePanel } from "./side-panel";
+import { PencilIcon } from "./icons";
 import { SortableList } from "./sortable-list";
 import { StopCard, type DriveIn } from "./stop-card";
 import { StopEditor, type EditorValues } from "./stop-editor";
+import { TripEditor } from "./trip-editor";
 import { TripMap, type MapPoint } from "./trip-map";
 import { legColour, useIsDesktop, usePrefersDark } from "./use-media";
 
-type Editor = { mode: "edit"; stopId: string } | { mode: "new"; container: string };
-type Undo = { label: string; layout?: Layout; stop?: Stop; createdStopId?: string };
+type Editor =
+  | { mode: "edit"; stopId: string }
+  | { mode: "new"; container: string }
+  | { mode: "trip"; focus: "trip" | "legs" };
+type Deleted = { stop: Stop; container: string; position: number };
+type Undo = { label: string; layout?: Layout; stop?: Stop; createdStopId?: string; deleted?: Deleted };
 // Segment = drive known; null = asked Google and there's no road route.
 type SegCache = Record<string, Segment | null>;
 
@@ -96,19 +109,17 @@ export function TripPlanner({ initial }: { initial: TripData }) {
         let totalS = 0;
         let complete = true;
         for (let i = 1; i < route.length; i++) {
-          const key = pairKey(route[i - 1], route[i]);
-          const seg = segs[key];
+          const seg = segs[pairKey(route[i - 1], route[i])];
           const d: DriveIn = seg === undefined ? "loading" : seg === null ? "none" : seg;
           if (seg) totalS += seg.durationS;
           else if (seg === undefined) complete = false;
           const to = route[i];
           if (to.stopId) driveIn[to.stopId] = d;
-          else tail = { to: placeName(to.placeId) ?? "tonight's stop", drive: d };
+          else tail = { to: trip.places[to.placeId]?.name ?? "tonight's stop", drive: d };
         }
         return { driveIn, tail, totalS, complete };
       }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [routes, segs],
+    [routes, segs, trip.places],
   );
 
   const warnings = useMemo(
@@ -154,6 +165,23 @@ export function TripPlanner({ initial }: { initial: TripData }) {
     [applyLayout, trip.stops, trip.days],
   );
 
+  const removeFromState = (id: string) =>
+    setTrip((t) => {
+      const layout = Object.fromEntries(Object.entries(t.layout).map(([k, ids]) => [k, ids.filter((x) => x !== id)]));
+      const stops = { ...t.stops };
+      delete stops[id];
+      return { ...t, layout, stops };
+    });
+
+  const fieldsOf = (s: Stop) => ({
+    name: s.name,
+    time: s.time,
+    tags: s.tags,
+    notes: s.notes,
+    bookingRef: s.bookingRef,
+    link: s.link,
+  });
+
   const runUndo = async () => {
     if (!undo) return;
     const entry = undo;
@@ -161,25 +189,26 @@ export function TripPlanner({ initial }: { initial: TripData }) {
     setToast(null);
     try {
       if (entry.createdStopId) {
-        const id = entry.createdStopId;
-        await deleteStop(tripRef.current.id, id);
-        setTrip((t) => {
-          const layout = Object.fromEntries(Object.entries(t.layout).map(([k, ids]) => [k, ids.filter((x) => x !== id)]));
-          const stops = { ...t.stops };
-          delete stops[id];
-          return { ...t, layout, stops };
+        await deleteStop(tripRef.current.id, entry.createdStopId);
+        removeFromState(entry.createdStopId);
+      }
+      if (entry.deleted) {
+        // Recreate the deleted stop in its old spot with the same place and details.
+        const { stop: old, container, position } = entry.deleted;
+        const { stop, place } = await createStop(tripRef.current.id, container, position, fieldsOf(old), {
+          kind: "existing",
+          placeId: old.placeId,
         });
+        const t = tripRef.current;
+        const ids = [...(t.layout[container] ?? [])];
+        ids.splice(Math.min(position, ids.length), 0, stop.id);
+        const next = { ...t.layout, [container]: ids };
+        setTrip((x) => ({ ...x, stops: { ...x.stops, [stop.id]: stop }, places: { ...x.places, [place.id]: place } }));
+        await applyLayout(next, null);
       }
       if (entry.stop) {
         const s = entry.stop;
-        await updateStop(tripRef.current.id, s.id, {
-          name: s.name,
-          time: s.time,
-          tags: s.tags,
-          notes: s.notes,
-          bookingRef: s.bookingRef,
-          link: s.link,
-        });
+        await updateStop(tripRef.current.id, s.id, fieldsOf(s));
         setTrip((t) => ({ ...t, stops: { ...t.stops, [s.id]: s } }));
       }
       if (entry.layout) await applyLayout(entry.layout, null);
@@ -188,7 +217,7 @@ export function TripPlanner({ initial }: { initial: TripData }) {
     }
   };
 
-  // ---- Editor -----------------------------------------------------------------------------
+  // ---- Editors ----------------------------------------------------------------------------
   const openEditor = (stopId: string) => {
     setEditorError(null);
     setEditor({ mode: "edit", stopId });
@@ -198,20 +227,27 @@ export function TripPlanner({ initial }: { initial: TripData }) {
     setEditorError(null);
     setEditor({ mode: "new", container });
   };
+  const openTripEditor = (focus: "trip" | "legs") => {
+    setEditorError(null);
+    setEditor({ mode: "trip", focus });
+  };
   const closeEditor = useCallback(() => {
     setEditor(null);
     setEditorError(null);
   }, []);
 
   const saveEditor = async (v: EditorValues) => {
-    if (!editor) return;
+    if (!editor || editor.mode === "trip") return;
     setSaving(true);
     setEditorError(null);
     const fields = { name: v.name, time: v.time, tags: v.tags, notes: v.notes, bookingRef: v.bookingRef, link: v.link };
     try {
       if (editor.mode === "new") {
+        const ref: PlaceRef = v.picked
+          ? { kind: "google", googlePlaceId: v.picked.placeId, session: v.picked.session }
+          : { kind: "manual" };
         const position = trip.layout[v.container]?.length ?? 0;
-        const { stop, place } = await createStop(trip.id, v.container, position, fields);
+        const { stop, place } = await createStop(trip.id, v.container, position, fields, ref);
         setTrip((t) => ({
           ...t,
           stops: { ...t.stops, [stop.id]: stop },
@@ -219,7 +255,7 @@ export function TripPlanner({ initial }: { initial: TripData }) {
           layout: { ...t.layout, [v.container]: [...(t.layout[v.container] ?? []), stop.id] },
         }));
         setUndo({ label: `Added ${stop.name}`, createdStopId: stop.id });
-        setToast({ text: `Added ${stop.name}${place.lat === null ? " (not found on Google Maps)" : ""}` });
+        setToast({ text: `Added ${stop.name}${place.lat === null ? " (no map location)" : ""}` });
       } else {
         const prevStop = trip.stops[editor.stopId];
         const prevLayout = trip.layout;
@@ -227,15 +263,15 @@ export function TripPlanner({ initial }: { initial: TripData }) {
         const saved = await updateStop(trip.id, editor.stopId, fields);
         setTrip((t) => ({ ...t, stops: { ...t.stops, [saved.id]: saved } }));
         if (from !== v.container) {
-          const next = moveStop(prevLayout, saved.id, v.container, Number.MAX_SAFE_INTEGER);
-          await applyLayout(next, null);
+          await applyLayout(moveStop(prevLayout, saved.id, v.container, Number.MAX_SAFE_INTEGER), null);
         }
         setUndo({ label: `Saved ${saved.name}`, stop: prevStop, layout: from !== v.container ? prevLayout : undefined });
         setToast({ text: `Saved ${saved.name}` });
       }
       closeEditor();
     } catch (err) {
-      setEditorError(err instanceof Error && err.message.includes("http") ? err.message : "Couldn't save. Try again.");
+      const msg = err instanceof Error ? err.message : "";
+      setEditorError(/http|Google Maps/.test(msg) ? msg : "Couldn't save. Try again.");
     } finally {
       setSaving(false);
     }
@@ -246,6 +282,50 @@ export function TripPlanner({ initial }: { initial: TripData }) {
     const id = editor.stopId;
     closeEditor();
     onMove(id, TRAY, Number.MAX_SAFE_INTEGER);
+  };
+
+  const deleteEditing = async () => {
+    if (editor?.mode !== "edit") return;
+    const id = editor.stopId;
+    const stop = trip.stops[id];
+    const container = containerOf(trip.layout, id) ?? TRAY;
+    const position = trip.layout[container]?.indexOf(id) ?? 0;
+    closeEditor();
+    removeFromState(id);
+    try {
+      await deleteStop(trip.id, id);
+      setUndo({ label: `Deleted ${stop.name}`, deleted: { stop, container, position } });
+      setToast({ text: `Deleted ${stop.name}` });
+    } catch {
+      setTrip((t) => ({
+        ...t,
+        stops: { ...t.stops, [id]: stop },
+        layout: { ...t.layout, [container]: moveStop(t.layout, id, container, position)[container] },
+      }));
+      setToast({ text: "That delete didn't save. Try again.", error: true });
+    }
+  };
+
+  const saveTrip = async (details: TripDetails) => {
+    setSaving(true);
+    setEditorError(null);
+    try {
+      const result = await updateTrip(trip.id, details);
+      if (!result.ok) {
+        setEditorError(result.error);
+        return;
+      }
+      sectionEls.current = [];
+      setTrip(result.trip);
+      setActiveDay((i) => Math.min(i, result.trip.days.length - 1));
+      setUndo(null);
+      setToast({ text: "Trip saved" });
+      closeEditor();
+    } catch {
+      setEditorError("Couldn't save. Try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   useEffect(() => {
@@ -286,7 +366,8 @@ export function TripPlanner({ initial }: { initial: TripData }) {
 
   // ---- Map for the day in view ------------------------------------------------------------
   const route = routes[activeDay] ?? [];
-  const dayStops = trip.layout[trip.days[activeDay]?.id] ?? [];
+  const activeDayId = trip.days[activeDay]?.id;
+  const dayStops = trip.layout[activeDayId ?? ""] ?? [];
   const mapPoints: MapPoint[] = route.map((p) => ({
     id: p.stopId ?? `place-${p.placeId}`,
     lat: p.lat,
@@ -350,21 +431,39 @@ export function TripPlanner({ initial }: { initial: TripData }) {
   );
   const trayCount = trip.layout[TRAY]?.length ?? 0;
 
-  const editorEl = editor && (
-    <StopEditor
-      key={editor.mode === "edit" ? editor.stopId : `new-${editor.container}`}
-      variant={isDesktop ? "panel" : "sheet"}
-      isNew={editor.mode === "new"}
-      stop={editor.mode === "edit" ? trip.stops[editor.stopId] : null}
-      container={editor.mode === "edit" ? (containerOf(trip.layout, editor.stopId) ?? TRAY) : editor.container}
-      days={trip.days}
-      saving={saving}
-      error={editorError}
-      onSave={saveEditor}
-      onCancel={closeEditor}
-      onUnschedule={unscheduleEditing}
-    />
-  );
+  const stopsOnDays = Object.fromEntries(trip.days.map((d) => [d.date, trip.layout[d.id]?.length ?? 0]));
+  const variant = isDesktop ? "panel" : "sheet";
+  const editorEl =
+    editor &&
+    (editor.mode === "trip" ? (
+      <TripEditor
+        key={`trip-${editor.focus}`}
+        trip={trip}
+        focus={editor.focus}
+        variant={variant}
+        saving={saving}
+        error={editorError}
+        stopsOnDays={stopsOnDays}
+        onSave={saveTrip}
+        onCancel={closeEditor}
+      />
+    ) : (
+      <StopEditor
+        key={editor.mode === "edit" ? editor.stopId : `new-${editor.container}`}
+        tripId={trip.id}
+        variant={variant}
+        isNew={editor.mode === "new"}
+        stop={editor.mode === "edit" ? trip.stops[editor.stopId] : null}
+        container={editor.mode === "edit" ? (containerOf(trip.layout, editor.stopId) ?? TRAY) : editor.container}
+        days={trip.days}
+        saving={saving}
+        error={editorError}
+        onSave={saveEditor}
+        onCancel={closeEditor}
+        onUnschedule={unscheduleEditing}
+        onDelete={deleteEditing}
+      />
+    ));
 
   const map = (className: string, labels: boolean) =>
     MAPS_KEY ? (
@@ -374,7 +473,7 @@ export function TripPlanner({ initial }: { initial: TripData }) {
         colour={colourOf(activeDay)}
         selectedId={selectedStop}
         onSelect={setSelectedStop}
-        fitKey={`${activeDay}-${mapPoints.length}`}
+        fitKey={`${activeDay}-${mapPoints.length}-${isDesktop}`}
         className={className}
         labels={labels}
       />
@@ -382,8 +481,24 @@ export function TripPlanner({ initial }: { initial: TripData }) {
       <div className={`grid place-items-center bg-soft text-[13px] text-muted ${className}`}>Map key not set</div>
     );
 
+  const editButton = (label: string, onClick: () => void, className = "") => (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className={`grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-line bg-paper text-ink hover:border-muted ${className}`}
+    >
+      <PencilIcon />
+    </button>
+  );
+
   const legend = (
-    <ul className={isDesktop ? "text-[13.5px]" : "flex gap-3.5 overflow-x-auto px-[18px] pt-3 pb-1.5 text-[12.5px] text-muted no-scrollbar"}>
+    <ul
+      className={
+        isDesktop ? "text-[13.5px]" : "flex items-center gap-3.5 overflow-x-auto px-[18px] pt-3 pb-1.5 text-[12.5px] text-muted no-scrollbar"
+      }
+    >
       {trip.legs.map((l) => (
         <li key={l.id} className={`flex items-center gap-2 ${isDesktop ? "py-0.5" : "shrink-0"}`}>
           <i className="inline-block h-[5px] w-4 rounded-sm" style={{ background: legColour(l.colour, dark) }} />
@@ -393,6 +508,13 @@ export function TripPlanner({ initial }: { initial: TripData }) {
           </span>
         </li>
       ))}
+      {!isDesktop && (
+        <li className="shrink-0">
+          <button type="button" onClick={() => openTripEditor("legs")} className="cursor-pointer font-bold text-ocean">
+            Edit legs
+          </button>
+        </li>
+      )}
     </ul>
   );
 
@@ -414,6 +536,16 @@ export function TripPlanner({ initial }: { initial: TripData }) {
   );
 
   const subtitle = `${dateRange(trip.startDate, trip.endDate)} ${trip.endDate.slice(0, 4)}, ${dayCount(trip.startDate, trip.endDate)} days`;
+  const title = (size: string) => (
+    <div className="flex items-center gap-2">
+      <h1 className={`${size} font-bold`}>
+        <Link href="/" className="hover:underline">
+          {trip.name}
+        </Link>
+      </h1>
+      {editButton("Edit trip name and dates", () => openTripEditor("trip"))}
+    </div>
+  );
 
   const toastEl = toast && (
     <div
@@ -434,22 +566,29 @@ export function TripPlanner({ initial }: { initial: TripData }) {
     </div>
   );
 
+  const activeLeg = legById[trip.days[activeDay]?.legId ?? ""];
+
   const body = isDesktop ? (
     <div className="flex h-dvh flex-col">
       <header className="flex items-center justify-between gap-6 border-b border-line bg-paper px-6 py-3.5">
         <div className="min-w-0">
-          <h1 className="text-[34px] font-bold">
-            <Link href="/" className="hover:underline">
-              {trip.name}
-            </Link>
-          </h1>
+          {title("text-[34px]")}
           <p className="text-[14px] text-muted">{subtitle}</p>
         </div>
         {actions}
       </header>
-      <div className="grid min-h-0 flex-1 grid-cols-[240px_minmax(0,1fr)_340px] xl:grid-cols-[270px_minmax(0,1fr)_400px]">
+      <div className="grid min-h-0 flex-1 grid-cols-[240px_minmax(340px,1fr)_minmax(0,2fr)] xl:grid-cols-[270px_minmax(360px,1fr)_minmax(0,2fr)]">
         <aside className="min-h-0 overflow-y-auto border-r border-line bg-paper px-4 pt-[18px] pb-10" aria-label="Trip navigation">
-          <h2 className="mb-2 text-[19px] font-semibold">Legs</h2>
+          <h2 className="mb-2 flex items-center justify-between text-[19px] font-semibold">
+            Legs
+            <button
+              type="button"
+              onClick={() => openTripEditor("legs")}
+              className="cursor-pointer rounded-full border-[1.5px] border-line px-2.5 py-0.5 font-sans text-[12.5px] font-bold text-ink hover:border-muted"
+            >
+              Edit
+            </button>
+          </h2>
           {legend}
           <h2 className="mt-[22px] mb-2 text-[19px] font-semibold">Days</h2>
           <nav className="flex flex-col gap-0.5" aria-label="Jump to day">
@@ -486,32 +625,23 @@ export function TripPlanner({ initial }: { initial: TripData }) {
           </button>
         </aside>
 
-        <main ref={planRef} className="min-h-0 overflow-y-auto px-8 pb-[60vh]">
-          <div className="mx-auto max-w-[760px]">
-            {days}
-            <p className="py-8 text-center text-[13.5px] text-muted">End of trip.</p>
-          </div>
+        <main ref={planRef} className="min-h-0 overflow-y-auto px-5 pb-[60vh]">
+          {days}
+          <p className="py-8 text-center text-[13.5px] text-muted">End of trip.</p>
         </main>
 
-        <aside
-          className="min-h-0 overflow-y-auto border-l border-line bg-paper"
-          style={{ "--legc": colourOf(activeDay) } as CSSProperties}
-        >
-          {editorEl ?? (
-            <>
-              {map("h-[290px] border-b border-line", true)}
-              <SidePanel
-                tripId={trip.id}
-                day={trip.days[activeDay]}
-                leg={legById[trip.days[activeDay]?.legId ?? ""]}
-                stopCount={dayStops.length}
-                overnight={placeName(trip.days[activeDay]?.overnightPlaceId ?? null)}
-                driveS={drives[activeDay]?.totalS ?? 0}
-                driveComplete={drives[activeDay]?.complete ?? true}
-                warnings={warnings[activeDay] ?? []}
-                checklist={trip.checklist}
-              />
-            </>
+        <aside className="relative min-h-0 border-l border-line" style={{ "--legc": colourOf(activeDay) } as CSSProperties}>
+          {map("h-full w-full", true)}
+          {trip.days[activeDay] && (
+            <div className="pointer-events-none absolute top-3 left-3 rounded-xl bg-paper/95 px-3 py-2 shadow">
+              <span className="block text-[12.5px] font-bold text-[var(--legc)]">{activeLeg?.name}</span>
+              <span className="font-display text-[22px] leading-none font-bold">{dayLabel(trip.days[activeDay].date)}</span>
+            </div>
+          )}
+          {editorEl && (
+            <div className="absolute inset-y-0 right-0 z-10 w-[420px] max-w-full overflow-y-auto border-l border-line bg-paper shadow-xl">
+              {editorEl}
+            </div>
           )}
         </aside>
       </div>
@@ -519,9 +649,7 @@ export function TripPlanner({ initial }: { initial: TripData }) {
   ) : (
     <div className="bg-paper pb-[env(safe-area-inset-bottom)]">
       <header className="px-[18px] pt-[calc(10px+env(safe-area-inset-top))] pb-3">
-        <h1 className="text-[32px] font-bold">
-          <Link href="/">{trip.name}</Link>
-        </h1>
+        {title("text-[32px]")}
         <p className="text-[14px] text-muted">{subtitle}</p>
         <div className="mt-3">{actions}</div>
       </header>

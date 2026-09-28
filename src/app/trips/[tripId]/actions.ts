@@ -1,11 +1,12 @@
 "use server";
 
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db";
 import * as t from "@/db/schema";
 import { currentUser } from "@/lib/auth";
-import { findPlace } from "@/lib/google/places";
+import { placeDetails } from "@/lib/google/places";
+import { loadTrip } from "@/lib/trip/load";
 import { TAGS, TRAY, type Stop } from "@/lib/trip/types";
 
 // Every function here is reachable by direct POST: each one re-checks that the signed-in
@@ -111,15 +112,28 @@ export async function updateStop(tripId: string, stopId: string, fields: StopFie
   };
 }
 
+const placeRef = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("google"), googlePlaceId: z.string().min(10).max(300), session: z.string().uuid().optional() }),
+  z.object({ kind: z.literal("existing"), placeId: uuid }),
+  z.object({ kind: z.literal("manual") }),
+]);
+export type PlaceRef = z.infer<typeof placeRef>;
+
 /**
- * Creates a stop from the editor. The name is looked up with Google Places (biased to the
- * trip's area) so it lands on the map; if nothing matches it becomes a hand-added place.
+ * Creates a stop. The place is the Google result picked in the editor, an existing place
+ * (undoing a delete), or a hand-added place with no map location.
  */
-export async function createStop(tripId: string, container: string, position: number, fields: StopFields) {
+export async function createStop(
+  tripId: string,
+  container: string,
+  position: number,
+  fields: StopFields,
+  ref: PlaceRef,
+) {
   const { tripId: id, userId } = await ownedTrip(tripId);
   const f = stopFields.parse(fields);
+  const where = placeRef.parse(ref);
   const target = containerKey.parse(container);
-  const name = f.name || "Untitled stop";
   const db = getDb();
 
   if (target !== TRAY) {
@@ -130,21 +144,33 @@ export async function createStop(tripId: string, container: string, position: nu
     if (!day) throw new Error("Day not found");
   }
 
-  const bias = await tripBounds(id);
-  const found = f.name ? await findPlace(f.name, bias ?? undefined) : null;
+  let place: typeof t.places.$inferSelect | undefined;
+  if (where.kind === "google") {
+    const found = await placeDetails(where.googlePlaceId, where.session);
+    if (!found) throw new Error("That place couldn't be found on Google Maps. Search again.");
+    [place] = await db
+      .insert(t.places)
+      .values({ userId, sourceList: "manual", ...found, lastEnrichedAt: new Date() })
+      .onConflictDoUpdate({
+        target: [t.places.userId, t.places.googlePlaceId],
+        targetWhere: sql`google_place_id is not null`,
+        set: { lat: found.lat, lng: found.lng, businessStatus: found.businessStatus, lastEnrichedAt: new Date() },
+      })
+      .returning();
+  } else if (where.kind === "existing") {
+    [place] = await db
+      .select()
+      .from(t.places)
+      .where(and(eq(t.places.id, where.placeId), eq(t.places.userId, userId)));
+    if (!place) throw new Error("Place not found");
+  } else {
+    [place] = await db
+      .insert(t.places)
+      .values({ userId, name: f.name || "Untitled stop", sourceList: "manual" })
+      .returning();
+  }
 
-  const [place] = found
-    ? await db
-        .insert(t.places)
-        .values({ userId, sourceList: "manual", ...found })
-        .onConflictDoUpdate({
-          target: [t.places.userId, t.places.googlePlaceId],
-          targetWhere: sql`google_place_id is not null`,
-          set: { lat: found.lat, lng: found.lng, businessStatus: found.businessStatus },
-        })
-        .returning()
-    : await db.insert(t.places).values({ userId, name, sourceList: "manual" }).returning();
-
+  const name = f.name || place.name;
   const [stop] = await db
     .insert(t.stops)
     .values({
@@ -196,22 +222,121 @@ export async function setChecklistStatus(tripId: string, itemId: string, done: b
     .where(and(eq(t.checklistItems.id, uuid.parse(itemId)), eq(t.checklistItems.tripId, id)));
 }
 
-/** A rectangle around the trip's known places, padded, for biasing place search. */
-async function tripBounds(tripId: string) {
-  const [row] = await getDb()
-    .select({
-      minLat: sql<number>`min(${t.places.lat})`,
-      maxLat: sql<number>`max(${t.places.lat})`,
-      minLng: sql<number>`min(${t.places.lng})`,
-      maxLng: sql<number>`max(${t.places.lng})`,
-    })
-    .from(t.stops)
-    .innerJoin(t.places, eq(t.places.id, t.stops.placeId))
-    .where(eq(t.stops.tripId, tripId));
-  if (row?.minLat == null) return null;
-  const pad = 0.3;
-  return {
-    low: { lat: Number(row.minLat) - pad, lng: Number(row.minLng) - pad },
-    high: { lat: Number(row.maxLat) + pad, lng: Number(row.maxLng) + pad },
-  };
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const tripDetails = z
+  .object({
+    name: z.string().trim().min(1, "Give the trip a name").max(120),
+    startDate: isoDate,
+    endDate: isoDate,
+    maxDriveHours: z.number().min(1).max(16),
+    legs: z
+      .array(
+        z.object({
+          id: uuid.optional(),
+          name: z.string().trim().min(1, "Every leg needs a name").max(60),
+          startDate: isoDate,
+          endDate: isoDate,
+          colour: z.string().regex(/^#[0-9a-f]{6}$/i),
+        }),
+      )
+      .max(12),
+  })
+  .superRefine((v, ctx) => {
+    const issue = (message: string) => ctx.addIssue({ code: "custom", message });
+    if (v.endDate < v.startDate) issue("The trip ends before it starts.");
+    if (dayDiff(v.startDate, v.endDate) > 180) issue("Trips can be up to 180 days long.");
+    const legs = [...v.legs].sort((a, b) => a.startDate.localeCompare(b.startDate));
+    legs.forEach((l, i) => {
+      if (l.endDate < l.startDate) issue(`${l.name} ends before it starts.`);
+      if (l.startDate < v.startDate || l.endDate > v.endDate) issue(`${l.name} falls outside the trip dates.`);
+      if (i > 0 && l.startDate <= legs[i - 1].endDate) issue(`${legs[i - 1].name} and ${l.name} overlap.`);
+    });
+  });
+export type TripDetails = z.infer<typeof tripDetails>;
+
+/**
+ * Saves the trip's name, dates, driving limit and legs. Days are added or removed to match the
+ * dates; stops on removed days move to the tray with their details. Each day's leg is the leg
+ * whose dates cover it. Returns the reloaded trip.
+ */
+export async function updateTrip(tripId: string, details: TripDetails) {
+  const { tripId: id, userId } = await ownedTrip(tripId);
+  const parsed = tripDetails.safeParse(details);
+  if (!parsed.success) return { ok: false as const, error: parsed.error.issues[0]?.message ?? "Check the dates." };
+  const v = parsed.data;
+  const wanted = datesBetween(v.startDate, v.endDate);
+
+  await getDb().transaction(async (tx) => {
+    await tx
+      .update(t.trips)
+      .set({ name: v.name, startDate: v.startDate, endDate: v.endDate, maxDriveHoursPerDay: v.maxDriveHours })
+      .where(eq(t.trips.id, id));
+
+    // Days: move stops off removed days into the tray, then add the new dates.
+    const existing = await tx.select({ id: t.days.id, date: t.days.date }).from(t.days).where(eq(t.days.tripId, id));
+    const removed = existing.filter((d) => !wanted.includes(d.date));
+    if (removed.length) {
+      const orphaned = await tx
+        .select({ id: t.stops.id })
+        .from(t.stops)
+        .innerJoin(t.days, eq(t.days.id, t.stops.dayId))
+        .where(inArray(t.stops.dayId, removed.map((d) => d.id)))
+        .orderBy(t.days.date, t.stops.position);
+      const [{ trayMax }] = await tx
+        .select({ trayMax: sql<number>`coalesce(max(${t.stops.position}), -1)` })
+        .from(t.stops)
+        .where(and(eq(t.stops.tripId, id), isNull(t.stops.dayId)));
+      for (const [i, s] of orphaned.entries()) {
+        await tx.update(t.stops).set({ dayId: null, position: Number(trayMax) + 1 + i }).where(eq(t.stops.id, s.id));
+      }
+      await tx.delete(t.days).where(inArray(t.days.id, removed.map((d) => d.id)));
+    }
+    const have = new Set(existing.map((d) => d.date));
+    const added = wanted.filter((d) => !have.has(d));
+    if (added.length) await tx.insert(t.days).values(added.map((date) => ({ tripId: id, date })));
+
+    // Legs: delete the ones dropped, update or add the rest.
+    const current = await tx.select({ id: t.legs.id }).from(t.legs).where(eq(t.legs.tripId, id));
+    const keep = new Set(v.legs.flatMap((l) => (l.id ? [l.id] : [])));
+    if ([...keep].some((legId) => !current.some((c) => c.id === legId))) throw new Error("Leg not in this trip");
+    const drop = current.filter((c) => !keep.has(c.id)).map((c) => c.id);
+    if (drop.length) await tx.delete(t.legs).where(inArray(t.legs.id, drop));
+    const legIds: { id: string; startDate: string; endDate: string }[] = [];
+    for (const l of v.legs) {
+      const values = { name: l.name, startDate: l.startDate, endDate: l.endDate, colour: l.colour };
+      if (l.id) {
+        await tx.update(t.legs).set(values).where(and(eq(t.legs.id, l.id), eq(t.legs.tripId, id)));
+        legIds.push({ id: l.id, ...values });
+      } else {
+        const [row] = await tx.insert(t.legs).values({ tripId: id, ...values }).returning({ id: t.legs.id });
+        legIds.push({ id: row.id, ...values });
+      }
+    }
+
+    // Each day belongs to the leg covering its date.
+    await tx.update(t.days).set({ legId: null }).where(eq(t.days.tripId, id));
+    for (const l of legIds) {
+      await tx
+        .update(t.days)
+        .set({ legId: l.id })
+        .where(and(eq(t.days.tripId, id), gte(t.days.date, l.startDate), lte(t.days.date, l.endDate)));
+    }
+  });
+
+  const trip = await loadTrip(userId, id);
+  if (!trip) throw new Error("Trip not found");
+  return { ok: true as const, trip };
+}
+
+const dayDiff = (a: string, b: string) => Math.round((Date.parse(b) - Date.parse(a)) / 86_400_000);
+
+function datesBetween(start: string, end: string): string[] {
+  const out: string[] = [];
+  const d = new Date(`${start}T00:00:00Z`);
+  const last = new Date(`${end}T00:00:00Z`);
+  while (d <= last) {
+    out.push(d.toISOString().slice(0, 10));
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
+  return out;
 }

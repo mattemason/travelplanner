@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* Atkinson Hyperlegible draws a slashed zero with no plain alternative, so digits come from
+   the system's sans-serif instead; letters stay Atkinson. */
+@font-face {
+  font-family: "Plain Digits";
+  src: local("Segoe UI"), local("SegoeUI"), local("Helvetica Neue"), local("HelveticaNeue"), local("Roboto"),
+    local("Arial");
+  unicode-range: U+0030-0039;
+}
+
 /* Design tokens from design/trip-planner-*.html. Calm, outdoorsy, legible in sunlight;
    dark mode for camp at night. */
 :root {
@@ -57,7 +66,7 @@
   --color-bad-bg: var(--bad-bg);
   --color-good-ink: var(--good-ink);
   --color-good-bg: var(--good-bg);
-  --font-sans: var(--font-atkinson), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: "Plain Digits", var(--font-atkinson), system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: var(--font-barlow), "Arial Narrow", sans-serif;
 }
 
