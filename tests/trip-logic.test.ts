@@ -3,6 +3,7 @@ import { dayDrive, dayRoute, formatDuration, pairKey } from "@/lib/trip/drive";
 import { changedContainers, moveStop } from "@/lib/trip/layout";
 import { TRAY, type TripData } from "@/lib/trip/types";
 import { dayWarnings } from "@/lib/trip/warnings";
+import { applyOrder, rerouteParts } from "@/lib/trip/reroute";
 
 const place = (id: string, lat: number | null, lng: number | null, businessStatus: string | null = null) => ({
   id,
@@ -107,5 +108,31 @@ describe("formatDuration", () => {
     expect(formatDuration(55 * 60)).toBe("55 min");
     expect(formatDuration(4 * 3600 + 15 * 60)).toBe("4h 15m");
     expect(formatDuration(2 * 3600)).toBe("2h");
+  });
+});
+
+describe("rerouteParts", () => {
+  it("fixes the overnight ends, moves the rest, and puts unmapped stops last", () => {
+    const t = trip();
+    t.layout.d2 = ["s4", "s3", "s5", "s2"]; // track (unmapped), falls, town (tonight), camp (last night)
+    const parts = rerouteParts(t, 1);
+    expect(parts.head).toEqual(["s2"]);
+    expect(parts.tail).toEqual(["s5"]);
+    expect(parts.unmapped).toEqual(["s4"]);
+    expect(parts.movable.map((m) => m.stopId)).toEqual(["s3"]);
+    expect(parts.origin).toEqual({ lat: -42, lng: 146 });
+    expect(applyOrder(parts, [0])).toEqual(["s2", "s3", "s5", "s4"]);
+  });
+
+  it("uses the first and last stops as the ends when there are no overnights", () => {
+    const t = trip();
+    t.days[0].overnightPlaceId = null;
+    t.stops.s6 = stop("s6", "falls");
+    t.stops.s7 = stop("s7", "town");
+    t.layout.d1 = ["s1", "s6", "s7", "s5"];
+    const parts = rerouteParts(t, 0);
+    expect(parts.head).toEqual(["s1"]);
+    expect(parts.tail).toEqual(["s5"]);
+    expect(applyOrder(parts, [1, 0])).toEqual(["s1", "s7", "s6", "s5"]);
   });
 });

@@ -7,6 +7,8 @@ import * as t from "@/db/schema";
 import { currentUser } from "@/lib/auth";
 import { placeDetails } from "@/lib/google/places";
 import { loadTrip } from "@/lib/trip/load";
+import { applyOrder, rerouteParts } from "@/lib/trip/reroute";
+import { optimiseOrder } from "@/lib/google/routes";
 import { TAGS, TRAY, type Stop } from "@/lib/trip/types";
 
 // Every function here is reachable by direct POST: each one re-checks that the signed-in
@@ -339,4 +341,25 @@ function datesBetween(start: string, end: string): string[] {
     d.setUTCDate(d.getUTCDate() + 1);
   }
   return out;
+}
+
+/**
+ * The fastest order for a day's stops (from last night's stop to tonight's), without saving it.
+ * The client applies it like a drag, so it can be undone.
+ */
+export async function rerouteDay(tripId: string, dayId: string) {
+  const { tripId: id, userId } = await ownedTrip(tripId);
+  const trip = await loadTrip(userId, id);
+  const index = trip?.days.findIndex((d) => d.id === uuid.parse(dayId)) ?? -1;
+  if (!trip || index < 0) throw new Error("Day not found");
+
+  const parts = rerouteParts(trip, index);
+  const current = trip.layout[dayId] ?? [];
+  if (parts.movable.length < 2 || !parts.origin || !parts.destination) {
+    return { order: current, changed: false, reason: "Nothing to reorder on this day." };
+  }
+  const order = await optimiseOrder(parts.origin, parts.destination, parts.movable.map((m) => m.at));
+  if (!order) return { order: current, changed: false, reason: "Google couldn't find a road route through these stops." };
+  const next = applyOrder(parts, order);
+  return { order: next, changed: next.join() !== current.join(), reason: null };
 }

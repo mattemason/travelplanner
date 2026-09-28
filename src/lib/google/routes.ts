@@ -65,9 +65,45 @@ export async function getSegments(pairs: [LatLng, LatLng][]): Promise<Record<str
   return result;
 }
 
-async function computeRoute(a: LatLng, b: LatLng): Promise<Segment | null> {
+const latLng = (p: LatLng) => ({ location: { latLng: { latitude: p.lat, longitude: p.lng } } });
+
+/**
+ * The fastest order to visit `stops` between a fixed start and end, as indexes into `stops`.
+ * Null when Google can't find a drivable route through them all.
+ */
+export async function optimiseOrder(origin: LatLng, destination: LatLng, stops: LatLng[]): Promise<number[] | null> {
+  if (stops.length < 2) return stops.map((_, i) => i);
+  if (stops.length > 25) throw new Error("Too many stops to optimise (25 max)");
+  const res = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Goog-Api-Key": serverKey(),
+      "X-Goog-FieldMask": "routes.optimizedIntermediateWaypointIndex",
+    },
+    body: JSON.stringify({
+      origin: latLng(origin),
+      destination: latLng(destination),
+      intermediates: stops.map(latLng),
+      travelMode: "DRIVE",
+      optimizeWaypointOrder: true,
+    }),
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Routes API ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  const body = (await res.json()) as { routes?: { optimizedIntermediateWaypointIndex?: number[] }[] };
+  const order = body.routes?.[0]?.optimizedIntermediateWaypointIndex;
+  return order && order.length === stops.length ? order : null;
+}
+
+function serverKey() {
   const key = process.env.GOOGLE_MAPS_SERVER_KEY;
   if (!key) throw new Error("GOOGLE_MAPS_SERVER_KEY is not set");
+  return key;
+}
+
+async function computeRoute(a: LatLng, b: LatLng): Promise<Segment | null> {
+  const key = serverKey();
   const res = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
     method: "POST",
     headers: {

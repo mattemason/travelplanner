@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import {
   createStop,
   deleteStop,
+  rerouteDay,
   saveLayout,
   updateStop,
   updateTrip,
@@ -44,6 +45,7 @@ export function TripPlanner({ initial }: { initial: TripData }) {
   const [activeDay, setActiveDay] = useState(0);
   const [selectedStop, setSelectedStop] = useState<string | null>(null);
   const [mapMode, setMapMode] = useState<"day" | "trip">("day");
+  const [rerouting, setRerouting] = useState<string | null>(null);
   const [editor, setEditor] = useState<Editor | null>(null);
   const [saving, setSaving] = useState(false);
   const [editorError, setEditorError] = useState<string | null>(null);
@@ -171,6 +173,24 @@ export function TripPlanner({ initial }: { initial: TripData }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [applyLayout, trip.stops, trip.days],
   );
+
+  const reroute = async (dayId: string) => {
+    const label = containerLabel(dayId);
+    setRerouting(dayId);
+    try {
+      const before = tripRef.current.layout;
+      const result = await rerouteDay(tripRef.current.id, dayId);
+      if (!result.changed) {
+        setToast({ text: result.reason ?? `${label} is already in the fastest order.` });
+        return;
+      }
+      await applyLayout({ ...before, [dayId]: result.order }, { label: `Re-routed ${label}`, layout: before });
+    } catch {
+      setToast({ text: "Re-route didn't work. Try again.", error: true });
+    } finally {
+      setRerouting(null);
+    }
+  };
 
   const removeFromState = (id: string) =>
     setTrip((t) => {
@@ -462,6 +482,8 @@ export function TripPlanner({ initial }: { initial: TripData }) {
       onSelectStop={selectStop}
       onEditStop={openEditor}
       onAddStop={openNew}
+      onReroute={reroute}
+      rerouting={rerouting === day.id}
     />
   ));
 

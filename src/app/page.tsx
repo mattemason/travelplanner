@@ -26,15 +26,19 @@ export default async function TripsPage() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-4 py-8">
       <header className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold">Trips</h1>
+        <h1 className="text-[34px] font-bold">Trips</h1>
         <div className="flex items-center gap-3 text-sm text-muted">
           <span className="hidden sm:inline">{user.email}</span>
           <SignOutButton />
         </div>
       </header>
 
+      <Link href="/trips/new" className="btn btn-primary self-start">
+        Add a new trip
+      </Link>
+
       {myTrips.length === 0 ? (
-        <p className="text-muted">No trips yet.</p>
+        <p className="text-muted">No trips yet. Add one to get started.</p>
       ) : (
         <ul className="flex flex-col gap-3">
           {myTrips.map((trip) => (

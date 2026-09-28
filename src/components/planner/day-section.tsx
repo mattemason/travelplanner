@@ -37,6 +37,8 @@ type Props = {
   onSelectStop: (stopId: string, dayIndex: number) => void;
   onEditStop: (stopId: string) => void;
   onAddStop: (dayId: string) => void;
+  onReroute: (dayId: string) => void;
+  rerouting: boolean;
 };
 
 export function DaySection({ sectionRef, ...p }: Props) {
@@ -115,6 +117,15 @@ export function DaySection({ sectionRef, ...p }: Props) {
       <div className="mt-1 flex flex-wrap items-center gap-3">
         <button type="button" className="btn btn-quiet" onClick={() => p.onAddStop(p.day.id)}>
           Add a stop
+        </button>
+        <button
+          type="button"
+          className="btn"
+          onClick={() => p.onReroute(p.day.id)}
+          disabled={p.rerouting || p.stops.length < 2}
+          title="Put this day's stops in the fastest driving order"
+        >
+          {p.rerouting ? "Re-routing…" : "Re-route"}
         </button>
         {p.compact && (
           <Link
