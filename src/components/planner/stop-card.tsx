@@ -13,6 +13,7 @@ type Props = {
   selected: boolean;
   editing: boolean;
   compact?: boolean;
+  overnight?: boolean; // this stop is the day's overnight
   onSelect: () => void;
   onEdit: () => void;
 };
@@ -21,7 +22,7 @@ export type DriveIn = Segment | "loading" | "none";
 
 const tagLabel = Object.fromEntries(TAGS.map((t) => [t.key, t.label]));
 
-export function StopCard({ stop, place, number, driveIn, selected, editing, compact, onSelect, onEdit }: Props) {
+export function StopCard({ stop, place, number, driveIn, selected, editing, compact, overnight, onSelect, onEdit }: Props) {
   const closed = place?.businessStatus === "CLOSED_TEMPORARILY" || place?.businessStatus === "CLOSED_PERMANENTLY";
   const noMap = place && (place.lat === null || place.lng === null);
 
@@ -67,8 +68,9 @@ export function StopCard({ stop, place, number, driveIn, selected, editing, comp
             {stop.name}
           </div>
           {stop.notes && <div className="mt-0.5 text-[13.5px] whitespace-pre-line text-muted">{stop.notes}</div>}
-          {(stop.tags.length > 0 || closed || stop.bookingRef || stop.link || noMap) && (
+          {(stop.tags.length > 0 || closed || stop.bookingRef || stop.link || noMap || overnight) && (
             <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {overnight && <span className="chip border-transparent bg-ink text-paper">Overnight</span>}
               {stop.tags.map((t) => (
                 <span key={t} className="chip">
                   {tagLabel[t]}

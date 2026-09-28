@@ -8,6 +8,7 @@ import {
   deleteStop,
   rerouteDay,
   saveLayout,
+  setOvernight,
   updateStop,
   updateTrip,
   type PlaceRef,
@@ -34,7 +35,15 @@ type Editor =
   | { mode: "new"; container: string }
   | { mode: "trip"; focus: "trip" | "legs" };
 type Deleted = { stop: Stop; container: string; position: number };
-type Undo = { label: string; layout?: Layout; stop?: Stop; createdStopId?: string; deleted?: Deleted };
+type OvernightChange = { dayId: string; placeId: string | null };
+type Undo = {
+  label: string;
+  layout?: Layout;
+  stop?: Stop;
+  createdStopId?: string;
+  deleted?: Deleted;
+  overnights?: OvernightChange[]; // previous overnights to restore
+};
 // Segment = drive known; null = asked Google and there's no road route.
 type SegCache = Record<string, Segment | null>;
 
@@ -206,6 +215,26 @@ export function TripPlanner({ initial }: { initial: TripData }) {
       return { ...t, layout, stops };
     });
 
+  /** Saves overnight changes and returns the previous values, for undo. */
+  const applyOvernights = async (changes: OvernightChange[]): Promise<OvernightChange[]> => {
+    const prev: OvernightChange[] = [];
+    for (const c of changes) {
+      const day = tripRef.current.days.find((d) => d.id === c.dayId);
+      if (!day || day.overnightPlaceId === c.placeId) continue;
+      prev.push({ dayId: c.dayId, placeId: day.overnightPlaceId });
+      await setOvernight(tripRef.current.id, c.dayId, c.placeId);
+      setTrip((t) => ({
+        ...t,
+        days: t.days.map((d) => (d.id === c.dayId ? { ...d, overnightPlaceId: c.placeId } : d)),
+      }));
+      tripRef.current = {
+        ...tripRef.current,
+        days: tripRef.current.days.map((d) => (d.id === c.dayId ? { ...d, overnightPlaceId: c.placeId } : d)),
+      };
+    }
+    return prev;
+  };
+
   const fieldsOf = (s: Stop) => ({
     name: s.name,
     time: s.time,
@@ -245,6 +274,7 @@ export function TripPlanner({ initial }: { initial: TripData }) {
         setTrip((t) => ({ ...t, stops: { ...t.stops, [s.id]: s } }));
       }
       if (entry.layout) await applyLayout(entry.layout, null);
+      if (entry.overnights) await applyOvernights(entry.overnights);
     } catch {
       setToast({ text: "Undo didn't save. Try again.", error: true });
     }
@@ -287,7 +317,9 @@ export function TripPlanner({ initial }: { initial: TripData }) {
           places: { ...t.places, [place.id]: place },
           layout: { ...t.layout, [v.container]: [...(t.layout[v.container] ?? []), stop.id] },
         }));
-        setUndo({ label: `Added ${stop.name}`, createdStopId: stop.id });
+        const overnights =
+          v.overnight && v.container !== TRAY ? await applyOvernights([{ dayId: v.container, placeId: place.id }]) : [];
+        setUndo({ label: `Added ${stop.name}`, createdStopId: stop.id, overnights });
         setToast({ text: `Added ${stop.name}${place.lat === null ? " (no map location)" : ""}` });
       } else {
         const prevStop = trip.stops[editor.stopId];
@@ -305,7 +337,20 @@ export function TripPlanner({ initial }: { initial: TripData }) {
         if (from !== v.container) {
           await applyLayout(moveStop(prevLayout, saved.id, v.container, Number.MAX_SAFE_INTEGER), null);
         }
-        setUndo({ label: `Saved ${saved.name}`, stop: prevStop, layout: from !== v.container ? prevLayout : undefined });
+        // Overnight: tick sets the (new) day's overnight to this place; unticking, or moving the
+        // stop off its day, clears the old day's overnight if it was this stop.
+        const fromDay = trip.days.find((d) => d.id === from);
+        const wasOvernight = !!fromDay && fromDay.overnightPlaceId === prevStop.placeId;
+        const changes: OvernightChange[] = [];
+        if (wasOvernight && fromDay && (from !== v.container || !v.overnight)) changes.push({ dayId: fromDay.id, placeId: null });
+        if (v.overnight && v.container !== TRAY) changes.push({ dayId: v.container, placeId: place.id });
+        const overnights = await applyOvernights(changes);
+        setUndo({
+          label: `Saved ${saved.name}`,
+          stop: prevStop,
+          layout: from !== v.container ? prevLayout : undefined,
+          overnights,
+        });
         setToast({ text: `Saved ${saved.name}` });
       }
       closeEditor();
@@ -599,6 +644,12 @@ export function TripPlanner({ initial }: { initial: TripData }) {
         isNew={editor.mode === "new"}
         stop={editor.mode === "edit" ? trip.stops[editor.stopId] : null}
         container={editor.mode === "edit" ? (containerOf(trip.layout, editor.stopId) ?? TRAY) : editor.container}
+        isOvernight={
+          editor.mode === "edit" &&
+          trip.days.some(
+            (d) => d.overnightPlaceId === trip.stops[editor.stopId]?.placeId && trip.layout[d.id]?.includes(editor.stopId),
+          )
+        }
         days={trip.days}
         saving={saving}
         error={editorError}

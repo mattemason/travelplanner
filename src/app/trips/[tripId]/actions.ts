@@ -382,3 +382,22 @@ export async function rerouteDay(tripId: string, dayId: string) {
   const next = applyOrder(parts, order);
   return { order: next, changed: next.join() !== current.join(), reason: null };
 }
+
+/** Sets (or clears, with null) where the trip stays on a day: one of the user's places. */
+export async function setOvernight(tripId: string, dayId: string, placeId: string | null) {
+  const { tripId: id, userId } = await ownedTrip(tripId);
+  const db = getDb();
+  if (placeId) {
+    const [place] = await db
+      .select({ id: t.places.id })
+      .from(t.places)
+      .where(and(eq(t.places.id, uuid.parse(placeId)), eq(t.places.userId, userId)));
+    if (!place) throw new Error("Place not found");
+  }
+  const updated = await db
+    .update(t.days)
+    .set({ overnightPlaceId: placeId })
+    .where(and(eq(t.days.id, uuid.parse(dayId)), eq(t.days.tripId, id)))
+    .returning({ id: t.days.id });
+  if (!updated.length) throw new Error("Day not found");
+}

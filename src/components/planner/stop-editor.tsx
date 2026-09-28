@@ -13,7 +13,8 @@ export type EditorValues = {
   notes: string;
   bookingRef: string;
   link: string;
-  picked: (Suggestion & { session: string }) | null; // new stops: the Google place chosen
+  picked: (Suggestion & { session: string }) | null; // the Google place chosen, if any
+  overnight: boolean; // stay the night at this stop
 };
 
 type Props = {
@@ -22,6 +23,7 @@ type Props = {
   isNew: boolean;
   stop: Stop | null; // null for a new stop
   container: string;
+  isOvernight: boolean;
   days: Day[];
   saving: boolean;
   error: string | null;
@@ -32,7 +34,8 @@ type Props = {
 };
 
 export function StopEditor(props: Props) {
-  const { tripId, variant, isNew, stop, container, days, saving, error, onSave, onCancel, onUnschedule, onDelete } = props;
+  const { tripId, variant, isNew, stop, container, isOvernight, days, saving, error, onSave, onCancel, onUnschedule, onDelete } =
+    props;
   const [session] = useState(() => crypto.randomUUID());
   const [values, setValues] = useState<EditorValues>(() => ({
     name: stop?.name ?? "",
@@ -43,6 +46,7 @@ export function StopEditor(props: Props) {
     bookingRef: stop?.bookingRef ?? "",
     link: stop?.link ?? "",
     picked: null,
+    overnight: isOvernight,
   }));
   const nameRef = useRef<HTMLInputElement>(null);
   const set = <K extends keyof EditorValues>(key: K, value: EditorValues[K]) => setValues((v) => ({ ...v, [key]: value }));
@@ -129,6 +133,19 @@ export function StopEditor(props: Props) {
           <input type="time" value={values.time ?? ""} onChange={(e) => set("time", e.target.value || null)} />
         </label>
       </div>
+
+      {values.container !== TRAY && (
+        <label className="mt-1 flex cursor-pointer items-center gap-2.5 text-[15px] font-bold text-ink">
+          <input
+            type="checkbox"
+            checked={values.overnight}
+            onChange={(e) => set("overnight", e.target.checked)}
+            className="h-5 w-5 cursor-pointer accent-[var(--ocean)]"
+          />
+          Overnight here
+          <span className="text-[12.5px] font-normal text-muted">Where you sleep this day</span>
+        </label>
+      )}
 
       <div className="field">
         Tags

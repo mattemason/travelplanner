@@ -95,6 +95,7 @@ export function DaySection({ sectionRef, ...p }: Props) {
               selected={p.selectedStopId === stop.id}
               editing={p.editingStopId === stop.id}
               compact={p.compact}
+              overnight={!!p.day.overnightPlaceId && stop.placeId === p.day.overnightPlaceId}
               onSelect={() => p.onSelectStop(stop.id, p.index)}
               onEdit={() => p.onEditStop(stop.id)}
             />
