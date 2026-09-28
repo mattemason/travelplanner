@@ -15,6 +15,7 @@ import {
   type TripDetails,
 } from "@/app/trips/[tripId]/actions";
 import { dayRoute, pairKey, type RoutePoint } from "@/lib/trip/drive";
+import { fuelCost, type Vehicle } from "@/lib/trip/fuel";
 import { dateRange, dayCount, dayLabel } from "@/lib/trip/format";
 import { changedContainers, containerOf, moveStop } from "@/lib/trip/layout";
 import { TRAY, type Layout, type Segment, type Stop, type TripData } from "@/lib/trip/types";
@@ -54,7 +55,9 @@ const RESULT_COLOUR = "#6B3FA0"; // search results, distinct from the leg colour
 
 type Labels = { tags: string[]; categories: string[] };
 
-export function TripPlanner({ initial, labels: initialLabels }: { initial: TripData; labels: Labels }) {
+type PlannerProps = { initial: TripData; labels: Labels; vehicle: Vehicle };
+
+export function TripPlanner({ initial, labels: initialLabels, vehicle }: PlannerProps) {
   const [trip, setTrip] = useState(initial);
   const [labels, setLabels] = useState(initialLabels);
   const [segs, setSegs] = useState<SegCache>({});
@@ -646,6 +649,7 @@ export function TripPlanner({ initial, labels: initialLabels }: { initial: TripD
       onAddStop={openNew}
       onReroute={reroute}
       rerouting={rerouting === day.id}
+      fuelCost={fuelCost(drives[i].totalM, vehicle, trip.fuelPrices)}
     />
   ));
 
@@ -752,6 +756,7 @@ export function TripPlanner({ initial, labels: initialLabels }: { initial: TripD
       days={trip.days}
       legs={trip.legs}
       drives={drives}
+      fuelFor={(metres) => fuelCost(metres, vehicle, trip.fuelPrices)}
       colourOf={(hex) => legColour(hex, dark)}
       compact={compact}
     />

@@ -36,6 +36,13 @@
       "when": 1790625388195,
       "tag": "0004_checklist_items_owner",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790625849168,
+      "tag": "0005_profile_fuel",
+      "breakpoints": true
     }
   ]
 }

@@ -248,6 +248,8 @@ const tripDetails = z
     startDate: isoDate,
     endDate: isoDate,
     maxDriveHours: z.number().min(1).max(16),
+    dieselPrice: z.number().min(0.5).max(10).nullable(),
+    petrolPrice: z.number().min(0.5).max(10).nullable(),
     legs: z
       .array(
         z.object({
@@ -288,7 +290,14 @@ export async function updateTrip(tripId: string, details: TripDetails) {
   await getDb().transaction(async (tx) => {
     await tx
       .update(t.trips)
-      .set({ name: v.name, startDate: v.startDate, endDate: v.endDate, maxDriveHoursPerDay: v.maxDriveHours })
+      .set({
+        name: v.name,
+        startDate: v.startDate,
+        endDate: v.endDate,
+        maxDriveHoursPerDay: v.maxDriveHours,
+        dieselPrice: v.dieselPrice,
+        petrolPrice: v.petrolPrice,
+      })
       .where(eq(t.trips.id, id));
 
     // Days: move stops off removed days into the tray, then add the new dates.

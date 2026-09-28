@@ -52,7 +52,7 @@ export function MapSearch({ tripId, getArea, results, onResults, compact }: Prop
   };
 
   return (
-    <div className={`${compact ? "w-full" : "w-[340px]"} max-w-full rounded-xl bg-paper/95 p-2 shadow`}>
+    <div className={`${compact ? "w-full" : "w-[400px]"} max-w-full rounded-xl bg-paper/95 p-2 shadow`}>
       <form
         role="search"
         onSubmit={(e) => {
@@ -69,9 +69,19 @@ export function MapSearch({ tripId, getArea, results, onResults, compact }: Prop
           className="min-w-0 flex-1 rounded-lg border-[1.5px] border-line bg-soft px-2.5 py-1.5 text-[16px]"
         />
         {results ? (
-          <button type="button" onClick={clear} className="btn !min-h-9 !px-3">
-            Clear
-          </button>
+          <>
+            <button
+              type="submit"
+              className="btn btn-primary !min-h-9 !px-3"
+              disabled={status === "loading"}
+              title="Run this search again over the part of the map you can see now"
+            >
+              {status === "loading" ? "…" : "Search this area"}
+            </button>
+            <button type="button" onClick={clear} className="btn !min-h-9 !px-3">
+              Clear
+            </button>
+          </>
         ) : (
           <button type="submit" className="btn btn-primary !min-h-9 !px-3" disabled={status === "loading"}>
             {status === "loading" ? "…" : "Search"}
@@ -99,7 +109,7 @@ export function MapSearch({ tripId, getArea, results, onResults, compact }: Prop
             ? "Search isn't working right now."
             : results
               ? results.length
-                ? `${results.length} ${results.length === 1 ? "place" : "places"} for "${query}" in this area. Tap a pin.`
+                ? `${results.length} ${results.length === 1 ? "place" : "places"} for "${query}". Tap a pin, or move the map and search this area.`
                 : `Nothing for "${query}" here. Zoom out or move the map, then search again.`
               : "Searches the part of the map you can see."}
       </p>

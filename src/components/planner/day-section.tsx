@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { formatDuration } from "@/lib/trip/drive";
+import { formatDistance, formatDuration } from "@/lib/trip/drive";
+import { formatCost } from "@/lib/trip/fuel";
 import { dayLabel } from "@/lib/trip/format";
 import type { Day, Leg, Place, Stop } from "@/lib/trip/types";
 import type { Warning } from "@/lib/trip/warnings";
@@ -39,11 +40,17 @@ type Props = {
   onAddStop: (dayId: string) => void;
   onReroute: (dayId: string) => void;
   rerouting: boolean;
+  fuelCost: number | null; // estimated $ for the day's driving; null when vehicle or prices aren't set
 };
 
 export function DaySection({ sectionRef, ...p }: Props) {
   const style = { "--legc": p.colour } as CSSProperties;
-  const driveText = p.drive.totalS > 0 ? `${formatDuration(p.drive.totalS)}${p.drive.complete ? "" : "+"} driving` : null;
+  const more = p.drive.complete ? "" : "+";
+  const stats = [
+    p.drive.totalS > 0 && { label: "Driving time", value: `${formatDuration(p.drive.totalS)}${more}` },
+    p.drive.totalM > 0 && { label: "Distance", value: `${formatDistance(p.drive.totalM)}${more}` },
+    p.fuelCost !== null && p.drive.totalM > 0 && { label: "Estimated fuel cost", value: `~${formatCost(p.fuelCost)} fuel` },
+  ].filter((x): x is { label: string; value: string } => !!x);
 
   return (
     <section
@@ -53,23 +60,32 @@ export function DaySection({ sectionRef, ...p }: Props) {
       className={p.compact ? "scroll-mt-[128px] px-[18px] pb-1" : "scroll-mt-0 pt-[26px]"}
       aria-labelledby={`day-${p.day.id}`}
     >
-      <div
-        className={`${p.compact ? "pt-[18px]" : "sticky top-0 z-[3] bg-bg pt-3"} flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b-2 border-[var(--legc)] pb-2`}
-      >
-        <h2 id={`day-${p.day.id}`} className={`${p.compact ? "text-[22px]" : "text-[28px]"} font-bold`}>
-          {dayLabel(p.day.date)}
-        </h2>
-        <span className="text-[13px] font-bold text-[var(--legc)]">{p.leg?.name}</span>
-        {driveText && <span className="text-[13px] text-muted">{driveText}</span>}
-        <span className="ml-auto text-[13.5px] text-muted">
+      <div className={`${p.compact ? "pt-[18px]" : "sticky top-0 z-[3] bg-bg pt-3"} border-b-2 border-[var(--legc)] pb-2`}>
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <h2 id={`day-${p.day.id}`} className={`${p.compact ? "text-[22px]" : "text-[28px]"} font-bold`}>
+            {dayLabel(p.day.date)}
+          </h2>
+          <span className="text-[13px] font-bold text-[var(--legc)]">{p.leg?.name}</span>
+          {stats.length > 0 && (
+            <span className="text-[13px] text-muted">
+              {stats.map((s, i) => (
+                <span key={s.label}>
+                  {i > 0 && <span aria-hidden="true"> · </span>}
+                  <span title={s.label}>{s.value}</span>
+                </span>
+              ))}
+            </span>
+          )}
+        </div>
+        <p className="mt-0.5 truncate text-[13.5px] text-muted" title={p.overnight ?? undefined}>
           {p.overnight ? (
             <>
               Overnight <b className="text-ink">{p.overnight}</b>
             </>
           ) : (
-            "No overnight"
+            "No overnight set"
           )}
-        </span>
+        </p>
       </div>
 
       {p.warnings.length > 0 && (

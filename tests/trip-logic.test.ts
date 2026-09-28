@@ -4,6 +4,7 @@ import { changedContainers, moveStop } from "@/lib/trip/layout";
 import { TRAY, type TripData } from "@/lib/trip/types";
 import { dayWarnings } from "@/lib/trip/warnings";
 import { applyOrder, rerouteParts } from "@/lib/trip/reroute";
+import { formatCost, fuelCost } from "@/lib/trip/fuel";
 
 const place = (id: string, lat: number | null, lng: number | null, businessStatus: string | null = null) => ({
   id,
@@ -32,6 +33,7 @@ function trip(): TripData {
     startDate: "2027-01-18",
     endDate: "2027-01-19",
     maxDriveHours: 5,
+    fuelPrices: { diesel: null, petrol: null },
     legs: [],
     days: [
       { id: "d1", date: "2027-01-18", legId: null, overnightPlaceId: "camp", notes: "" },
@@ -135,5 +137,22 @@ describe("rerouteParts", () => {
     expect(parts.head).toEqual(["s1"]);
     expect(parts.tail).toEqual(["s5"]);
     expect(applyOrder(parts, [1, 0])).toEqual(["s1", "s7", "s6", "s5"]);
+  });
+});
+
+describe("fuelCost", () => {
+  it("costs distance at the vehicle's consumption and the trip's price for its fuel", () => {
+    const v = { lPer100km: 12, fuelType: "diesel" as const };
+    // 250 km at 12 L/100km = 30 L; at $2.10/L = $63
+    expect(fuelCost(250_000, v, { diesel: 2.1, petrol: 1.9 })).toBeCloseTo(63);
+  });
+  it("is unknown without a vehicle or a price for its fuel", () => {
+    expect(fuelCost(100_000, { lPer100km: null, fuelType: "diesel" }, { diesel: 2, petrol: 2 })).toBeNull();
+    expect(fuelCost(100_000, { lPer100km: 10, fuelType: "petrol" }, { diesel: 2, petrol: null })).toBeNull();
+  });
+  it("formats dollars", () => {
+    expect(formatCost(63.4)).toBe("$63");
+    expect(formatCost(142.6)).toBe("$143");
+    expect(formatCost(4.25)).toBe("$4.25");
   });
 });

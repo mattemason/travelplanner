@@ -52,6 +52,7 @@ export async function loadTrip(userId: string, tripId: string): Promise<TripData
     startDate: trip.startDate,
     endDate: trip.endDate,
     maxDriveHours: trip.maxDriveHoursPerDay,
+    fuelPrices: { diesel: trip.dieselPrice, petrol: trip.petrolPrice },
     legs: legs.map((l) => ({ id: l.id, name: l.name, startDate: l.startDate, endDate: l.endDate, colour: l.colour })),
     days: days.map((d) => ({
       id: d.id,

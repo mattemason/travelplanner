@@ -40,6 +40,9 @@ export default async function TripsPage() {
         <Link href="/checklists" className="btn">
           Checklists
         </Link>
+        <Link href="/profile" className="btn">
+          Profile
+        </Link>
       </div>
 
       {myTrips.length === 0 ? (

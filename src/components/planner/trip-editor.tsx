@@ -25,6 +25,8 @@ export function TripEditor({ trip, focus, variant, saving, error, stopsOnDays, o
     startDate: trip.startDate,
     endDate: trip.endDate,
     maxDriveHours: trip.maxDriveHours,
+    dieselPrice: trip.fuelPrices.diesel,
+    petrolPrice: trip.fuelPrices.petrol,
     legs: trip.legs.map((l) => ({ id: l.id, name: l.name, startDate: l.startDate, endDate: l.endDate, colour: l.colour })),
   }));
   const nameRef = useRef<HTMLInputElement>(null);
@@ -109,6 +111,18 @@ export function TripEditor({ trip, focus, variant, saving, error, stopsOnDays, o
           onChange={(e) => setV({ ...v, maxDriveHours: Number(e.target.value) })}
         />
       </label>
+
+      <div className="grid grid-cols-2 gap-2.5">
+        <PriceField label="Diesel ($/L)" value={v.dieselPrice} onChange={(dieselPrice) => setV({ ...v, dieselPrice })} />
+        <PriceField label="Petrol ($/L)" value={v.petrolPrice} onChange={(petrolPrice) => setV({ ...v, petrolPrice })} />
+      </div>
+      <p className="-mt-1.5 text-[12.5px] text-muted">
+        Fuel cost per day uses these prices with the vehicle on your{" "}
+        <a href="/profile" className="font-bold text-ocean">
+          profile
+        </a>
+        .
+      </p>
 
       <div>
         <h3 ref={legsRef} className="mt-5 mb-1 flex items-baseline justify-between text-[22px] font-semibold">
@@ -205,6 +219,28 @@ export function TripEditor({ trip, focus, variant, saving, error, stopsOnDays, o
         {form}
       </div>
     </>
+  );
+}
+
+function PriceField({ label, value, onChange }: { label: string; value: number | null; onChange: (v: number | null) => void }) {
+  const [text, setText] = useState(value === null ? "" : String(value));
+  return (
+    <label className="field">
+      {label}
+      <input
+        type="number"
+        inputMode="decimal"
+        min={0.5}
+        max={10}
+        step={0.001}
+        value={text}
+        placeholder="e.g. 2.15"
+        onChange={(e) => {
+          setText(e.target.value);
+          onChange(e.target.value.trim() ? Number(e.target.value) : null);
+        }}
+      />
+    </label>
   );
 }
 

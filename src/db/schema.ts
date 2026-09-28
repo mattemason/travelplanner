@@ -42,6 +42,10 @@ export const users = pgTable("users", {
   name: text("name"),
   email: text("email").notNull().unique(),
   homeRegion: text("home_region"),
+  about: text("about"),
+  vehicle: text("vehicle"),
+  fuelLPer100km: numeric("fuel_l_per_100km", { precision: 5, scale: 2, mode: "number" }),
+  fuelType: text("fuel_type"), // diesel | petrol
   emailVerified: timestamp("email_verified", { withTimezone: true }),
   createdAt: createdAt(),
 });
@@ -71,6 +75,8 @@ export const trips = pgTable(
       .notNull()
       .default(5),
     seedVersion: integer("seed_version"),
+    dieselPrice: numeric("diesel_price", { precision: 6, scale: 3, mode: "number" }), // $ per litre
+    petrolPrice: numeric("petrol_price", { precision: 6, scale: 3, mode: "number" }),
     createdAt: createdAt(),
   },
   (t) => [check("trips_dates", sql`${t.endDate} >= ${t.startDate}`)],

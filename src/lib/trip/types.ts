@@ -64,6 +64,7 @@ export type TripData = {
   startDate: string;
   endDate: string;
   maxDriveHours: number;
+  fuelPrices: { diesel: number | null; petrol: number | null }; // $ per litre
   legs: Leg[];
   days: Day[];
   places: Record<string, Place>;

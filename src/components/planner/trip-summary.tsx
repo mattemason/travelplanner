@@ -1,6 +1,7 @@
 "use client";
 
 import { formatDistance, formatDuration } from "@/lib/trip/drive";
+import { formatCost } from "@/lib/trip/fuel";
 import { dayLabel } from "@/lib/trip/format";
 import type { Day, Leg } from "@/lib/trip/types";
 import type { DayDriveInfo } from "./day-section";
@@ -10,11 +11,12 @@ type Props = {
   legs: Leg[];
   drives: DayDriveInfo[];
   colourOf: (legColour: string) => string;
+  fuelFor: (metres: number) => number | null; // estimated fuel $ for a distance
   compact?: boolean;
 };
 
 /** Whole-trip totals: distance and driving time overall and per leg, plus the longest day. */
-export function TripSummary({ days, legs, drives, colourOf, compact }: Props) {
+export function TripSummary({ days, legs, drives, colourOf, fuelFor, compact }: Props) {
   const totalS = drives.reduce((n, d) => n + d.totalS, 0);
   const totalM = drives.reduce((n, d) => n + d.totalM, 0);
   const loading = drives.some((d) => !d.complete);
@@ -53,6 +55,12 @@ export function TripSummary({ days, legs, drives, colourOf, compact }: Props) {
           </em>
           <small className="text-[12px] text-muted">driving</small>
         </div>
+        {totalM > 0 && fuelFor(totalM) !== null && (
+          <div>
+            <em className="block font-display text-[26px] leading-none font-bold not-italic">~{formatCost(fuelFor(totalM)!)}</em>
+            <small className="text-[12px] text-muted">fuel</small>
+          </div>
+        )}
       </div>
       {perLeg.length > 0 && (
         <table className="mt-2.5 w-full text-[13px]">
