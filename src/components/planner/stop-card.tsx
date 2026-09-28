@@ -4,7 +4,7 @@ import { formatDistance, formatDuration } from "@/lib/trip/drive";
 import { timeLabel } from "@/lib/trip/format";
 import { transportSummary } from "@/lib/trip/details";
 import { arriveByLabel, BOOKED_MODES, tagLabel, type ArriveBy, type Place, type Segment, type Stop } from "@/lib/trip/types";
-import { CopyIcon, GripIcon, InfoIcon, PencilIcon } from "./icons";
+import { CopyIcon, GripIcon, InfoIcon, PencilIcon, TrashIcon } from "./icons";
 
 type Props = {
   stop: Stop;
@@ -20,6 +20,7 @@ type Props = {
   onEdit: () => void;
   onInfo: () => void;
   onDuplicate: () => void;
+  onDelete: () => void;
 };
 
 /** How the stop is reached: a drive (known, loading or no route) or another mode. */
@@ -27,7 +28,7 @@ export type DriveIn = Segment | "loading" | "none" | { mode: Exclude<ArriveBy, "
 
 
 export function StopCard(props: Props) {
-  const { stop, place, number, driveIn, selected, editing, compact, overnight, onSelect, onEdit, onInfo, onDuplicate, dayDate } = props;
+  const { stop, place, number, driveIn, selected, editing, compact, overnight, onSelect, onEdit, onInfo, onDuplicate, onDelete, dayDate } = props;
   const travel = BOOKED_MODES.includes(stop.arriveBy) ? transportSummary(stop.transport, dayDate) : "";
   const closed = place?.businessStatus === "CLOSED_TEMPORARILY" || place?.businessStatus === "CLOSED_PERMANENTLY";
   const noMap = place && (place.lat === null || place.lng === null);
@@ -52,7 +53,7 @@ export function StopCard(props: Props) {
       )}
       <div
         onClick={onSelect}
-        className={`flex items-start gap-3 rounded-xl border bg-paper ${compact ? "px-2 py-2.5" : "py-3 pr-3 pl-2"} ${
+        className={`flex items-start gap-2 rounded-xl border bg-paper ${compact ? "px-2 py-2.5" : "py-3 pr-3 pl-2"} ${
           editing
             ? "border-ocean shadow-[0_0_0_2px_var(--ocean)]"
             : selected
@@ -143,6 +144,18 @@ export function StopCard(props: Props) {
           }}
         >
           <PencilIcon />
+        </button>
+        <button
+          type="button"
+          className="edit-btn grid h-[34px] w-[34px] shrink-0 cursor-pointer place-items-center rounded-[9px] border-[1.5px] border-line bg-paper text-bad-ink"
+          aria-label={`Delete ${stop.name}`}
+          title="Delete this stop"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+        >
+          <TrashIcon />
         </button>
       </div>
     </li>

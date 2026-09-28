@@ -478,13 +478,14 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
     onMove(id, TRAY, Number.MAX_SAFE_INTEGER);
   };
 
-  const deleteEditing = async () => {
-    if (editor?.mode !== "edit") return;
-    const id = editor.stopId;
+  /** Deletes a stop after asking; Undo in the toast brings it back. */
+  const deleteStopById = async (id: string) => {
     const stop = trip.stops[id];
+    if (!stop) return;
+    if (!window.confirm(`Delete "${stop.name}"? You can undo straight after.`)) return;
     const container = containerOf(trip.layout, id) ?? TRAY;
     const position = trip.layout[container]?.indexOf(id) ?? 0;
-    closeEditor();
+    if (editor?.mode === "edit" && editor.stopId === id) closeEditor();
     removeFromState(id);
     try {
       await deleteStop(trip.id, id);
@@ -498,6 +499,10 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
       }));
       setToast({ text: "That delete didn't save. Try again.", error: true });
     }
+  };
+
+  const deleteEditing = () => {
+    if (editor?.mode === "edit") void deleteStopById(editor.stopId);
   };
 
   const saveTrip = async (details: TripDetails) => {
@@ -729,6 +734,7 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
       onEditStop={openEditor}
       onInfoStop={setInfoStop}
       onDuplicateStop={duplicateStop}
+      onDeleteStop={deleteStopById}
       onAddStop={openNew}
       onReroute={reroute}
       rerouting={rerouting === day.id}
@@ -751,6 +757,7 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
           onEdit={() => openEditor(id)}
           onInfo={() => setInfoStop(id)}
           onDuplicate={() => duplicateStop(id)}
+          onDelete={() => deleteStopById(id)}
         />
       ))}
     </SortableList>
