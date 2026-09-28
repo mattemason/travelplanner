@@ -51,6 +51,7 @@ import { StopCard, type DriveIn } from "./stop-card";
 import { StopEditor, type EditorValues } from "./stop-editor";
 import { StopInfo } from "./stop-info";
 import { SyncDialog } from "./sync-dialog";
+import { PlanDialog } from "./plan-dialog";
 import { googleMapsLink, hipcampLink } from "@/lib/trip/maps-link";
 import { TripEditor } from "./trip-editor";
 import { MapSearch, ResultCard, type SearchResult } from "./map-search";
@@ -104,6 +105,7 @@ export function TripPlanner({
   const [rerouting, setRerouting] = useState<string | null>(null);
   const [infoStop, setInfoStop] = useState<string | null>(null);
   const [syncOpen, setSyncOpen] = useState(false);
+  const [planOpen, setPlanOpen] = useState(false);
   const [search, setSearch] = useState<SearchResult[] | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [selectedResult, setSelectedResult] = useState<string | null>(null);
@@ -1263,13 +1265,8 @@ export function TripPlanner({
       <button type="button" className="btn" disabled title="Coming in Phase 4">
         Share
       </button>
-      <button
-        type="button"
-        className="btn btn-primary"
-        disabled
-        title="Coming in Phase 3"
-      >
-        Build plan
+      <button type="button" className="btn btn-primary" onClick={() => setPlanOpen(true)}>
+        Plan my trip
       </button>
     </div>
   );
@@ -1615,6 +1612,24 @@ export function TripPlanner({
     <APIProvider apiKey={MAPS_KEY} language="en-AU" region="AU">
       {body}
       {toastEl}
+      {planOpen && (
+        <PlanDialog
+          trip={trip}
+          colourOf={colourOf}
+          onClose={() => setPlanOpen(false)}
+          onAccepted={(fresh, before) => {
+            setPlanOpen(false);
+            setTrip(fresh);
+            // Undo puts back the old layout and each day's old overnight (with its stay details).
+            setUndo({
+              label: "Applied the plan",
+              layout: before.layout,
+              overnights: before.days.map((d) => ({ dayId: d.id, placeId: d.overnightPlaceId, stay: d.stay })),
+            });
+            setToast({ text: "Plan applied" });
+          }}
+        />
+      )}
       {syncOpen && (
         <SyncDialog
           tripId={trip.id}
