@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { dayDrive, dayRoute, formatDuration, overnightTravel, overnightTravelLabel, pairKey } from "@/lib/trip/drive";
+import {
+  dayDrive,
+  dayRoute,
+  dayStart,
+  formatDuration,
+  overnightOf,
+  overnightTravel,
+  overnightTravelLabel,
+  pairKey,
+} from "@/lib/trip/drive";
 import { changedContainers, moveStop } from "@/lib/trip/layout";
 import { TRAY, type TripData } from "@/lib/trip/types";
 import { dayWarnings } from "@/lib/trip/warnings";
@@ -65,16 +74,34 @@ function trip(): TripData {
 }
 
 describe("dayRoute", () => {
-  it("runs from last night's overnight through the stops to tonight's, skipping repeats and unmapped places", () => {
+  it("runs from last night's overnight through the stops, skipping repeats and unmapped places", () => {
     const t = trip();
     expect(dayRoute(t, 0).map((p) => p.placeId)).toEqual(["port", "camp"]); // stop at the overnight counts once
-    expect(dayRoute(t, 1).map((p) => p.placeId)).toEqual(["camp", "falls", "town"]); // "track" has no coordinates
+    // d2's saved overnight (town) isn't one of its stops, so it's ignored; "track" has no coordinates
+    expect(dayRoute(t, 1).map((p) => p.placeId)).toEqual(["camp", "falls"]);
+  });
+
+  it("only counts an overnight that's one of the day's stops", () => {
+    const t = trip();
+    expect(overnightOf(t, 0)).toBe("camp");
+    expect(overnightOf(t, 1)).toBeNull(); // leftover overnight, not among d2's stops
+    t.layout.d2 = ["s3", "s5"]; // now town is a stop on d2
+    expect(overnightOf(t, 1)).toBe("town");
+  });
+
+  it("starts a day from yesterday's last stop when there was no overnight", () => {
+    const t = trip();
+    t.days[0].overnightPlaceId = null;
+    expect(dayStart(t, 1)).toBe("camp"); // d1's last stop
+    expect(dayStart(t, 0)).toBeNull();
   });
 });
 
 describe("dayDrive", () => {
   it("totals cached segments and reports when some are missing", () => {
-    const route = dayRoute(trip(), 1);
+    const t = trip();
+    t.layout.d2 = ["s3", "s5"]; // camp → falls → town
+    const route = dayRoute(t, 1);
     const cache = { [pairKey(route[0], route[1])]: { durationS: 3600, distanceM: 80_000, polyline: null } };
     const drive = dayDrive(route, cache);
     expect(drive.totalS).toBe(3600);

@@ -1,3 +1,4 @@
+import { dayStart, overnightOf } from "./drive";
 import type { LatLng, TripData } from "./types";
 
 /**
@@ -7,8 +8,8 @@ import type { LatLng, TripData } from "./types";
  */
 export function rerouteParts(trip: TripData, dayIndex: number) {
   const day = trip.days[dayIndex];
-  const prevNight = trip.days[dayIndex - 1]?.overnightPlaceId ?? null;
-  const night = day.overnightPlaceId;
+  const prevNight = dayStart(trip, dayIndex);
+  const night = overnightOf(trip, dayIndex);
   const coords = (placeId: string | null): LatLng | null => {
     const p = placeId ? trip.places[placeId] : null;
     return p && p.lat !== null && p.lng !== null ? { lat: p.lat, lng: p.lng } : null;

@@ -8,13 +8,33 @@ export const pairKey = (a: LatLng, b: LatLng) => `${pointKey(a)}|${pointKey(b)}`
 export type RoutePoint = LatLng & { placeId: string; stopId: string | null; arriveBy: ArriveBy };
 
 /**
- * The places a day's driving passes through, in order: last night's overnight, the day's
- * stops, then tonight's overnight. Places without coordinates are skipped, and a place that
- * repeats back to back (a stop at the overnight) counts once.
+ * Where the trip stays on a day: its overnight place, but only when one of that day's stops is
+ * marked as it. A leftover overnight that isn't among the day's stops doesn't count.
+ */
+export function overnightOf(trip: TripData, dayIndex: number): string | null {
+  const day = trip.days[dayIndex];
+  if (!day?.overnightPlaceId) return null;
+  const onDay = (trip.layout[day.id] ?? []).some((id) => trip.stops[id]?.placeId === day.overnightPlaceId);
+  return onDay ? day.overnightPlaceId : null;
+}
+
+/** Where a day starts: last night's overnight, or failing that the previous day's last stop. */
+export function dayStart(trip: TripData, dayIndex: number): string | null {
+  if (dayIndex <= 0) return null;
+  const night = overnightOf(trip, dayIndex - 1);
+  if (night) return night;
+  const prevStops = trip.layout[trip.days[dayIndex - 1].id] ?? [];
+  return trip.stops[prevStops.at(-1) ?? ""]?.placeId ?? null;
+}
+
+/**
+ * The places a day's driving passes through, in order: where the day starts (last night's
+ * overnight, or yesterday's last stop), the day's stops, then tonight's overnight stop if you
+ * leave it and come back. Places without coordinates are skipped, and a place that repeats
+ * back to back counts once.
  */
 export function dayRoute(trip: TripData, dayIndex: number): RoutePoint[] {
   const day = trip.days[dayIndex];
-  const prev = trip.days[dayIndex - 1];
   const points: RoutePoint[] = [];
   const push = (placeId: string | null, stopId: string | null, arriveBy: ArriveBy = "drive") => {
     if (!placeId) return;
@@ -27,12 +47,12 @@ export function dayRoute(trip: TripData, dayIndex: number): RoutePoint[] {
     }
     points.push({ lat: place.lat, lng: place.lng, placeId, stopId, arriveBy });
   };
-  push(prev?.overnightPlaceId ?? null, null);
+  push(dayStart(trip, dayIndex), null);
   for (const stopId of trip.layout[day.id] ?? []) {
     const stop = trip.stops[stopId];
     push(stop?.placeId ?? null, stopId, stop?.arriveBy ?? "drive");
   }
-  push(day.overnightPlaceId, null);
+  push(overnightOf(trip, dayIndex), null);
   return points;
 }
 
@@ -76,11 +96,11 @@ export function overnightTravel(
   trip: TripData,
   dayIndex: number,
 ): { mode: "ferry" | "flight"; to: string } | null {
-  const day = trip.days[dayIndex];
-  if (!day?.overnightPlaceId || dayIndex + 1 >= trip.days.length) return null;
+  const night = overnightOf(trip, dayIndex);
+  if (!night || dayIndex + 1 >= trip.days.length) return null;
   const next = dayRoute(trip, dayIndex + 1);
   const [from, arrive] = next;
-  if (!from || !arrive || from.placeId !== day.overnightPlaceId) return null;
+  if (!from || !arrive || from.placeId !== night) return null;
   if (arrive.arriveBy !== "ferry" && arrive.arriveBy !== "flight") return null;
   const name = arrive.stopId ? trip.stops[arrive.stopId]?.name : trip.places[arrive.placeId]?.name;
   return { mode: arrive.arriveBy, to: name ?? "your next stop" };

@@ -14,7 +14,14 @@ import {
   type PlaceRef,
   type TripDetails,
 } from "@/app/trips/[tripId]/actions";
-import { dayRoute, overnightTravel, overnightTravelLabel, pairKey, type RoutePoint } from "@/lib/trip/drive";
+import {
+  dayRoute,
+  overnightOf,
+  overnightTravel,
+  overnightTravelLabel,
+  pairKey,
+  type RoutePoint,
+} from "@/lib/trip/drive";
 import { fuelCost, type Vehicle } from "@/lib/trip/fuel";
 import { cleanStay, transportSummary } from "@/lib/trip/details";
 import { dateRange, dayCount, dayLabel } from "@/lib/trip/format";
@@ -600,7 +607,8 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
     mapRoutes = trip.days.flatMap((_, i) => routeLines(i));
     const seen = new Set<string>();
     trip.days.forEach((day, i) => {
-      const night = day.overnightPlaceId ? trip.places[day.overnightPlaceId] : null;
+      const nightId = overnightOf(trip, i);
+      const night = nightId ? trip.places[nightId] : null;
       for (const stopId of trip.layout[day.id] ?? []) {
         const stop = trip.stops[stopId];
         const place = trip.places[stop?.placeId ?? ""];
@@ -720,7 +728,7 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
       colour={colourOf(i)}
       stops={(trip.layout[day.id] ?? []).map((id) => trip.stops[id]).filter(Boolean)}
       places={trip.places}
-      overnight={placeName(day.overnightPlaceId)}
+      overnight={placeName(overnightOf(trip, i))}
       overnightTravel={nightTravel(i)}
       drive={drives[i]}
       warnings={warnings[i]}
@@ -1027,8 +1035,8 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
                     {n} {n === 1 ? "stop" : "stops"}
                     {nightTravel(i)
                       ? `, ${overnightTravel(trip, i)!.mode === "ferry" ? "⛴ on the ferry" : "✈ overnight flight"}`
-                      : placeName(d.overnightPlaceId)
-                        ? `, ${placeName(d.overnightPlaceId)}`
+                      : placeName(overnightOf(trip, i))
+                        ? `, ${placeName(overnightOf(trip, i))}`
                         : ""}
                   </small>
                 </button>
