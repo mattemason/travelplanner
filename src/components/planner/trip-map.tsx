@@ -30,6 +30,7 @@ type Props = {
   labels?: boolean;
   onBoundsChanged?: (bounds: MapBounds) => void;
   dark?: boolean; // the app's theme, so the map matches Light/Dark choices
+  onPlaceClick?: (googlePlaceId: string) => void; // a tap on one of Google's own map icons
 };
 
 const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID;
@@ -38,6 +39,7 @@ const TASMANIA = { lat: -42.0, lng: 146.6 };
 /** A Google map of pins and drive routes: one day, or the whole trip. */
 export function TripMap(props: Props) {
   const { points, routes, selectedId, onSelect, fitKey, className, labels = true, onBoundsChanged, dark = false } = props;
+  const { onPlaceClick } = props;
   return (
     <div className={`relative ${className ?? ""}`}>
       <Map
@@ -49,7 +51,12 @@ export function TripMap(props: Props) {
         gestureHandling="cooperative"
         disableDefaultUI
         zoomControl
-        clickableIcons={false}
+        clickableIcons={!!onPlaceClick}
+        onClick={(e) => {
+          if (!e.detail.placeId || !onPlaceClick) return;
+          e.stop(); // show our card instead of Google's default popup
+          onPlaceClick(e.detail.placeId);
+        }}
         className="h-full w-full"
         onCameraChanged={(e) => onBoundsChanged?.(e.detail.bounds)}
       >

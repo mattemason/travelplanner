@@ -178,3 +178,42 @@ export async function searchInArea(query: string, area: Bounds, includedType?: s
       : [],
   );
 }
+
+/** A single place as a search-style result (for Google's own map icons when tapped). */
+export async function placeAsResult(placeId: string): Promise<SearchResult | null> {
+  if (!/^[A-Za-z0-9_-]{10,300}$/.test(placeId)) return null;
+  const res = await fetch(`https://places.googleapis.com/v1/places/${placeId}?languageCode=en-AU`, {
+    headers: {
+      "X-Goog-Api-Key": key(),
+      "X-Goog-FieldMask":
+        "id,displayName,location,formattedAddress,primaryTypeDisplayName,rating,userRatingCount,businessStatus,googleMapsUri",
+    },
+    cache: "no-store",
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Place details ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  const p = (await res.json()) as {
+    id: string;
+    displayName?: { text: string };
+    location?: { latitude: number; longitude: number };
+    formattedAddress?: string;
+    primaryTypeDisplayName?: { text: string };
+    rating?: number;
+    userRatingCount?: number;
+    businessStatus?: string;
+    googleMapsUri?: string;
+  };
+  if (!p.location) return null;
+  return {
+    placeId: p.id,
+    name: p.displayName?.text ?? "Unnamed place",
+    lat: p.location.latitude,
+    lng: p.location.longitude,
+    address: p.formattedAddress ?? null,
+    type: p.primaryTypeDisplayName?.text ?? null,
+    rating: p.rating ?? null,
+    ratings: p.userRatingCount ?? null,
+    businessStatus: p.businessStatus ?? null,
+    mapsUrl: p.googleMapsUri ?? null,
+  };
+}

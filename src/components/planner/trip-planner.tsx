@@ -82,6 +82,7 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
   const [search, setSearch] = useState<SearchResult[] | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [selectedResult, setSelectedResult] = useState<string | null>(null);
+  const [tapped, setTapped] = useState<SearchResult | null>(null); // a Google map icon the user tapped
   const [addedResults, setAddedResults] = useState<Set<string>>(() => new Set());
   const boundsRef = useRef<MapBounds | null>(null);
   const [editor, setEditor] = useState<Editor | null>(null);
@@ -639,7 +640,7 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
     });
   }
 
-  for (const r of search ?? []) {
+  for (const r of [...(search ?? []), ...(tapped && !search?.some((s) => s.placeId === tapped.placeId) ? [tapped] : [])]) {
     mapPoints.push({ id: `result:${r.placeId}`, lat: r.lat, lng: r.lng, colour: RESULT_COLOUR, badge: null, name: r.name, result: true });
   }
 
@@ -696,7 +697,20 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
       compact={compact}
     />
   );
-  const pickedResult = search?.find((r) => r.placeId === selectedResult) ?? null;
+  const pickedResult =
+    search?.find((r) => r.placeId === selectedResult) ?? (tapped?.placeId === selectedResult ? tapped : null);
+
+  const onPlaceClick = async (googlePlaceId: string) => {
+    try {
+      const res = await fetch(`/api/places/${encodeURIComponent(googlePlaceId)}`);
+      const body = (await res.json().catch(() => ({}))) as { result?: SearchResult; error?: string };
+      if (!res.ok || !body.result) throw new Error(body.error ?? "Couldn't load that place.");
+      setTapped(body.result);
+      setSelectedResult(body.result.placeId);
+    } catch (err) {
+      setToast({ text: (err as Error).message, error: true });
+    }
+  };
   const resultCard = pickedResult && (
     <ResultCard
       key={pickedResult.placeId}
@@ -705,7 +719,10 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
       defaultContainer={activeDayId ?? TRAY}
       added={addedResults.has(pickedResult.placeId)}
       onAdd={(container) => addResult(pickedResult, container)}
-      onClose={() => setSelectedResult(null)}
+      onClose={() => {
+        setSelectedResult(null);
+        setTapped(null);
+      }}
     />
   );
 
@@ -844,6 +861,7 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
         dark={dark}
         selectedId={selectedResult ? `result:${selectedResult}` : selectedStop}
         onSelect={onMapSelect}
+        onPlaceClick={onPlaceClick}
         onBoundsChanged={(b) => {
           boundsRef.current = b;
         }}
