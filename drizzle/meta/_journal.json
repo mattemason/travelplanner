@@ -43,6 +43,13 @@
       "when": 1790625849168,
       "tag": "0005_profile_fuel",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790626156495,
+      "tag": "0006_stop_chats",
+      "breakpoints": true
     }
   ]
 }

@@ -6,6 +6,15 @@ export const PencilIcon = () => (
   </svg>
 );
 
+export const InfoIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+    strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="10" />
+    <path d="M12 16v-4" />
+    <path d="M12 8h.01" />
+  </svg>
+);
+
 export const GripIcon = () => (
   <svg className="grip" width="10" height="16" viewBox="0 0 10 16" fill="currentColor" aria-hidden="true">
     <circle cx="2" cy="2" r="1.6" />

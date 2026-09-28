@@ -27,6 +27,7 @@ import { PencilIcon } from "./icons";
 import { SortableList } from "./sortable-list";
 import { StopCard, type DriveIn } from "./stop-card";
 import { StopEditor, type EditorValues } from "./stop-editor";
+import { StopInfo } from "./stop-info";
 import { TripEditor } from "./trip-editor";
 import { MapSearch, ResultCard, type SearchResult } from "./map-search";
 import { TripMap, type MapBounds, type MapPoint, type MapRoute } from "./trip-map";
@@ -65,6 +66,7 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
   const [selectedStop, setSelectedStop] = useState<string | null>(null);
   const [mapMode, setMapMode] = useState<"day" | "trip">("day");
   const [rerouting, setRerouting] = useState<string | null>(null);
+  const [infoStop, setInfoStop] = useState<string | null>(null);
   const [search, setSearch] = useState<SearchResult[] | null>(null);
   const [selectedResult, setSelectedResult] = useState<string | null>(null);
   const [addedResults, setAddedResults] = useState<Set<string>>(() => new Set());
@@ -646,6 +648,7 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
       onMove={onMove}
       onSelectStop={selectStop}
       onEditStop={openEditor}
+      onInfoStop={setInfoStop}
       onAddStop={openNew}
       onReroute={reroute}
       rerouting={rerouting === day.id}
@@ -666,6 +669,7 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
           compact
           onSelect={() => setSelectedStop(id)}
           onEdit={() => openEditor(id)}
+          onInfo={() => setInfoStop(id)}
         />
       ))}
     </SortableList>
@@ -999,6 +1003,9 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
     <APIProvider apiKey={MAPS_KEY} language="en-AU" region="AU">
       {body}
       {toastEl}
+      {infoStop && trip.stops[infoStop] && (
+        <StopInfo stopId={infoStop} stopName={trip.stops[infoStop].name} onClose={() => setInfoStop(null)} />
+      )}
     </APIProvider>
   );
 }

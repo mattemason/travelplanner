@@ -239,3 +239,40 @@ h3 {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* AI answers rendered from markdown */
+.ai-answer {
+  font-size: 15px;
+  line-height: 1.55;
+}
+.ai-answer h1,
+.ai-answer h2,
+.ai-answer h3 {
+  margin: 14px 0 4px;
+  font-size: 19px;
+  font-weight: 700;
+}
+.ai-answer p {
+  margin: 6px 0;
+}
+.ai-answer ul,
+.ai-answer ol {
+  margin: 6px 0;
+  padding-left: 20px;
+}
+.ai-answer ul {
+  list-style: disc;
+}
+.ai-answer ol {
+  list-style: decimal;
+}
+.ai-answer li {
+  margin: 2px 0;
+}
+.ai-answer a {
+  color: var(--ocean);
+  text-decoration: underline;
+}
+.ai-answer strong {
+  font-weight: 700;
+}

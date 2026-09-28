@@ -280,3 +280,13 @@ export const routeSegments = pgTable(
   },
   (t) => [primaryKey({ columns: [t.origin, t.destination] })],
 );
+
+// The AI conversation about a stop (text only: [{ role, content }]); the first user turn is
+// the automatic "tell me about this stop" request.
+export const stopChats = pgTable("stop_chats", {
+  stopId: uuid("stop_id")
+    .primaryKey()
+    .references(() => stops.id, { onDelete: "cascade" }),
+  messages: jsonb("messages").$type<{ role: "user" | "assistant"; content: string }[]>().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});

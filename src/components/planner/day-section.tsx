@@ -37,6 +37,7 @@ type Props = {
   onMove: (stopId: string, to: string, index: number) => void;
   onSelectStop: (stopId: string, dayIndex: number) => void;
   onEditStop: (stopId: string) => void;
+  onInfoStop: (stopId: string) => void;
   onAddStop: (dayId: string) => void;
   onReroute: (dayId: string) => void;
   rerouting: boolean;
@@ -114,6 +115,7 @@ export function DaySection({ sectionRef, ...p }: Props) {
               overnight={!!p.day.overnightPlaceId && stop.placeId === p.day.overnightPlaceId}
               onSelect={() => p.onSelectStop(stop.id, p.index)}
               onEdit={() => p.onEditStop(stop.id)}
+              onInfo={() => p.onInfoStop(stop.id)}
             />
           ))}
         </SortableList>
