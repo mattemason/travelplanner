@@ -80,7 +80,8 @@ Use a standard, well-documented stack that Claude Code handles well and that cos
 | Layer | Choice | Why |
 | --- | --- | --- |
 | App | Next.js (App Router), TypeScript, Tailwind | One codebase for the UI and API routes; installable as a PWA |
-| Database and auth | Supabase (Postgres, Google sign-in, storage, row-level security) | Google login built in; row-level security keeps each user's trips private |
+| Database | Railway Postgres, Drizzle ORM | Same project as the app; private network, no public DB endpoint |
+| Auth | Auth.js (next-auth v4), Google provider, JWT sessions | Google sign-in with an email allowlist; no extra session tables |
 | Map | Google Maps JavaScript API | Places data displayed on a Google map keeps within Google's terms |
 | Place data | Places API (New) | Place ID, coordinates, photos, hours, business status |
 | Drive times | Routes API | Leg-by-leg time and distance |
@@ -91,7 +92,7 @@ Use a standard, well-documented stack that Claude Code handles well and that cos
 ```mermaid
 flowchart LR
   B["Phone or browser<br/>Installable PWA, trip cached offline"] <--> S["Next.js on Railway<br/>UI + API routes, keys server-side"]
-  S <--> DB[("Supabase<br/>Postgres, Google sign-in, imported files")]
+  S <--> DB[("Railway Postgres<br/>Trips, places, route cache")]
   S --> D["Google Drive<br/>Takeout archive (CSV)"]
   S --> P["Places API<br/>Details, photos, status"]
   S --> R["Routes API<br/>Drive times, distances"]
@@ -108,7 +109,7 @@ A place exists once per user and can be scheduled into many trips; a stop is a p
 
 | Table | Key fields | Notes |
 | --- | --- | --- |
-| `users` | id, name, email, home_region | From Supabase auth |
+| `users` | id, name, email, home_region | Created on first Google sign-in |
 | `trips` | id, owner_id, name, start_date, end_date, start_point, end_point, max_drive_hours_per_day | Tas trip: 18 Jan to 3 Feb 2027, Devonport to Devonport |
 | `legs` | id, trip_id, name, start_date, end_date, travellers, colour | Solo 1, Family, Solo 2 |
 | `fixed_events` | id, trip_id, type, datetime, location, notes | Ferry out/in, family flights in and out; the planner can't move these |
@@ -121,7 +122,7 @@ A place exists once per user and can be scheduled into many trips; a stop is a p
 | `plan_proposals` | id, trip_id, created_at, prompt_json, proposal_json, status (pending / accepted / rejected) | Every AI suggestion is stored before it's applied |
 | `shares` | id, trip_id, token, leg_filter, expires_at | Read-only family links |
 
-Row-level security applies to every table: you can only read and write rows you own, except a trip reached through a valid share token, which is read-only.
+Only the server talks to the database. Every query is scoped to the signed-in user, so you can only read and write rows you own, except a trip reached through a valid share token, which is read-only.
 
 Places the user adds by hand, rather than through Google, are allowed and have `google_place_id` left empty. Tracks like Sandy Cape often don't resolve to a clean Google place.
 

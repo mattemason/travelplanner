@@ -10,11 +10,14 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "seed": "node --env-file=.env.local --import tsx seed/seed.ts"
+    "seed": "node --env-file-if-exists=.env.local --import tsx seed/seed.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.mjs"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.117.2",
+    "drizzle-orm": "^0.45.3",
     "next": "16.3.6",
+    "pg": "^8.23.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "zod": "^4.6.5"
@@ -22,8 +25,10 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^22.20.4",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "drizzle-kit": "^0.31.11",
     "eslint": "^9",
     "eslint-config-next": "16.3.6",
     "tailwindcss": "^4",

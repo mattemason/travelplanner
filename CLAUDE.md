@@ -9,8 +9,9 @@ Mobile-first road trip planner. The product spec is `SPEC.md`: read it before st
 - `npm run dev`: dev server on http://localhost:3000
 - `npm test`: Vitest unit tests (`tests/`)
 - `npm run typecheck`, `npm run lint`
-- `npm run seed`: loads `seed/tasmania-2027.json` into Supabase for `SEED_OWNER_EMAIL` (re-runnable, replaces that user's copy)
-- Schema: apply `supabase/migrations/*.sql` with `supabase db push`, or paste into the Supabase SQL editor
+- `npm run seed`: loads `seed/tasmania-2027.json` for `SEED_OWNER_EMAIL` (re-runnable, replaces that user's copy)
+- Schema lives in `src/db/schema.ts` (Drizzle). After changing it, run `npm run db:generate` and commit the new file in `drizzle/`. Railway applies pending migrations before each deploy (`npm run db:migrate`).
+- Postgres has no public endpoint, so run DB scripts inside Railway: `railway ssh -- npm run seed`
 
 ## Setup
 
@@ -20,7 +21,7 @@ Copy `.env.local.example` to `.env.local` and fill it in. Never commit `.env.loc
 
 - Next.js 16 App Router, TypeScript, Tailwind 4. Check `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
 - All Google (Routes, Places) and Anthropic calls go through server API routes. The only key in the browser is `NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY`, which is restricted to the Maps JavaScript API and our domains.
-- Every table has RLS. Service-role access is limited to the seed script and server routes that need it (route cache, share links).
+- No RLS: only server code touches the database, and every query must filter by the signed-in user's id.
 - `stops.position` is the stop order; the spec calls it `order`.
 - Seed coordinates are approximate until Places enrichment (Phase 2) replaces them.
 
