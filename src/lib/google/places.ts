@@ -217,3 +217,49 @@ export async function placeAsResult(placeId: string): Promise<SearchResult | nul
     mapsUrl: p.googleMapsUri ?? null,
   };
 }
+
+/** The Places entry for a name at known coordinates (within ~500 m), or null. */
+export async function findNear(name: string, lat: number, lng: number): Promise<FoundPlace | null> {
+  const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Goog-Api-Key": key(),
+      "X-Goog-FieldMask":
+        "places.id,places.displayName,places.location,places.formattedAddress,places.businessStatus,places.googleMapsUri",
+    },
+    body: JSON.stringify({
+      textQuery: name,
+      pageSize: 1,
+      languageCode: "en-AU",
+      locationBias: { circle: { center: { latitude: lat, longitude: lng }, radius: 300 } },
+    }),
+    cache: "no-store",
+  });
+  if (!res.ok) return null;
+  const body = (await res.json()) as {
+    places?: {
+      id: string;
+      displayName?: { text: string };
+      location?: { latitude: number; longitude: number };
+      formattedAddress?: string;
+      businessStatus?: string;
+      googleMapsUri?: string;
+    }[];
+  };
+  const p = body.places?.[0];
+  if (!p?.location) return null;
+  // Only accept it if it's really the same spot, not a same-named place elsewhere.
+  const dLat = (p.location.latitude - lat) * 111_000;
+  const dLng = (p.location.longitude - lng) * 111_000 * Math.cos((lat * Math.PI) / 180);
+  if (Math.hypot(dLat, dLng) > 500) return null;
+  return {
+    googlePlaceId: p.id,
+    name: p.displayName?.text ?? name,
+    lat: p.location.latitude,
+    lng: p.location.longitude,
+    address: p.formattedAddress ?? null,
+    businessStatus: p.businessStatus ?? null,
+    mapsUrl: p.googleMapsUri ?? null,
+  };
+}

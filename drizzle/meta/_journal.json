@@ -78,6 +78,13 @@
       "when": 1790634233524,
       "tag": "0010_stop_attachments",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790637834756,
+      "tag": "0011_shared_list_sync",
+      "breakpoints": true
     }
   ]
 }

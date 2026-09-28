@@ -115,6 +115,7 @@ export const places = pgTable(
     id: id(),
     userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     googlePlaceId: text("google_place_id"),
+    googleCid: text("google_cid"), // Google's CID pair from a shared list, for matching on re-sync
     name: text("name").notNull(),
     lat: doublePrecision("lat"),
     lng: doublePrecision("lng"),
@@ -143,6 +144,7 @@ export const placeLists = pgTable(
     name: text("name").notNull(),
     source: text("source").notNull(),
     lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
+    sourceUrl: text("source_url"), // the share link it was synced from
     tripId: uuid("trip_id").references(() => trips.id, { onDelete: "set null" }),
   },
   (t) => [check("place_lists_source", sql`${t.source} in ('takeout', 'share_link', 'csv', 'manual')`)],

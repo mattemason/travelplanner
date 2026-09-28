@@ -50,6 +50,7 @@ import { SortableList } from "./sortable-list";
 import { StopCard, type DriveIn } from "./stop-card";
 import { StopEditor, type EditorValues } from "./stop-editor";
 import { StopInfo } from "./stop-info";
+import { SyncDialog } from "./sync-dialog";
 import { googleMapsLink, hipcampLink } from "@/lib/trip/maps-link";
 import { TripEditor } from "./trip-editor";
 import { MapSearch, ResultCard, type SearchResult } from "./map-search";
@@ -102,6 +103,7 @@ export function TripPlanner({
   const [mapMode, setMapMode] = useState<"day" | "trip">("day");
   const [rerouting, setRerouting] = useState<string | null>(null);
   const [infoStop, setInfoStop] = useState<string | null>(null);
+  const [syncOpen, setSyncOpen] = useState(false);
   const [search, setSearch] = useState<SearchResult[] | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [selectedResult, setSelectedResult] = useState<string | null>(null);
@@ -1255,7 +1257,7 @@ export function TripPlanner({
       <Link href={`/checklists?trip=${trip.id}`} className="btn">
         Checklists
       </Link>
-      <button type="button" className="btn" disabled title="Coming in Phase 2">
+      <button type="button" className="btn" onClick={() => setSyncOpen(true)}>
         {isDesktop ? "Sync from Google" : "Sync"}
       </button>
       <button type="button" className="btn" disabled title="Coming in Phase 4">
@@ -1613,6 +1615,19 @@ export function TripPlanner({
     <APIProvider apiKey={MAPS_KEY} language="en-AU" region="AU">
       {body}
       {toastEl}
+      {syncOpen && (
+        <SyncDialog
+          tripId={trip.id}
+          onClose={() => setSyncOpen(false)}
+          onApplied={(fresh, added) => {
+            setSyncOpen(false);
+            setTrip(fresh);
+            setUndo(null);
+            setToast({ text: `Added ${added} ${added === 1 ? "place" : "places"} to Not yet scheduled` });
+            if (!isDesktop || !prefs.rail) setPrefs({ rail: true }); // show where they landed
+          }}
+        />
+      )}
       {infoStop && trip.stops[infoStop] && (
         <StopInfo
           stopId={infoStop}
