@@ -9,6 +9,7 @@ import { currentUser } from "@/lib/auth";
 import { getProfile } from "@/lib/profile";
 import { dateRange, dayCount, daysUntil } from "@/lib/trip/format";
 import { SignOutButton } from "./sign-out-button";
+import { DeleteTripButton } from "@/components/trips/delete-trip-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 type TripCard = {
@@ -200,7 +201,7 @@ function TripTile({ trip, featured }: { trip: TripCard; featured?: boolean }) {
             </ul>
           </>
         )}
-        <p className="mt-2.5 flex gap-4 text-[13.5px]">
+        <div className="mt-2.5 flex items-center gap-4 text-[13.5px]">
           <span>
             <b className="font-display text-[18px]">{days}</b> <span className="text-muted">days</span>
           </span>
@@ -211,7 +212,9 @@ function TripTile({ trip, featured }: { trip: TripCard; featured?: boolean }) {
             <b className="font-display text-[18px]">{trip.legs.length}</b>{" "}
             <span className="text-muted">{trip.legs.length === 1 ? "leg" : "legs"}</span>
           </span>
-        </p>
+          {/* Above the card's full-size link so it can be clicked. */}
+          <DeleteTripButton tripId={trip.id} name={trip.name} className="relative z-10 ml-auto" />
+        </div>
       </div>
     </article>
   );

@@ -5,6 +5,7 @@ import type { TripDetails } from "@/app/trips/[tripId]/actions";
 import { dayCount } from "@/lib/trip/format";
 import type { TripData } from "@/lib/trip/types";
 import { CoverPicker, IconPicker } from "@/components/trips/cover-picker";
+import { DeleteTripButton } from "@/components/trips/delete-trip-button";
 
 // Colours offered to new legs, in order: the design's Myrtle, Lichen, Ocean, then extras.
 const LEG_PALETTE = ["#2F6B4F", "#C75A1C", "#1F5A7A", "#7A4E9C", "#9C7A1F", "#A33B5E"];
@@ -207,6 +208,9 @@ export function TripEditor({ trip, focus, variant, saving, error, stopsOnDays, o
         <button type="submit" className="btn btn-primary flex-1" disabled={saving || !valid}>
           {saving ? "Saving…" : "Save"}
         </button>
+      </div>
+      <div className="mt-6 border-t border-line pt-4">
+        <DeleteTripButton tripId={trip.id} name={trip.name} />
       </div>
     </form>
   );
