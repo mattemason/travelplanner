@@ -1,44 +1,232 @@
 @import "tailwindcss";
 
-/* Calm, outdoorsy, high contrast in sunlight; dark mode for camp at night. */
+/* Design tokens from design/trip-planner-*.html. Calm, outdoorsy, legible in sunlight;
+   dark mode for camp at night. */
 :root {
-  --background: #fafaf9;
-  --surface: #ffffff;
-  --foreground: #1c1917;
-  --muted: #57534e;
-  --border: #d6d3d1;
-  --accent: #0f766e;
-  --accent-foreground: #ffffff;
-  --danger: #b91c1c;
+  --bg: #e9eeec;
+  --paper: #ffffff;
+  --ink: #17272b;
+  --muted: #5b6b6e;
+  --line: #d5ddda;
+  --soft: #f3f6f5;
+  --myrtle: #2f6b4f;
+  --lichen: #c75a1c;
+  --ocean: #1f5a7a;
+  --warn-ink: #8a5300;
+  --warn-bg: #fff3d6;
+  --bad-ink: #a3261a;
+  --bad-bg: #fde7e4;
+  --good-ink: #2f6b4f;
+  --good-bg: #e3f1e9;
+  color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0c0a09;
-    --surface: #1c1917;
-    --foreground: #f5f5f4;
-    --muted: #a8a29e;
-    --border: #44403c;
-    --accent: #2dd4bf;
-    --accent-foreground: #042f2e;
-    --danger: #f87171;
+    --bg: #0e181a;
+    --paper: #162428;
+    --ink: #e4ecea;
+    --muted: #9aadad;
+    --line: #2b3c40;
+    --soft: #1c2d31;
+    --myrtle: #62b08a;
+    --lichen: #f0894a;
+    --ocean: #62a8d0;
+    --warn-ink: #f4c46b;
+    --warn-bg: #3a2e14;
+    --bad-ink: #f59c90;
+    --bad-bg: #3b1e1a;
+    --good-ink: #7fcba3;
+    --good-bg: #1b3528;
+    color-scheme: dark;
   }
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-surface: var(--surface);
-  --color-foreground: var(--foreground);
+  --color-bg: var(--bg);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
   --color-muted: var(--muted);
-  --color-border: var(--border);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-danger: var(--danger);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-line: var(--line);
+  --color-soft: var(--soft);
+  --color-ocean: var(--ocean);
+  --color-myrtle: var(--myrtle);
+  --color-warn-ink: var(--warn-ink);
+  --color-warn-bg: var(--warn-bg);
+  --color-bad-ink: var(--bad-ink);
+  --color-bad-bg: var(--bad-bg);
+  --color-good-ink: var(--good-ink);
+  --color-good-bg: var(--good-bg);
+  --font-sans: var(--font-atkinson), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-barlow), "Arial Narrow", sans-serif;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  line-height: 1.05;
+}
+
+:focus-visible {
+  outline: 3px solid var(--ocean);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Shared pieces used across screens */
+@layer components {
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 40px;
+    border-radius: 999px;
+    border: 1.5px solid var(--line);
+    background: var(--paper);
+    color: var(--ink);
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  .btn-primary {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--paper);
+  }
+  .btn-quiet {
+    border-style: dashed;
+    color: var(--muted);
+    font-weight: 400;
+  }
+  .chip {
+    display: inline-block;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--soft);
+    color: var(--muted);
+    padding: 2px 8px;
+    font-size: 11.5px;
+    text-decoration: none;
+  }
+  .chip-closed {
+    background: var(--bad-bg);
+    color: var(--bad-ink);
+    border-color: transparent;
+    font-weight: 700;
+  }
+  .chip-ref {
+    background: var(--good-bg);
+    color: var(--good-ink);
+    border-color: transparent;
+  }
+  .notice {
+    border-radius: 12px;
+    padding: 9px 12px;
+    font-size: 13.5px;
+  }
+  .notice-warn {
+    background: var(--warn-bg);
+    color: var(--warn-ink);
+  }
+  .notice-bad {
+    background: var(--bad-bg);
+    color: var(--bad-ink);
+  }
+  .field {
+    display: block;
+    margin: 12px 0;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--muted);
+  }
+  .field input,
+  .field textarea,
+  .field select {
+    display: block;
+    width: 100%;
+    margin-top: 4px;
+    border-radius: 10px;
+    border: 1.5px solid var(--line);
+    background: var(--soft);
+    color: var(--ink);
+    padding: 9px 11px;
+    font: inherit;
+    font-size: 16px; /* 16px stops iOS zooming into fields */
+    font-weight: 400;
+  }
+}
+
+/* SortableJS states */
+.sortable-ghost {
+  opacity: 0.3;
+}
+.sortable-chosen {
+  box-shadow: 0 10px 26px rgba(10, 20, 22, 0.2);
+}
+.stop-list:empty {
+  min-height: 52px;
+  border: 1.5px dashed var(--line);
+  border-radius: 12px;
+}
+.stop-list:empty::before {
+  content: "Drag stops here";
+  display: block;
+  padding: 15px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.stop-list.tray-list:empty::before {
+  content: "Everything's scheduled";
+}
+
+/* Edit pencil: shows on hover, always on touch screens */
+.stop-card .edit-btn {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.stop-card:hover .edit-btn,
+.stop-card:focus-within .edit-btn,
+.stop-card[data-editing="true"] .edit-btn {
+  opacity: 1;
+}
+@media (hover: none) {
+  .stop-card .edit-btn {
+    opacity: 1;
+  }
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

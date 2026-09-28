@@ -21,7 +21,7 @@
       "travellers": [
         "Chief"
       ],
-      "colour": "#0f766e"
+      "colour": "#2F6B4F"
     },
     {
       "key": "family",
@@ -32,7 +32,7 @@
         "Chief",
         "Family"
       ],
-      "colour": "#c2410c"
+      "colour": "#C75A1C"
     },
     {
       "key": "solo2",
@@ -42,7 +42,7 @@
       "travellers": [
         "Chief"
       ],
-      "colour": "#4338ca"
+      "colour": "#1F5A7A"
     }
   ],
   "fixedEvents": [

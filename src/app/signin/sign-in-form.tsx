@@ -26,12 +26,12 @@ export function SignInForm() {
         required
         autoComplete="email"
         inputMode="email"
-        className="h-12 rounded-lg border border-border bg-surface px-4 text-base"
+        className="h-12 rounded-lg border border-line bg-paper px-4 text-base"
       />
       <button
         type="submit"
         disabled={pending}
-        className="h-12 rounded-lg bg-accent font-semibold text-accent-foreground disabled:opacity-60"
+        className="h-12 rounded-lg bg-ink font-semibold text-paper disabled:opacity-60"
       >
         {pending ? "Sending…" : "Email me a link"}
       </button>

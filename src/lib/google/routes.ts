@@ -83,8 +83,8 @@ async function computeRoute(a: LatLng, b: LatLng): Promise<Segment | null> {
     cache: "no-store",
   });
   if (!res.ok) {
-    console.error(`Routes API ${res.status}: ${(await res.text()).slice(0, 300)}`);
-    return null;
+    // An API or key problem, not "no route": fail so the caller retries instead of caching it.
+    throw new Error(`Routes API ${res.status}: ${(await res.text()).slice(0, 300)}`);
   }
   const body = (await res.json()) as {
     routes?: { duration?: string; distanceMeters?: number; polyline?: { encodedPolyline?: string } }[];

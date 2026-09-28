@@ -20,7 +20,7 @@ export default async function SignInPage({ searchParams }: PageProps<"/signin">)
         <p className="mt-2 text-muted">Enter your email and we&apos;ll send you a sign-in link.</p>
       </div>
       {message && (
-        <p role="alert" className="rounded-lg border border-danger px-4 py-3 text-danger">
+        <p role="alert" className="rounded-lg border border-bad-ink px-4 py-3 text-bad-ink">
           {message}
         </p>
       )}

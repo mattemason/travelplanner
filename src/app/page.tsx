@@ -1,4 +1,5 @@
 import { asc, eq, inArray } from "drizzle-orm";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
 import { legs, trips } from "@/db/schema";
@@ -37,8 +38,12 @@ export default async function TripsPage() {
       ) : (
         <ul className="flex flex-col gap-3">
           {myTrips.map((trip) => (
-            <li key={trip.id} className="rounded-xl border border-border bg-surface p-4">
-              <h2 className="text-lg font-semibold">{trip.name}</h2>
+            <li key={trip.id} className="relative rounded-xl border border-line bg-paper p-4 hover:border-muted">
+              <h2 className="text-[26px] font-bold">
+                <Link href={`/trips/${trip.id}`} className="after:absolute after:inset-0">
+                  {trip.name}
+                </Link>
+              </h2>
               <p className="text-muted">
                 {formatDate(trip.startDate)} – {formatDate(trip.endDate)}
               </p>

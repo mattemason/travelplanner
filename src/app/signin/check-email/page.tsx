@@ -7,7 +7,7 @@ export default function CheckEmailPage() {
       <p className="text-muted">
         If that address is on the list, a sign-in link is on its way. It works once and expires in 24 hours.
       </p>
-      <Link href="/signin" className="font-medium text-accent underline">
+      <Link href="/signin" className="font-medium text-ocean underline">
         Use a different email
       </Link>
     </main>
