@@ -170,6 +170,12 @@ export function StopEditor(props: Props) {
           <span className="text-[12.5px] font-normal text-muted">Where you sleep this day</span>
         </label>
       )}
+      {values.container !== TRAY && (
+        <p className="mt-1 text-[12px] text-muted">
+          Overnight ferry or flight? Tick Overnight on the departure terminal, then set the next day&apos;s arrival
+          stop to Ferry or Flight.
+        </p>
+      )}
 
       <div className="field">
         Categories

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dayDrive, dayRoute, formatDuration, pairKey } from "@/lib/trip/drive";
+import { dayDrive, dayRoute, formatDuration, overnightTravel, overnightTravelLabel, pairKey } from "@/lib/trip/drive";
 import { changedContainers, moveStop } from "@/lib/trip/layout";
 import { TRAY, type TripData } from "@/lib/trip/types";
 import { dayWarnings } from "@/lib/trip/warnings";
@@ -175,5 +175,18 @@ describe("non-drive stretches", () => {
     expect(drive.totalS).toBe(3600);
     expect(drive.totalM).toBe(90_000);
     expect(drive.complete).toBe(true);
+  });
+});
+
+describe("overnightTravel", () => {
+  it("spots an overnight ferry from the day's overnight to the next day's first stop", () => {
+    const t = trip();
+    // d1 ends at camp; d2's first stop (falls) is reached by ferry from camp
+    t.stops.s3 = { ...t.stops.s3, arriveBy: "ferry" };
+    expect(overnightTravel(t, 0)).toEqual({ mode: "ferry", to: "falls" });
+    expect(overnightTravelLabel({ mode: "ferry", to: "falls" })).toBe("⛴ Overnight on the ferry to falls");
+  });
+  it("is a normal night when the next day starts by road", () => {
+    expect(overnightTravel(trip(), 0)).toBeNull();
   });
 });

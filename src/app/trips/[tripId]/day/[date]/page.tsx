@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import type { CSSProperties } from "react";
 import { currentUser } from "@/lib/auth";
 import { getSegments } from "@/lib/google/routes";
-import { dayRoute, formatDistance, formatDuration, pairKey } from "@/lib/trip/drive";
+import { dayRoute, formatDistance, formatDuration, overnightTravel, overnightTravelLabel, pairKey } from "@/lib/trip/drive";
 import { dayLabel, timeLabel } from "@/lib/trip/format";
 import { loadTrip } from "@/lib/trip/load";
 import { arriveByLabel, tagLabel, type Segment } from "@/lib/trip/types";
@@ -41,7 +41,12 @@ export default async function DayViewPage({ params }: PageProps<"/trips/[tripId]
     .reduce((n, to, i) => n + (to.arriveBy === "drive" ? (segments[pairKey(route[i], to)]?.durationS ?? 0) : 0), 0);
   const stops = (trip.layout[day.id] ?? []).map((id) => trip.stops[id]);
   const warnings = dayWarnings(trip, day.id, totalS || null);
-  const overnight = day.overnightPlaceId ? trip.places[day.overnightPlaceId]?.name : null;
+  const travel = overnightTravel(trip, index);
+  const overnight = travel
+    ? overnightTravelLabel(travel)
+    : day.overnightPlaceId
+      ? trip.places[day.overnightPlaceId]?.name
+      : null;
   const prevOvernight = index > 0 ? trip.places[trip.days[index - 1].overnightPlaceId ?? ""]?.name : null;
   const weatherStops = stops.filter((s) => s.tags.includes("weather"));
 

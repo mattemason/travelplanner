@@ -28,6 +28,7 @@ type Props = {
   stops: Stop[];
   places: Record<string, Place>;
   overnight: string | null;
+  overnightTravel: string | null; // e.g. "⛴ Overnight on the ferry to Devonport"
   drive: DayDriveInfo;
   warnings: Warning[];
   selectedStopId: string | null;
@@ -79,8 +80,10 @@ export function DaySection({ sectionRef, ...p }: Props) {
             </span>
           )}
         </div>
-        <p className="mt-0.5 truncate text-[13.5px] text-muted" title={p.overnight ?? undefined}>
-          {p.overnight ? (
+        <p className="mt-0.5 truncate text-[13.5px] text-muted" title={p.overnightTravel ?? p.overnight ?? undefined}>
+          {p.overnightTravel ? (
+            <b className="text-ink">{p.overnightTravel}</b>
+          ) : p.overnight ? (
             <>
               Overnight <b className="text-ink">{p.overnight}</b>
             </>

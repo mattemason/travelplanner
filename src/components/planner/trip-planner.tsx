@@ -14,7 +14,7 @@ import {
   type PlaceRef,
   type TripDetails,
 } from "@/app/trips/[tripId]/actions";
-import { dayRoute, pairKey, type RoutePoint } from "@/lib/trip/drive";
+import { dayRoute, overnightTravel, overnightTravelLabel, pairKey, type RoutePoint } from "@/lib/trip/drive";
 import { fuelCost, type Vehicle } from "@/lib/trip/fuel";
 import { dateRange, dayCount, dayLabel } from "@/lib/trip/format";
 import { changedContainers, containerOf, moveStop } from "@/lib/trip/layout";
@@ -91,6 +91,10 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
     [legById, trip.days, dark],
   );
   const placeName = (placeId: string | null) => (placeId ? (trip.places[placeId]?.name ?? null) : null);
+  const nightTravel = (dayIndex: number) => {
+    const t = overnightTravel(trip, dayIndex);
+    return t ? overnightTravelLabel(t) : null;
+  };
   const stopLabel = (stopId: string) => trip.stops[stopId]?.name ?? "Stop";
   const containerLabel = (c: string) => {
     if (c === TRAY) return "not yet scheduled";
@@ -594,7 +598,7 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
           lng: night.lng,
           colour: colourOf(i),
           badge: String(new Date(`${day.date}T00:00:00`).getDate()),
-          name: `${dayLabel(day.date)}: ${night.name}`,
+          name: `${dayLabel(day.date)}: ${nightTravel(i) ?? night.name}`,
         });
       }
     });
@@ -696,6 +700,7 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
       stops={(trip.layout[day.id] ?? []).map((id) => trip.stops[id]).filter(Boolean)}
       places={trip.places}
       overnight={placeName(day.overnightPlaceId)}
+      overnightTravel={nightTravel(i)}
       drive={drives[i]}
       warnings={warnings[i]}
       selectedStopId={selectedStop}
@@ -961,7 +966,11 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
                   <span className="w-[76px] shrink-0 font-display text-[17px] font-semibold">{dayLabel(d.date)}</span>
                   <small className="truncate text-[12.5px] text-muted">
                     {n} {n === 1 ? "stop" : "stops"}
-                    {placeName(d.overnightPlaceId) ? `, ${placeName(d.overnightPlaceId)}` : ""}
+                    {nightTravel(i)
+                      ? `, ${overnightTravel(trip, i)!.mode === "ferry" ? "⛴ on the ferry" : "✈ overnight flight"}`
+                      : placeName(d.overnightPlaceId)
+                        ? `, ${placeName(d.overnightPlaceId)}`
+                        : ""}
                   </small>
                 </button>
               );

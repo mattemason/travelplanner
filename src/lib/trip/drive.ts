@@ -67,3 +67,24 @@ export function formatDuration(seconds: number): string {
 
 export const formatDistance = (metres: number) =>
   metres < 10_000 ? `${(metres / 1000).toFixed(1)} km` : `${Math.round(metres / 1000)} km`;
+
+/**
+ * An overnight ferry or flight: the day ends at the departure point and the next day's first
+ * leg leaves from it by ferry or flight. Returns how, and where to, or null for a normal night.
+ */
+export function overnightTravel(
+  trip: TripData,
+  dayIndex: number,
+): { mode: "ferry" | "flight"; to: string } | null {
+  const day = trip.days[dayIndex];
+  if (!day?.overnightPlaceId || dayIndex + 1 >= trip.days.length) return null;
+  const next = dayRoute(trip, dayIndex + 1);
+  const [from, arrive] = next;
+  if (!from || !arrive || from.placeId !== day.overnightPlaceId) return null;
+  if (arrive.arriveBy !== "ferry" && arrive.arriveBy !== "flight") return null;
+  const name = arrive.stopId ? trip.stops[arrive.stopId]?.name : trip.places[arrive.placeId]?.name;
+  return { mode: arrive.arriveBy, to: name ?? "your next stop" };
+}
+
+export const overnightTravelLabel = (t: { mode: "ferry" | "flight"; to: string }) =>
+  t.mode === "ferry" ? `⛴ Overnight on the ferry to ${t.to}` : `✈ Overnight flight to ${t.to}`;
