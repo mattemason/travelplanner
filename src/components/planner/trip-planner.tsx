@@ -446,9 +446,10 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
           ? { kind: "google", googlePlaceId: v.picked.placeId, session: v.picked.session }
           : undefined;
         const { stop: saved, place } = await updateStop(trip.id, editor.stopId, fields, ref);
+        // Attachments are managed separately; keep the stop's current list.
         setTrip((t) => ({
           ...t,
-          stops: { ...t.stops, [saved.id]: saved },
+          stops: { ...t.stops, [saved.id]: { ...saved, attachments: t.stops[saved.id]?.attachments ?? [] } },
           places: { ...t.places, [place.id]: place },
         }));
         if (from !== v.container) {
@@ -490,7 +491,11 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
   const deleteStopById = async (id: string) => {
     const stop = trip.stops[id];
     if (!stop) return;
-    if (!window.confirm(`Delete "${stop.name}"? You can undo straight after.`)) return;
+    const files = stop.attachments.length;
+    const warning = files
+      ? ` Its ${files} attached ${files === 1 ? "file" : "files"} will be deleted too and can't be restored.`
+      : " You can undo straight after.";
+    if (!window.confirm(`Delete "${stop.name}"?${warning}`)) return;
     const container = containerOf(trip.layout, id) ?? TRAY;
     const position = trip.layout[container]?.indexOf(id) ?? 0;
     if (editor?.mode === "edit" && editor.stopId === id) closeEditor();
@@ -821,6 +826,11 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
         onCancel={closeEditor}
         onUnschedule={unscheduleEditing}
         onDelete={deleteEditing}
+        onAttachmentsChange={(attachments) => {
+          if (editor.mode !== "edit") return;
+          const id = editor.stopId;
+          setTrip((t) => ({ ...t, stops: { ...t.stops, [id]: { ...t.stops[id], attachments } } }));
+        }}
       />
     ));
 

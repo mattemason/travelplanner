@@ -51,7 +51,11 @@ export type Stop = {
   link: string;
   arriveBy: ArriveBy;
   transport: Transport; // only meaningful for ferry, flight, bus and train
+  attachments: Attachment[];
 };
+
+/** A file attached to a stop; the bytes are fetched from /api/attachments/[id]. */
+export type Attachment = { id: string; name: string; type: string; size: number };
 
 /** Booked travel to a stop. Times are local: departAt/arriveAt "YYYY-MM-DDTHH:MM", checkInBy "HH:MM". */
 export type Transport = {

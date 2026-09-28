@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { AttachmentsField } from "./attachments-field";
 import { CategoryPicker, TagPicker, type LabelOps } from "./label-pickers";
 import { PlaceSearch, type Suggestion } from "./place-search";
 import { dayLabel } from "@/lib/trip/format";
@@ -10,6 +11,7 @@ import {
   BOOKED_MODES,
   TRAY,
   type ArriveBy,
+  type Attachment,
   type Day,
   type Stay,
   type Stop,
@@ -51,6 +53,7 @@ type Props = {
   onCancel: () => void;
   onUnschedule: () => void;
   onDelete: () => void;
+  onAttachmentsChange: (next: Attachment[]) => void; // saved immediately, not on Save
 };
 
 export function StopEditor(props: Props) {
@@ -247,6 +250,12 @@ export function StopEditor(props: Props) {
           stop to Ferry or Flight.
         </p>
       )}
+
+      <AttachmentsField
+        stopId={isNew ? null : (stop?.id ?? null)}
+        attachments={stop?.attachments ?? []}
+        onChange={props.onAttachmentsChange}
+      />
 
       <div className="field">
         Categories

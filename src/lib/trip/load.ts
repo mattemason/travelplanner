@@ -45,6 +45,19 @@ export async function loadTrip(userId: string, tripId: string): Promise<TripData
         .where(and(eq(t.places.userId, userId), inArray(t.places.id, placeIds)))
     : [];
   const placeById = new Map(places.map((p) => [p.id, p]));
+  const files = stops.length
+    ? await db
+        .select({
+          id: t.stopAttachments.id,
+          stopId: t.stopAttachments.stopId,
+          name: t.stopAttachments.name,
+          type: t.stopAttachments.type,
+          size: t.stopAttachments.size,
+        })
+        .from(t.stopAttachments)
+        .where(inArray(t.stopAttachments.stopId, stops.map((s) => s.id)))
+        .orderBy(asc(t.stopAttachments.createdAt))
+    : [];
 
   const layout: TripData["layout"] = { [TRAY]: [] };
   for (const d of days) layout[d.id] = [];
@@ -89,6 +102,9 @@ export async function loadTrip(userId: string, tripId: string): Promise<TripData
           link: s.link ?? "",
           arriveBy: s.arriveBy as Stop["arriveBy"],
           transport: s.transport ?? {},
+          attachments: files
+            .filter((f) => f.stopId === s.id)
+            .map((f) => ({ id: f.id, name: f.name, type: f.type, size: f.size })),
         },
       ]),
     ),

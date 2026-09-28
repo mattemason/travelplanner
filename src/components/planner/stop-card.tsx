@@ -83,7 +83,14 @@ export function StopCard(props: Props) {
             </div>
           )}
           {stop.notes && <div className="mt-0.5 text-[13.5px] whitespace-pre-line text-muted">{stop.notes}</div>}
-          {(stop.tags.length > 0 || stop.categories.length > 0 || closed || stop.bookingRef || stop.link || noMap || overnight) && (
+          {(stop.tags.length > 0 ||
+            stop.categories.length > 0 ||
+            closed ||
+            stop.bookingRef ||
+            stop.link ||
+            noMap ||
+            overnight ||
+            stop.attachments.length > 0) && (
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               {overnight && <span className="chip border-transparent bg-ink text-paper">Overnight</span>}
               {overnight && stayBooked && <span className="chip chip-ref font-bold">Booked</span>}
@@ -103,6 +110,11 @@ export function StopCard(props: Props) {
                 </span>
               )}
               {stop.bookingRef && <span className="chip chip-ref">Ref {stop.bookingRef}</span>}
+              {stop.attachments.length > 0 && (
+                <span className="chip" title={stop.attachments.map((a) => a.name).join(", ")}>
+                  📎 {stop.attachments.length}
+                </span>
+              )}
               {stop.link && (
                 <a className="chip" href={stop.link} target="_blank" rel="noopener noreferrer">
                   Link

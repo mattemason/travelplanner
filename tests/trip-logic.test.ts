@@ -34,6 +34,7 @@ const stop = (id: string, placeId: string, tags: string[] = []) => ({
   categories: [],
   arriveBy: "drive" as const,
   transport: {},
+  attachments: [],
   notes: "",
   bookingRef: "",
   link: "",

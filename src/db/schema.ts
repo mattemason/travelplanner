@@ -303,3 +303,20 @@ export const stopChats = pgTable("stop_chats", {
   messages: jsonb("messages").$type<{ role: "user" | "assistant"; content: string }[]>().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// Files attached to a stop (tickets, booking PDFs, screenshots). Never select `data` in lists.
+export const stopAttachments = pgTable(
+  "stop_attachments",
+  {
+    id: id(),
+    stopId: uuid("stop_id")
+      .notNull()
+      .references(() => stops.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    type: text("type").notNull(),
+    size: integer("size").notNull(),
+    data: bytea("data").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("stop_attachments_stop").on(t.stopId)],
+);
