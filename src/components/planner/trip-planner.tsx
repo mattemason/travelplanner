@@ -68,6 +68,7 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
   const [rerouting, setRerouting] = useState<string | null>(null);
   const [infoStop, setInfoStop] = useState<string | null>(null);
   const [search, setSearch] = useState<SearchResult[] | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [selectedResult, setSelectedResult] = useState<string | null>(null);
   const [addedResults, setAddedResults] = useState<Set<string>>(() => new Set());
   const boundsRef = useRef<MapBounds | null>(null);
@@ -645,7 +646,15 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
   };
 
   const mapSearch = (compact: boolean) => (
-    <MapSearch tripId={trip.id} getArea={getArea} results={search} onResults={onSearchResults} compact={compact} />
+    <MapSearch
+      tripId={trip.id}
+      getArea={getArea}
+      results={search}
+      onResults={onSearchResults}
+      open={searchOpen}
+      onOpenChange={setSearchOpen}
+      compact={compact}
+    />
   );
   const pickedResult = search?.find((r) => r.placeId === selectedResult) ?? null;
   const resultCard = pickedResult && (
@@ -743,6 +752,7 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
         stopsOnDays={stopsOnDays}
         onSave={saveTrip}
         onCancel={closeEditor}
+        onCoverChange={(coverVersion) => setTrip((t) => ({ ...t, coverVersion }))}
       />
     ) : (
       <StopEditor
@@ -875,6 +885,11 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
   const subtitle = `${dateRange(trip.startDate, trip.endDate)} ${trip.endDate.slice(0, 4)}, ${dayCount(trip.startDate, trip.endDate)} days`;
   const title = (size: string) => (
     <div className="flex items-center gap-2">
+      {trip.icon && (
+        <span className="text-[0.8em] leading-none" aria-hidden="true">
+          {trip.icon}
+        </span>
+      )}
       <h1 className={`${size} font-bold`}>
         <Link href="/" className="hover:underline">
           {trip.name}
@@ -1002,11 +1017,14 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
       <div className="relative">
         {map(`${mapMode === "trip" || search ? "h-[320px]" : "h-[220px]"} border-y border-line`, false)}
         <div className="absolute top-2.5 right-2.5">{modeSwitch}</div>
+        {!searchOpen && !search && <div className="absolute top-2.5 left-2.5">{mapSearch(true)}</div>}
       </div>
-      <div className="flex flex-col gap-2 border-b border-line bg-soft px-[18px] py-2.5">
-        {mapSearch(true)}
-        {resultCard}
-      </div>
+      {(searchOpen || search) && (
+        <div className="flex flex-col gap-2 border-b border-line bg-soft px-[18px] py-2.5">
+          {mapSearch(true)}
+          {resultCard}
+        </div>
+      )}
       {mapMode === "trip" && <div className="border-b border-line">{summary(true)}</div>}
       <div ref={stripRef} className="sticky top-0 z-10 border-b border-line bg-paper">
         {legend}

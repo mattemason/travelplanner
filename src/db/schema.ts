@@ -19,6 +19,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  customType,
   date,
   doublePrecision,
   index,
@@ -35,6 +36,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 const id = () => uuid("id").primaryKey().defaultRandom();
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => "bytea" });
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 
 export const users = pgTable("users", {
@@ -77,6 +79,11 @@ export const trips = pgTable(
     seedVersion: integer("seed_version"),
     dieselPrice: numeric("diesel_price", { precision: 6, scale: 3, mode: "number" }), // $ per litre
     petrolPrice: numeric("petrol_price", { precision: 6, scale: 3, mode: "number" }),
+    icon: text("icon"), // an emoji shown on the trip card
+    // Cover photo, resized in the browser before upload. Never select it in list queries.
+    cover: bytea("cover"),
+    coverType: text("cover_type"),
+    coverUpdatedAt: timestamp("cover_updated_at", { withTimezone: true }),
     createdAt: createdAt(),
   },
   (t) => [check("trips_dates", sql`${t.endDate} >= ${t.startDate}`)],

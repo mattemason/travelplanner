@@ -15,11 +15,13 @@ type Props = {
   getArea: () => Area | null;
   results: SearchResult[] | null;
   onResults: (query: string | null, results: SearchResult[] | null) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   compact?: boolean;
 };
 
 /** Search box for the visible map area, with one-tap shortcuts. Results are drawn by the map. */
-export function MapSearch({ tripId, getArea, results, onResults, compact }: Props) {
+export function MapSearch({ tripId, getArea, results, onResults, open, onOpenChange: setOpen, compact }: Props) {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
 
@@ -51,6 +53,23 @@ export function MapSearch({ tripId, getArea, results, onResults, compact }: Prop
     onResults(null, null);
   };
 
+  if (!open && !results) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label="Search this map area"
+        title="Search this map area"
+        className="grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-paper/95 text-ink shadow hover:bg-paper"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" />
+          <path d="m20 20-3.5-3.5" />
+        </svg>
+      </button>
+    );
+  }
+
   return (
     <div className={`${compact ? "w-full" : "w-[400px]"} max-w-full rounded-xl bg-paper/95 p-2 shadow`}>
       <form
@@ -63,7 +82,11 @@ export function MapSearch({ tripId, getArea, results, onResults, compact }: Prop
       >
         <input
           value={query}
+          autoFocus
           onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape" && !results) setOpen(false);
+          }}
           placeholder="Search this area"
           aria-label="Search this map area"
           className="min-w-0 flex-1 rounded-lg border-[1.5px] border-line bg-soft px-2.5 py-1.5 text-[16px]"
@@ -78,14 +101,31 @@ export function MapSearch({ tripId, getArea, results, onResults, compact }: Prop
             >
               {status === "loading" ? "…" : "Search this area"}
             </button>
-            <button type="button" onClick={clear} className="btn !min-h-9 !px-3">
+            <button
+              type="button"
+              onClick={() => {
+                clear();
+                setOpen(false);
+              }}
+              className="btn !min-h-9 !px-3"
+            >
               Clear
             </button>
           </>
         ) : (
-          <button type="submit" className="btn btn-primary !min-h-9 !px-3" disabled={status === "loading"}>
-            {status === "loading" ? "…" : "Search"}
-          </button>
+          <>
+            <button type="submit" className="btn btn-primary !min-h-9 !px-3" disabled={status === "loading"}>
+              {status === "loading" ? "…" : "Search"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              aria-label="Close search"
+              className="cursor-pointer px-1.5 text-[20px] leading-none text-muted"
+            >
+              ×
+            </button>
+          </>
         )}
       </form>
       {!results && (

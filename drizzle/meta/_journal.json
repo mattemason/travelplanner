@@ -57,6 +57,13 @@
       "when": 1790626645518,
       "tag": "0007_arrive_by",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790626907473,
+      "tag": "0008_trip_cover",
+      "breakpoints": true
     }
   ]
 }

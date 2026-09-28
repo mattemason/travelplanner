@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { TripDetails } from "@/app/trips/[tripId]/actions";
 import { dayCount } from "@/lib/trip/format";
 import type { TripData } from "@/lib/trip/types";
+import { CoverPicker, IconPicker } from "@/components/trips/cover-picker";
 
 // Colours offered to new legs, in order: the design's Myrtle, Lichen, Ocean, then extras.
 const LEG_PALETTE = ["#2F6B4F", "#C75A1C", "#1F5A7A", "#7A4E9C", "#9C7A1F", "#A33B5E"];
@@ -17,9 +18,10 @@ type Props = {
   stopsOnDays: Record<string, number>; // date → stop count, to warn before dropping days
   onSave: (details: TripDetails) => void;
   onCancel: () => void;
+  onCoverChange: (version: number | null) => void;
 };
 
-export function TripEditor({ trip, focus, variant, saving, error, stopsOnDays, onSave, onCancel }: Props) {
+export function TripEditor({ trip, focus, variant, saving, error, stopsOnDays, onSave, onCancel, onCoverChange }: Props) {
   const [v, setV] = useState<TripDetails>(() => ({
     name: trip.name,
     startDate: trip.startDate,
@@ -27,6 +29,7 @@ export function TripEditor({ trip, focus, variant, saving, error, stopsOnDays, o
     maxDriveHours: trip.maxDriveHours,
     dieselPrice: trip.fuelPrices.diesel,
     petrolPrice: trip.fuelPrices.petrol,
+    icon: trip.icon,
     legs: trip.legs.map((l) => ({ id: l.id, name: l.name, startDate: l.startDate, endDate: l.endDate, colour: l.colour })),
   }));
   const nameRef = useRef<HTMLInputElement>(null);
@@ -85,6 +88,9 @@ export function TripEditor({ trip, focus, variant, saving, error, stopsOnDays, o
         Trip name
         <input ref={nameRef} value={v.name} onChange={(e) => setV({ ...v, name: e.target.value })} required />
       </label>
+      <IconPicker value={v.icon} onChange={(icon) => setV({ ...v, icon })} />
+      <CoverPicker tripId={trip.id} version={trip.coverVersion} onChange={onCoverChange} />
+
       <div className="grid grid-cols-2 gap-2.5">
         <label className="field">
           Starts

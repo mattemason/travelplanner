@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, getTableColumns, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
 import * as t from "@/db/schema";
 import { TRAY, type Stop, type TripData } from "./types";
@@ -7,8 +7,12 @@ import { TRAY, type Stop, type TripData } from "./types";
 /** The trip if `userId` owns it, else null. */
 export async function loadTrip(userId: string, tripId: string): Promise<TripData | null> {
   const db = getDb();
+  // Every trip column except the cover photo bytes, which are served separately.
+  const tripColumns = Object.fromEntries(
+    Object.entries(getTableColumns(t.trips)).filter(([name]) => name !== "cover"),
+  ) as Omit<ReturnType<typeof getTableColumns<typeof t.trips>>, "cover">;
   const [trip] = await db
-    .select()
+    .select(tripColumns)
     .from(t.trips)
     .where(and(eq(t.trips.id, tripId), eq(t.trips.ownerId, userId)));
   if (!trip) return null;
@@ -53,6 +57,8 @@ export async function loadTrip(userId: string, tripId: string): Promise<TripData
     endDate: trip.endDate,
     maxDriveHours: trip.maxDriveHoursPerDay,
     fuelPrices: { diesel: trip.dieselPrice, petrol: trip.petrolPrice },
+    icon: trip.icon,
+    coverVersion: trip.coverUpdatedAt ? trip.coverUpdatedAt.getTime() : null,
     legs: legs.map((l) => ({ id: l.id, name: l.name, startDate: l.startDate, endDate: l.endDate, colour: l.colour })),
     days: days.map((d) => ({
       id: d.id,

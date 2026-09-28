@@ -35,6 +35,8 @@ function trip(): TripData {
     endDate: "2027-01-19",
     maxDriveHours: 5,
     fuelPrices: { diesel: null, petrol: null },
+    icon: null,
+    coverVersion: null,
     legs: [],
     days: [
       { id: "d1", date: "2027-01-18", legId: null, overnightPlaceId: "camp", notes: "" },

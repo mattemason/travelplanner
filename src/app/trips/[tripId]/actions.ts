@@ -255,6 +255,7 @@ const tripDetails = z
     maxDriveHours: z.number().min(1).max(16),
     dieselPrice: z.number().min(0.5).max(10).nullable(),
     petrolPrice: z.number().min(0.5).max(10).nullable(),
+    icon: z.string().trim().max(16).nullable(),
     legs: z
       .array(
         z.object({
@@ -302,6 +303,7 @@ export async function updateTrip(tripId: string, details: TripDetails) {
         maxDriveHoursPerDay: v.maxDriveHours,
         dieselPrice: v.dieselPrice,
         petrolPrice: v.petrolPrice,
+        icon: v.icon || null,
       })
       .where(eq(t.trips.id, id));
 

@@ -79,6 +79,8 @@ export type TripData = {
   endDate: string;
   maxDriveHours: number;
   fuelPrices: { diesel: number | null; petrol: number | null }; // $ per litre
+  icon: string | null; // emoji
+  coverVersion: number | null; // cover photo timestamp, for cache-busting; null = no photo
   legs: Leg[];
   days: Day[];
   places: Record<string, Place>;
