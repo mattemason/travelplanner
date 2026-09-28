@@ -13,7 +13,9 @@ export type DayDriveInfo = {
   driveIn: Record<string, DriveIn>; // stop id → drive from the previous point
   tail: { to: string; drive: DriveIn } | null; // last stop → tonight's overnight
   totalS: number;
-  complete: boolean;
+  totalM: number;
+  complete: boolean; // false while some drive times are still loading
+  noRoute: number; // stretches Google has no road route for
 };
 
 type Props = {

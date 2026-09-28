@@ -23,7 +23,8 @@ import { SortableList } from "./sortable-list";
 import { StopCard, type DriveIn } from "./stop-card";
 import { StopEditor, type EditorValues } from "./stop-editor";
 import { TripEditor } from "./trip-editor";
-import { TripMap, type MapPoint } from "./trip-map";
+import { TripMap, type MapPoint, type MapRoute } from "./trip-map";
+import { TripSummary } from "./trip-summary";
 import { legColour, useIsDesktop, usePrefersDark } from "./use-media";
 
 type Editor =
@@ -42,6 +43,7 @@ export function TripPlanner({ initial }: { initial: TripData }) {
   const [segs, setSegs] = useState<SegCache>({});
   const [activeDay, setActiveDay] = useState(0);
   const [selectedStop, setSelectedStop] = useState<string | null>(null);
+  const [mapMode, setMapMode] = useState<"day" | "trip">("day");
   const [editor, setEditor] = useState<Editor | null>(null);
   const [saving, setSaving] = useState(false);
   const [editorError, setEditorError] = useState<string | null>(null);
@@ -107,17 +109,22 @@ export function TripPlanner({ initial }: { initial: TripData }) {
         const driveIn: Record<string, DriveIn> = {};
         let tail: DayDriveInfo["tail"] = null;
         let totalS = 0;
+        let totalM = 0;
         let complete = true;
+        let noRoute = 0;
         for (let i = 1; i < route.length; i++) {
           const seg = segs[pairKey(route[i - 1], route[i])];
           const d: DriveIn = seg === undefined ? "loading" : seg === null ? "none" : seg;
-          if (seg) totalS += seg.durationS;
-          else if (seg === undefined) complete = false;
+          if (seg) {
+            totalS += seg.durationS;
+            totalM += seg.distanceM;
+          } else if (seg === undefined) complete = false;
+          else noRoute++;
           const to = route[i];
           if (to.stopId) driveIn[to.stopId] = d;
           else tail = { to: trip.places[to.placeId]?.name ?? "tonight's stop", drive: d };
         }
-        return { driveIn, tail, totalS, complete };
+        return { driveIn, tail, totalS, totalM, complete, noRoute };
       }),
     [routes, segs, trip.places],
   );
@@ -364,21 +371,67 @@ export function TripPlanner({ initial }: { initial: TripData }) {
 
   const goToDay = (i: number) => sectionEls.current[i]?.scrollIntoView({ behavior: "smooth", block: "start" });
 
-  // ---- Map for the day in view ------------------------------------------------------------
+  // ---- Map: the day in view, or the whole trip --------------------------------------------
+  const routeLines = (dayIndex: number): MapRoute[] => {
+    const r = routes[dayIndex] ?? [];
+    return r.slice(1).flatMap((to, i) => {
+      const path = segs[pairKey(r[i], to)]?.polyline;
+      return path ? [{ path, colour: colourOf(dayIndex) }] : [];
+    });
+  };
   const route = routes[activeDay] ?? [];
   const activeDayId = trip.days[activeDay]?.id;
   const dayStops = trip.layout[activeDayId ?? ""] ?? [];
-  const mapPoints: MapPoint[] = route.map((p) => ({
-    id: p.stopId ?? `place-${p.placeId}`,
-    lat: p.lat,
-    lng: p.lng,
-    number: p.stopId ? dayStops.indexOf(p.stopId) + 1 : null,
-    name: p.stopId ? stopLabel(p.stopId) : (placeName(p.placeId) ?? ""),
-  }));
-  const mapRoutes = route
-    .slice(1)
-    .map((to, i) => segs[pairKey(route[i], to)]?.polyline)
-    .filter((x): x is string => !!x);
+  const dayIndexOfPoint = new Map<string, number>(); // map point id → day index, for whole-trip clicks
+
+  let mapPoints: MapPoint[];
+  let mapRoutes: MapRoute[];
+  if (mapMode === "day") {
+    mapPoints = route.map((p) => ({
+      id: p.stopId ?? `place-${p.placeId}`,
+      lat: p.lat,
+      lng: p.lng,
+      colour: colourOf(activeDay),
+      badge: p.stopId ? String(dayStops.indexOf(p.stopId) + 1) : "•",
+      name: p.stopId ? stopLabel(p.stopId) : (placeName(p.placeId) ?? ""),
+    }));
+    mapRoutes = routeLines(activeDay);
+  } else {
+    // Whole trip: every route in its leg colour, a dot per stop, and a pin per night's stop
+    // showing the date, so the shape of the trip reads at a glance.
+    mapPoints = [];
+    mapRoutes = trip.days.flatMap((_, i) => routeLines(i));
+    const seen = new Set<string>();
+    trip.days.forEach((day, i) => {
+      const night = day.overnightPlaceId ? trip.places[day.overnightPlaceId] : null;
+      for (const stopId of trip.layout[day.id] ?? []) {
+        const stop = trip.stops[stopId];
+        const place = trip.places[stop?.placeId ?? ""];
+        if (!place || place.lat === null || place.lng === null || place.id === night?.id || seen.has(place.id)) continue;
+        seen.add(place.id);
+        dayIndexOfPoint.set(stopId, i);
+        mapPoints.push({ id: stopId, lat: place.lat, lng: place.lng, colour: colourOf(i), badge: null, name: stop.name });
+      }
+      if (night && night.lat !== null && night.lng !== null) {
+        const id = `night-${day.id}`;
+        dayIndexOfPoint.set(id, i);
+        mapPoints.push({
+          id,
+          lat: night.lat,
+          lng: night.lng,
+          colour: colourOf(i),
+          badge: String(new Date(`${day.date}T00:00:00`).getDate()),
+          name: `${dayLabel(day.date)}: ${night.name}`,
+        });
+      }
+    });
+  }
+
+  const onMapSelect = (id: string) => {
+    setSelectedStop(id);
+    const dayIndex = dayIndexOfPoint.get(id);
+    if (mapMode === "trip" && dayIndex !== undefined) goToDay(dayIndex);
+  };
 
   const selectStop = (stopId: string, dayIndex: number) => {
     setSelectedStop(stopId);
@@ -470,16 +523,43 @@ export function TripPlanner({ initial }: { initial: TripData }) {
       <TripMap
         points={mapPoints}
         routes={mapRoutes}
-        colour={colourOf(activeDay)}
         selectedId={selectedStop}
-        onSelect={setSelectedStop}
-        fitKey={`${activeDay}-${mapPoints.length}-${isDesktop}`}
+        onSelect={onMapSelect}
+        fitKey={mapMode === "trip" ? `trip-${isDesktop}` : `${activeDay}-${mapPoints.length}-${isDesktop}`}
         className={className}
         labels={labels}
       />
     ) : (
       <div className={`grid place-items-center bg-soft text-[13px] text-muted ${className}`}>Map key not set</div>
     );
+
+  const modeSwitch = (
+    <div role="group" aria-label="Map shows" className="flex rounded-full bg-paper/95 p-1 shadow">
+      {(["day", "trip"] as const).map((m) => (
+        <button
+          key={m}
+          type="button"
+          aria-pressed={mapMode === m}
+          onClick={() => setMapMode(m)}
+          className={`min-h-8 cursor-pointer rounded-full px-3 text-[13px] font-bold ${
+            mapMode === m ? "bg-ink text-paper" : "text-ink"
+          }`}
+        >
+          {m === "day" ? "This day" : "Whole trip"}
+        </button>
+      ))}
+    </div>
+  );
+
+  const summary = (compact: boolean) => (
+    <TripSummary
+      days={trip.days}
+      legs={trip.legs}
+      drives={drives}
+      colourOf={(hex) => legColour(hex, dark)}
+      compact={compact}
+    />
+  );
 
   const editButton = (label: string, onClick: () => void, className = "") => (
     <button
@@ -632,12 +712,19 @@ export function TripPlanner({ initial }: { initial: TripData }) {
 
         <aside className="relative min-h-0 border-l border-line" style={{ "--legc": colourOf(activeDay) } as CSSProperties}>
           {map("h-full w-full", true)}
-          {trip.days[activeDay] && (
-            <div className="pointer-events-none absolute top-3 left-3 rounded-xl bg-paper/95 px-3 py-2 shadow">
-              <span className="block text-[12.5px] font-bold text-[var(--legc)]">{activeLeg?.name}</span>
-              <span className="font-display text-[22px] leading-none font-bold">{dayLabel(trip.days[activeDay].date)}</span>
-            </div>
-          )}
+          <div className="absolute top-3 left-3 flex flex-col items-start gap-2">
+            {modeSwitch}
+            {mapMode === "trip"
+              ? summary(false)
+              : trip.days[activeDay] && (
+                  <div className="pointer-events-none rounded-xl bg-paper/95 px-3 py-2 shadow">
+                    <span className="block text-[12.5px] font-bold text-[var(--legc)]">{activeLeg?.name}</span>
+                    <span className="font-display text-[22px] leading-none font-bold">
+                      {dayLabel(trip.days[activeDay].date)}
+                    </span>
+                  </div>
+                )}
+          </div>
           {editorEl && (
             <div className="absolute inset-y-0 right-0 z-10 w-[420px] max-w-full overflow-y-auto border-l border-line bg-paper shadow-xl">
               {editorEl}
@@ -653,7 +740,11 @@ export function TripPlanner({ initial }: { initial: TripData }) {
         <p className="text-[14px] text-muted">{subtitle}</p>
         <div className="mt-3">{actions}</div>
       </header>
-      {map("h-[220px] border-y border-line", false)}
+      <div className="relative">
+        {map(`${mapMode === "trip" ? "h-[320px]" : "h-[220px]"} border-y border-line`, false)}
+        <div className="absolute top-2.5 right-2.5">{modeSwitch}</div>
+      </div>
+      {mapMode === "trip" && <div className="border-b border-line">{summary(true)}</div>}
       <div ref={stripRef} className="sticky top-0 z-10 border-b border-line bg-paper">
         {legend}
         <div className="flex gap-1.5 overflow-x-auto px-[18px] pt-1.5 pb-3 no-scrollbar" role="group" aria-label="Jump to day">
