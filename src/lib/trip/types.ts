@@ -15,6 +15,19 @@ export const tagLabel = (tag: string) => TAGS.find((t) => t.key === tag)?.label 
 
 export type LatLng = { lat: number; lng: number };
 
+/** How you get to a stop from the previous point. Only "drive" counts as driving. */
+export const ARRIVE_BY = [
+  { key: "drive", label: "Drive", icon: "" },
+  { key: "ferry", label: "Ferry", icon: "⛴" },
+  { key: "flight", label: "Flight", icon: "✈" },
+  { key: "walk", label: "Walk", icon: "🚶" },
+] as const;
+export type ArriveBy = (typeof ARRIVE_BY)[number]["key"];
+export const arriveByLabel = (mode: ArriveBy) => {
+  const m = ARRIVE_BY.find((a) => a.key === mode);
+  return m ? `${m.icon ? `${m.icon} ` : ""}${m.label}` : mode;
+};
+
 export type Place = {
   id: string;
   name: string;
@@ -34,6 +47,7 @@ export type Stop = {
   notes: string;
   bookingRef: string;
   link: string;
+  arriveBy: ArriveBy;
 };
 
 export type Leg = { id: string; name: string; startDate: string; endDate: string; colour: string };

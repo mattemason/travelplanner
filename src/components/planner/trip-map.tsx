@@ -13,7 +13,12 @@ export type MapPoint = {
   result?: boolean; // a map search result rather than a trip stop
 };
 export type MapBounds = { north: number; south: number; east: number; west: number };
-export type MapRoute = { path: string; colour: string }; // encoded polyline
+/** A road route (encoded polyline) or a straight dashed line between points (ferry, flight). */
+export type MapRoute =
+  | { path: string; colour: string; points?: never; dashed?: false }
+  | { points: { lat: number; lng: number }[]; colour: string; dashed: true; path?: never };
+
+const DASH = [{ icon: { path: "M 0,-1 0,1", strokeOpacity: 1, scale: 3 }, offset: "0", repeat: "12px" }];
 
 type Props = {
   points: MapPoint[];
@@ -45,15 +50,25 @@ export function TripMap({ points, routes, selectedId, onSelect, fitKey, classNam
         className="h-full w-full"
         onCameraChanged={(e) => onBoundsChanged?.(e.detail.bounds)}
       >
-        {routes.map((r, i) => (
-          <Polyline
-            key={`${i}-${r.path.slice(0, 12)}`}
-            encodedPath={r.path}
-            strokeColor={r.colour}
-            strokeWeight={4}
-            strokeOpacity={0.9}
-          />
-        ))}
+        {routes.map((r, i) =>
+          r.dashed ? (
+            <Polyline
+              key={`d${i}-${r.points.map((p) => p.lat).join()}`}
+              path={r.points}
+              strokeColor={r.colour}
+              strokeOpacity={0}
+              icons={DASH.map((d) => ({ ...d, icon: { ...d.icon, strokeColor: r.colour } }))}
+            />
+          ) : (
+            <Polyline
+              key={`${i}-${r.path.slice(0, 12)}`}
+              encodedPath={r.path}
+              strokeColor={r.colour}
+              strokeWeight={4}
+              strokeOpacity={0.9}
+            />
+          ),
+        )}
         {points.map((p) => {
           const selected = p.id === selectedId;
           if (p.result) {

@@ -6,7 +6,7 @@ import { getSegments } from "@/lib/google/routes";
 import { dayRoute, formatDistance, formatDuration, pairKey } from "@/lib/trip/drive";
 import { dayLabel, timeLabel } from "@/lib/trip/format";
 import { loadTrip } from "@/lib/trip/load";
-import { tagLabel, type Segment } from "@/lib/trip/types";
+import { arriveByLabel, tagLabel, type Segment } from "@/lib/trip/types";
 import { dayWarnings } from "@/lib/trip/warnings";
 
 
@@ -25,7 +25,10 @@ export default async function DayViewPage({ params }: PageProps<"/trips/[tripId]
   const route = dayRoute(trip, index);
   let segments: Record<string, Segment> = {};
   try {
-    segments = await getSegments(route.slice(1).map((to, i) => [route[i], to]));
+    // Only drive stretches are routed; ferries and flights aren't driving.
+    segments = await getSegments(
+      route.slice(1).flatMap((to, i) => (to.arriveBy === "drive" ? [[route[i], to] as [typeof to, typeof to]] : [])),
+    );
   } catch (err) {
     console.error(err);
   }
@@ -33,7 +36,9 @@ export default async function DayViewPage({ params }: PageProps<"/trips/[tripId]
     const i = route.findIndex((p) => p.stopId === stopId);
     return i > 0 ? (segments[pairKey(route[i - 1], route[i])] ?? null) : undefined;
   };
-  const totalS = route.slice(1).reduce((n, to, i) => n + (segments[pairKey(route[i], to)]?.durationS ?? 0), 0);
+  const totalS = route
+    .slice(1)
+    .reduce((n, to, i) => n + (to.arriveBy === "drive" ? (segments[pairKey(route[i], to)]?.durationS ?? 0) : 0), 0);
   const stops = (trip.layout[day.id] ?? []).map((id) => trip.stops[id]);
   const warnings = dayWarnings(trip, day.id, totalS || null);
   const overnight = day.overnightPlaceId ? trip.places[day.overnightPlaceId]?.name : null;
@@ -86,7 +91,9 @@ export default async function DayViewPage({ params }: PageProps<"/trips/[tripId]
               {seg !== undefined && (
                 <div className="relative py-1 pl-16 text-[13px] text-muted">
                   <span className="absolute top-[-6px] bottom-[-6px] left-[52px] w-[3px] rounded bg-[var(--legc)]" />
-                  {seg ? (
+                  {stop.arriveBy !== "drive" ? (
+                    <b className="text-ink">{arriveByLabel(stop.arriveBy)}</b>
+                  ) : seg ? (
                     <>
                       <b className="text-ink">{formatDuration(seg.durationS)}</b>, {formatDistance(seg.distanceM)}
                       {stop.tags.includes("4wd") ? ", 4WD" : ""}

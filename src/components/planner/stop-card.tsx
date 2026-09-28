@@ -2,7 +2,7 @@
 
 import { formatDistance, formatDuration } from "@/lib/trip/drive";
 import { timeLabel } from "@/lib/trip/format";
-import { tagLabel, type Place, type Segment, type Stop } from "@/lib/trip/types";
+import { arriveByLabel, tagLabel, type ArriveBy, type Place, type Segment, type Stop } from "@/lib/trip/types";
 import { CopyIcon, GripIcon, InfoIcon, PencilIcon } from "./icons";
 
 type Props = {
@@ -20,7 +20,8 @@ type Props = {
   onDuplicate: () => void;
 };
 
-export type DriveIn = Segment | "loading" | "none";
+/** How the stop is reached: a drive (known, loading or no route) or another mode. */
+export type DriveIn = Segment | "loading" | "none" | { mode: Exclude<ArriveBy, "drive"> };
 
 
 export function StopCard(props: Props) {
@@ -41,7 +42,9 @@ export function StopCard(props: Props) {
             ? "Drive time…"
             : driveIn === "none"
               ? "No road route"
-              : `${formatDuration(driveIn.durationS)} · ${formatDistance(driveIn.distanceM)}`}
+              : "mode" in driveIn
+                ? arriveByLabel(driveIn.mode)
+                : `${formatDuration(driveIn.durationS)} · ${formatDistance(driveIn.distanceM)}`}
         </div>
       )}
       <div

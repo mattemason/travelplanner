@@ -12,7 +12,7 @@ import { StopCard, type DriveIn } from "./stop-card";
 
 export type DayDriveInfo = {
   driveIn: Record<string, DriveIn>; // stop id → drive from the previous point
-  tail: { to: string; drive: DriveIn } | null; // last stop → tonight's overnight
+  tail: { to: string; drive: Exclude<DriveIn, { mode: string }> } | null; // last stop → tonight's overnight (always a drive)
   totalS: number;
   totalM: number;
   complete: boolean; // false while some drive times are still loading

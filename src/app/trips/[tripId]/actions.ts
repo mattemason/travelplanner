@@ -68,6 +68,7 @@ const stopFields = z.object({
     .nullable(),
   tags: z.array(z.string().trim().min(1).max(40)).max(30),
   categories: z.array(z.string().trim().min(1).max(40)).max(30),
+  arriveBy: z.enum(["drive", "ferry", "flight", "walk"]),
   notes: z.string().max(4000),
   bookingRef: z.string().trim().max(200),
   link: z
@@ -154,6 +155,7 @@ export async function updateStop(tripId: string, stopId: string, fields: StopFie
       plannedTime: f.time,
       tags: f.tags,
       categories: f.categories,
+      arriveBy: f.arriveBy,
       notes: f.notes || null,
       bookingRef: f.bookingRef || null,
       link: f.link || null,
@@ -167,6 +169,7 @@ export async function updateStop(tripId: string, stopId: string, fields: StopFie
     time: f.time,
     tags: f.tags,
     categories: f.categories,
+    arriveBy: f.arriveBy,
     notes: f.notes,
     bookingRef: f.bookingRef,
     link: f.link,
@@ -213,6 +216,7 @@ export async function createStop(
       plannedTime: f.time,
       tags: f.tags,
       categories: f.categories,
+      arriveBy: f.arriveBy,
       notes: f.notes || null,
       bookingRef: f.bookingRef || null,
       link: f.link || null,
@@ -227,6 +231,7 @@ export async function createStop(
       time: f.time,
       tags: f.tags,
       categories: f.categories,
+      arriveBy: f.arriveBy,
       notes: f.notes,
       bookingRef: f.bookingRef,
       link: f.link,
@@ -379,8 +384,11 @@ export async function rerouteDay(tripId: string, dayId: string) {
   const index = trip?.days.findIndex((d) => d.id === uuid.parse(dayId)) ?? -1;
   if (!trip || index < 0) throw new Error("Day not found");
 
-  const parts = rerouteParts(trip, index);
   const current = trip.layout[dayId] ?? [];
+  if (current.some((id) => trip.stops[id]?.arriveBy !== "drive")) {
+    return { order: current, changed: false, reason: "Days with a ferry, flight or walk keep your order. Drag stops to change it." };
+  }
+  const parts = rerouteParts(trip, index);
   if (parts.movable.length < 2 || !parts.origin || !parts.destination) {
     return { order: current, changed: false, reason: "Nothing to reorder on this day." };
   }

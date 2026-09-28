@@ -1,10 +1,11 @@
-import type { LatLng, Segment, TripData } from "./types";
+import type { ArriveBy, LatLng, Segment, TripData } from "./types";
 
 /** Cache key for a point: 5 dp is about 1 m, plenty for road routing. */
 export const pointKey = (p: LatLng) => `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`;
 export const pairKey = (a: LatLng, b: LatLng) => `${pointKey(a)}|${pointKey(b)}`;
 
-export type RoutePoint = LatLng & { placeId: string; stopId: string | null };
+/** A point on a day's route; arriveBy is how you get there from the previous point. */
+export type RoutePoint = LatLng & { placeId: string; stopId: string | null; arriveBy: ArriveBy };
 
 /**
  * The places a day's driving passes through, in order: last night's overnight, the day's
@@ -15,7 +16,7 @@ export function dayRoute(trip: TripData, dayIndex: number): RoutePoint[] {
   const day = trip.days[dayIndex];
   const prev = trip.days[dayIndex - 1];
   const points: RoutePoint[] = [];
-  const push = (placeId: string | null, stopId: string | null) => {
+  const push = (placeId: string | null, stopId: string | null, arriveBy: ArriveBy = "drive") => {
     if (!placeId) return;
     const place = trip.places[placeId];
     if (!place || place.lat === null || place.lng === null) return;
@@ -24,10 +25,13 @@ export function dayRoute(trip: TripData, dayIndex: number): RoutePoint[] {
       if (stopId && !last.stopId) last.stopId = stopId;
       return;
     }
-    points.push({ lat: place.lat, lng: place.lng, placeId, stopId });
+    points.push({ lat: place.lat, lng: place.lng, placeId, stopId, arriveBy });
   };
   push(prev?.overnightPlaceId ?? null, null);
-  for (const stopId of trip.layout[day.id] ?? []) push(trip.stops[stopId]?.placeId ?? null, stopId);
+  for (const stopId of trip.layout[day.id] ?? []) {
+    const stop = trip.stops[stopId];
+    push(stop?.placeId ?? null, stopId, stop?.arriveBy ?? "drive");
+  }
   push(day.overnightPlaceId, null);
   return points;
 }
@@ -40,10 +44,11 @@ export type DayDrive = {
 };
 
 export function dayDrive(route: RoutePoint[], cache: Record<string, Segment>): DayDrive {
-  const segments = route.slice(1).map((to, i) => {
-    const from = route[i];
-    return { from, to, segment: cache[pairKey(from, to)] ?? null };
-  });
+  const segments = route
+    .slice(1)
+    .map((to, i) => ({ from: route[i], to }))
+    .filter(({ to }) => to.arriveBy === "drive")
+    .map(({ from, to }) => ({ from, to, segment: cache[pairKey(from, to)] ?? null }));
   return {
     segments,
     totalS: segments.reduce((n, s) => n + (s.segment?.durationS ?? 0), 0),

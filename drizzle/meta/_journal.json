@@ -50,6 +50,13 @@
       "when": 1790626156495,
       "tag": "0006_stop_chats",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790626645518,
+      "tag": "0007_arrive_by",
+      "breakpoints": true
     }
   ]
 }

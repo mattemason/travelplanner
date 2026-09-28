@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { CategoryPicker, TagPicker, type LabelOps } from "./label-pickers";
 import { PlaceSearch, type Suggestion } from "./place-search";
 import { dayLabel } from "@/lib/trip/format";
-import { TRAY, type Day, type Stop, type Tag } from "@/lib/trip/types";
+import { ARRIVE_BY, TRAY, type ArriveBy, type Day, type Stop, type Tag } from "@/lib/trip/types";
 
 export type EditorValues = {
   name: string;
@@ -12,6 +12,7 @@ export type EditorValues = {
   time: string | null;
   tags: Tag[];
   categories: string[];
+  arriveBy: ArriveBy;
   notes: string;
   bookingRef: string;
   link: string;
@@ -48,6 +49,7 @@ export function StopEditor(props: Props) {
     time: stop?.time ?? null,
     tags: stop?.tags ?? [],
     categories: stop?.categories ?? [],
+    arriveBy: stop?.arriveBy ?? "drive",
     notes: stop?.notes ?? "",
     bookingRef: stop?.bookingRef ?? "",
     link: stop?.link ?? "",
@@ -139,6 +141,22 @@ export function StopEditor(props: Props) {
           <input type="time" value={values.time ?? ""} onChange={(e) => set("time", e.target.value || null)} />
         </label>
       </div>
+
+      <label className="field">
+        Getting here
+        <select value={values.arriveBy} onChange={(e) => set("arriveBy", e.target.value as ArriveBy)}>
+          {ARRIVE_BY.map((m) => (
+            <option key={m.key} value={m.key}>
+              {m.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      {values.arriveBy !== "drive" && (
+        <p className="-mt-2 mb-2 text-[12.5px] text-muted">
+          The trip to this stop isn&apos;t counted as driving (time, distance or fuel).
+        </p>
+      )}
 
       {values.container !== TRAY && (
         <label className="mt-1 flex cursor-pointer items-center gap-2.5 text-[15px] font-bold text-ink">

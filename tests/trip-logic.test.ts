@@ -21,6 +21,7 @@ const stop = (id: string, placeId: string, tags: string[] = []) => ({
   time: null,
   tags,
   categories: [],
+  arriveBy: "drive" as const,
   notes: "",
   bookingRef: "",
   link: "",
@@ -154,5 +155,23 @@ describe("fuelCost", () => {
     expect(formatCost(63.4)).toBe("$63");
     expect(formatCost(142.6)).toBe("$143");
     expect(formatCost(4.25)).toBe("$4.25");
+  });
+});
+
+describe("non-drive stretches", () => {
+  it("leaves ferry and flight stretches out of the day's driving", () => {
+    const t = trip();
+    t.stops.s5 = { ...t.stops.s5, arriveBy: "ferry" };
+    t.layout.d2 = ["s3", "s5"]; // falls, then the ferry to town
+    const route = dayRoute(t, 1);
+    expect(route.map((p) => p.arriveBy)).toEqual(["drive", "drive", "ferry"]);
+    const cache = {
+      [pairKey(route[0], route[1])]: { durationS: 3600, distanceM: 90_000, polyline: null },
+      [pairKey(route[1], route[2])]: { durationS: 40_000, distanceM: 450_000, polyline: null },
+    };
+    const drive = dayDrive(route, cache);
+    expect(drive.totalS).toBe(3600);
+    expect(drive.totalM).toBe(90_000);
+    expect(drive.complete).toBe(true);
   });
 });

@@ -2,7 +2,7 @@ import "server-only";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
 import * as t from "@/db/schema";
-import { TRAY, type TripData } from "./types";
+import { TRAY, type Stop, type TripData } from "./types";
 
 /** The trip if `userId` owns it, else null. */
 export async function loadTrip(userId: string, tripId: string): Promise<TripData | null> {
@@ -80,6 +80,7 @@ export async function loadTrip(userId: string, tripId: string): Promise<TripData
           notes: s.notes ?? "",
           bookingRef: s.bookingRef ?? "",
           link: s.link ?? "",
+          arriveBy: s.arriveBy as Stop["arriveBy"],
         },
       ]),
     ),

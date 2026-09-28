@@ -105,6 +105,7 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
     const pairs: [RoutePoint, RoutePoint][] = [];
     for (const route of routes) {
       for (let i = 1; i < route.length; i++) {
+        if (route[i].arriveBy !== "drive") continue; // ferries and flights aren't routed
         const key = pairKey(route[i - 1], route[i]);
         if (!requested.current.has(key)) {
           requested.current.add(key);
@@ -140,8 +141,13 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
         let complete = true;
         let noRoute = 0;
         for (let i = 1; i < route.length; i++) {
+          const arriveBy = route[i].arriveBy;
+          if (arriveBy !== "drive") {
+            if (route[i].stopId) driveIn[route[i].stopId!] = { mode: arriveBy };
+            continue;
+          }
           const seg = segs[pairKey(route[i - 1], route[i])];
-          const d: DriveIn = seg === undefined ? "loading" : seg === null ? "none" : seg;
+          const d = seg === undefined ? ("loading" as const) : seg === null ? ("none" as const) : seg;
           if (seg) {
             totalS += seg.durationS;
             totalM += seg.distanceM;
@@ -279,6 +285,7 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
     time: s.time,
     tags: s.tags,
     categories: s.categories,
+    arriveBy: s.arriveBy,
     notes: s.notes,
     bookingRef: s.bookingRef,
     link: s.link,
@@ -382,6 +389,7 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
       time: v.time,
       tags: v.tags,
       categories: v.categories,
+      arriveBy: v.arriveBy,
       notes: v.notes,
       bookingRef: v.bookingRef,
       link: v.link,
@@ -534,7 +542,11 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
   // ---- Map: the day in view, or the whole trip --------------------------------------------
   const routeLines = (dayIndex: number): MapRoute[] => {
     const r = routes[dayIndex] ?? [];
-    return r.slice(1).flatMap((to, i) => {
+    return r.slice(1).flatMap((to, i): MapRoute[] => {
+      if (to.arriveBy !== "drive") {
+        // Ferries, flights and walks: a dashed straight line, not a road route.
+        return [{ points: [r[i], to], colour: colourOf(dayIndex), dashed: true }];
+      }
       const path = segs[pairKey(r[i], to)]?.polyline;
       return path ? [{ path, colour: colourOf(dayIndex) }] : [];
     });
@@ -599,7 +611,16 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
   const addResult = async (r: SearchResult, container: string) => {
     try {
       const position = tripRef.current.layout[container]?.length ?? 0;
-      const fields = { name: r.name, time: null, tags: [], categories: [], notes: "", bookingRef: "", link: "" };
+      const fields = {
+        name: r.name,
+        time: null,
+        tags: [],
+        categories: [],
+        arriveBy: "drive" as const,
+        notes: "",
+        bookingRef: "",
+        link: "",
+      };
       const { stop, place } = await createStop(trip.id, container, position, fields, {
         kind: "google",
         googlePlaceId: r.placeId,

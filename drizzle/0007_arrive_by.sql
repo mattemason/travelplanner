@@ -1,0 +1,2 @@
+ALTER TABLE "stops" ADD COLUMN "arrive_by" text DEFAULT 'drive' NOT NULL;--> statement-breakpoint
+ALTER TABLE "stops" ADD CONSTRAINT "stops_arrive_by" CHECK ("stops"."arrive_by" in ('drive', 'ferry', 'flight', 'walk'));

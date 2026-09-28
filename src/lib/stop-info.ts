@@ -57,6 +57,7 @@ export async function stopContext(userId: string, stopId: string): Promise<StopC
     place.lat !== null && place.lng !== null ? `Coordinates: ${place.lat.toFixed(5)}, ${place.lng.toFixed(5)}` : `No map location saved.`,
     place.businessStatus && place.businessStatus !== "OPERATIONAL" ? `Google lists it as: ${place.businessStatus}` : null,
     stop.plannedTime ? `Planned arrival: ${timeLabel(stop.plannedTime.slice(0, 5))}` : null,
+    stop.arriveBy !== "drive" ? `They get here by ${stop.arriveBy}, not by road.` : null,
     stop.categories.length ? `Categories: ${stop.categories.join(", ")}` : null,
     stop.tags.length ? `Tags: ${stop.tags.map(tagLabel).join(", ")}` : null,
     stop.notes ? `Their notes: ${stop.notes}` : null,

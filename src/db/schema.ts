@@ -182,11 +182,14 @@ export const stops = pgTable(
     notes: text("notes"),
     bookingRef: text("booking_ref"),
     link: text("link"),
+    // How you get to this stop from the previous one. Only "drive" counts toward driving time.
+    arriveBy: text("arrive_by").notNull().default("drive"),
     status: text("status").notNull().default("planned"),
   },
   (t) => [
     index("stops_trip_day_position").on(t.tripId, t.dayId, t.position),
     check("stops_status", sql`${t.status} in ('planned', 'done', 'skipped')`),
+    check("stops_arrive_by", sql`${t.arriveBy} in ('drive', 'ferry', 'flight', 'walk')`),
   ],
 );
 
