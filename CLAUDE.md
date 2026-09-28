@@ -10,7 +10,7 @@ Mobile-first road trip planner. The product spec is `SPEC.md`: read it before st
 - `npm test`: Vitest unit tests (`tests/`)
 - `npm run typecheck`, `npm run lint`
 - `npm run seed`: loads `seed/tasmania-2027.json` for `SEED_OWNER_EMAIL` (re-runnable, replaces that user's copy)
-- Schema lives in `src/db/schema.ts` (Drizzle). After changing it, run `npm run db:generate` and commit the new file in `drizzle/`. Railway applies pending migrations before each deploy (`npm run db:migrate`).
+- Schema lives in `src/db/schema.ts` (Drizzle). After changing it, run `npm run db:generate` and commit the new file in `drizzle/`. Pending migrations are applied on every start (`npm start` runs `npm run db:migrate` first).
 - Postgres has no public endpoint, so run DB scripts inside Railway: `railway ssh -- npm run seed`
 
 ## Setup
@@ -27,7 +27,7 @@ Copy `.env.local.example` to `.env.local` and fill it in. Never commit `.env.loc
 
 ## Hosting
 
-Railway (project `renewed-dedication`, service `travelplanner`) deploys every push to `main`: https://travelplanner-production-1644.up.railway.app. Build and start commands are in `railway.json`.
+Railway (project `renewed-dedication`, service `travelplanner`) deploys every push to `main`: https://travelplanner-production-1644.up.railway.app. Railpack runs `npm run build` then `npm start`; `npm start` applies pending migrations before starting Next.js.
 
 - Set env vars in the Railway service, not in the repo. `NEXT_PUBLIC_*` values are baked in at build time, so changing one needs a redeploy.
 - The Google browser key's referrer restrictions must include the Railway domain and `localhost:3000`.
