@@ -40,8 +40,20 @@ export const users = pgTable("users", {
   name: text("name"),
   email: text("email").notNull().unique(),
   homeRegion: text("home_region"),
+  emailVerified: timestamp("email_verified", { withTimezone: true }),
   createdAt: createdAt(),
 });
+
+// One-time sign-in link tokens (Auth.js stores a hash, not the raw token).
+export const verificationTokens = pgTable(
+  "verification_tokens",
+  {
+    identifier: text("identifier").notNull(),
+    token: text("token").notNull(),
+    expires: timestamp("expires", { withTimezone: true }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.identifier, t.token] })],
+);
 
 export const trips = pgTable(
   "trips",

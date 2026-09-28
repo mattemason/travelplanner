@@ -2,7 +2,8 @@
  * Loads seed/tasmania-2027.json into Postgres for one user.
  * Re-running replaces that user's copy of the trip and its seeded places.
  *
- *   npm run seed            (reads .env.local)
+ *   npm run seed                 (reads .env.local; replaces the trip)
+ *   npm run seed -- --if-missing (only seeds when the owner has no such trip; runs on every start)
  *
  * Needs DATABASE_URL and SEED_OWNER_EMAIL. The owner's user row is created if missing.
  */
@@ -13,21 +14,34 @@ import { getDb, getPool } from "../src/db";
 import * as t from "../src/db/schema";
 import { parseSeed } from "../src/lib/seed-schema";
 
-const ownerEmail = process.env.SEED_OWNER_EMAIL?.toLowerCase();
-if (!ownerEmail) throw new Error("Set SEED_OWNER_EMAIL");
+const ownerEmail = process.env.SEED_OWNER_EMAIL?.trim().toLowerCase();
+const ifMissing = process.argv.includes("--if-missing");
+if (!ownerEmail && !ifMissing) throw new Error("Set SEED_OWNER_EMAIL");
 
 const seed = parseSeed(JSON.parse(readFileSync(join(__dirname, "tasmania-2027.json"), "utf8")));
 const sourceList = `seed:${seed.meta.seedKey}`;
 const placeName = (key: string) => seed.places.find((p) => p.key === key)!.name;
 
 async function main() {
+  if (!ownerEmail) {
+    console.log("Seed skipped: SEED_OWNER_EMAIL is not set.");
+    return;
+  }
   const db = getDb();
-  await db.transaction(async (tx) => {
+  const seeded = await db.transaction(async (tx) => {
     const [owner] = await tx
       .insert(t.users)
       .values({ email: ownerEmail! })
       .onConflictDoUpdate({ target: t.users.email, set: { email: ownerEmail! } })
       .returning({ id: t.users.id });
+
+    if (ifMissing) {
+      const [existing] = await tx
+        .select({ id: t.trips.id })
+        .from(t.trips)
+        .where(and(eq(t.trips.ownerId, owner.id), eq(t.trips.name, seed.trip.name)));
+      if (existing) return false;
+    }
 
     // Clear any previous run: the trip cascades to days, stops, legs, events and checklist.
     await tx.delete(t.trips).where(and(eq(t.trips.ownerId, owner.id), eq(t.trips.name, seed.trip.name)));
@@ -126,8 +140,13 @@ async function main() {
     await tx.insert(t.checklistItems).values(
       seed.checklist.map((c, i) => ({ tripId: trip.id, title: c.title, category: c.category, position: i })),
     );
+    return true;
   });
 
+  if (!seeded) {
+    console.log(`Seed skipped: ${ownerEmail} already has "${seed.trip.name}".`);
+    return;
+  }
   const stopCount = seed.days.reduce((n, d) => n + d.stops.length, 0);
   console.log(
     `Seeded "${seed.trip.name}" for ${ownerEmail}: ${seed.days.length} days, ${stopCount} stops, ` +
@@ -140,4 +159,4 @@ main()
     console.error(err);
     process.exitCode = 1;
   })
-  .finally(() => getPool().end());
+  .finally(() => (ownerEmail ? getPool().end() : undefined));

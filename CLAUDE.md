@@ -9,9 +9,15 @@ Mobile-first road trip planner. The product spec is `SPEC.md`: read it before st
 - `npm run dev`: dev server on http://localhost:3000
 - `npm test`: Vitest unit tests (`tests/`)
 - `npm run typecheck`, `npm run lint`
-- `npm run seed`: loads `seed/tasmania-2027.json` for `SEED_OWNER_EMAIL` (re-runnable, replaces that user's copy)
-- Schema lives in `src/db/schema.ts` (Drizzle). After changing it, run `npm run db:generate` and commit the new file in `drizzle/`. Pending migrations are applied on every start (`npm start` runs `npm run db:migrate` first).
-- Postgres has no public endpoint, so run DB scripts inside Railway: `railway ssh -- npm run seed`
+- `npm run seed`: loads `seed/tasmania-2027.json` for `SEED_OWNER_EMAIL`, replacing that user's copy. `npm start` runs it with `--if-missing`, which only seeds when the owner doesn't have the trip yet, so deploys never overwrite edits.
+- Schema lives in `src/db/schema.ts` (Drizzle). After changing it, run `npm run db:generate` and commit the new file in `drizzle/`. `npm start` applies pending migrations first.
+- Postgres has no public endpoint; anything that must touch the production DB runs from `npm start` or a server route.
+- `/api/health` reports DB reachability and the applied migration count.
+
+## Auth and email
+
+- Sign-in is an emailed link (next-auth v4 email provider, JWT sessions, 60 days). Only `ALLOWED_EMAILS` are sent a link. `src/lib/auth.ts` has a minimal Drizzle adapter; use `currentUser()` in server code.
+- Email goes through Postmark's HTTP API (`src/lib/email.ts`), from `EMAIL_FROM` on the verified socialtap.com.au domain.
 
 ## Setup
 

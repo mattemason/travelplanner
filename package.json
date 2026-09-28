@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "npm run db:migrate && next start",
+    "start": "npm run db:migrate && npm run seed -- --if-missing && next start",
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -17,9 +17,12 @@
   "dependencies": {
     "drizzle-orm": "^0.45.3",
     "next": "16.3.6",
+    "next-auth": "^4.24.15",
+    "nodemailer": "^7.0.13",
     "pg": "^8.23.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "tsx": "^4.23.15",
     "zod": "^4.6.5"
   },
   "devDependencies": {
@@ -32,7 +35,6 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.6",
     "tailwindcss": "^4",
-    "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^5.0.2"
   },
