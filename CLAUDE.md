@@ -33,8 +33,8 @@ Copy `.env.local.example` to `.env.local` and fill it in. Never commit `.env.loc
 
 ## Hosting
 
-Railway (project `renewed-dedication`, service `travelplanner`) deploys every push to `main`: https://travelplanner-production-1644.up.railway.app. Railpack runs `npm run build` then `npm start`; `npm start` applies pending migrations before starting Next.js.
+Railway (project `renewed-dedication`, service `travelplanner`) deploys every push to `main`: https://travel.emason.com.au (also https://travelplanner-production-1644.up.railway.app). Railpack runs `npm run build` then `npm start`; `npm start` applies pending migrations before starting Next.js.
 
 - Set env vars in the Railway service, not in the repo. `NEXT_PUBLIC_*` values are baked in at build time, so changing one needs a redeploy.
-- The Google browser key's referrer restrictions must include the Railway domain and `localhost:3000`.
+- The Google browser key is restricted to travel.emason.com.au, the Railway domain and `localhost:3000`. The server key (Routes, Places) has no application restriction.
 - `railway logs` / `railway status` from the repo root (it's linked).
