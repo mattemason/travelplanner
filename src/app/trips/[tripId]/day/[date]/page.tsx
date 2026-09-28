@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import type { CSSProperties } from "react";
+import { DayMap, type DayMapPoint, type DayMapRoute } from "@/components/planner/day-map";
 import { currentUser } from "@/lib/auth";
 import { getSegments } from "@/lib/google/routes";
 import {
@@ -50,6 +51,19 @@ export default async function DayViewPage({ params }: PageProps<"/trips/[tripId]
     .slice(1)
     .reduce((n, to, i) => n + (to.arriveBy === "drive" ? (segments[pairKey(route[i], to)]?.durationS ?? 0) : 0), 0);
   const stops = (trip.layout[day.id] ?? []).map((id) => trip.stops[id]);
+  // Map: numbered stops, the day's start/overnight as plain pins, road routes or dashed crossings.
+  const mapPoints: DayMapPoint[] = route.map((p) => ({
+    id: p.stopId ?? `place-${p.placeId}`,
+    lat: p.lat,
+    lng: p.lng,
+    badge: p.stopId ? String(stops.findIndex((s) => s.id === p.stopId) + 1) : "•",
+    name: p.stopId ? (trip.stops[p.stopId]?.name ?? "") : (trip.places[p.placeId]?.name ?? ""),
+  }));
+  const mapRoutes: DayMapRoute[] = route.slice(1).flatMap((to, i): DayMapRoute[] => {
+    if (to.arriveBy !== "drive") return [{ points: [{ lat: route[i].lat, lng: route[i].lng }, { lat: to.lat, lng: to.lng }] }];
+    const path = segments[pairKey(route[i], to)]?.polyline;
+    return path ? [{ path }] : [];
+  });
   const warnings = dayWarnings(trip, day.id, totalS || null);
   const travel = overnightTravel(trip, index);
   const overnight = travel
@@ -74,6 +88,10 @@ export default async function DayViewPage({ params }: PageProps<"/trips/[tripId]
           <span className="font-bold text-[var(--legc)]">{leg?.name}</span>
           {prevOvernight && overnight ? `, ${prevOvernight} to ${overnight}` : ""}
         </p>
+      </div>
+
+      <div className="mb-3">
+        <DayMap points={mapPoints} routes={mapRoutes} legHex={leg?.colour ?? "#1F5A7A"} />
       </div>
 
       <div className="flex gap-2 px-[18px] pb-3">

@@ -2,7 +2,14 @@
 
 import { APIProvider } from "@vis.gl/react-google-maps";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import {
   createStop,
   deleteStop,
@@ -26,7 +33,14 @@ import { fuelCost, type Vehicle } from "@/lib/trip/fuel";
 import { cleanStay, transportSummary } from "@/lib/trip/details";
 import { dateRange, dayCount, dayLabel } from "@/lib/trip/format";
 import { changedContainers, containerOf, moveStop } from "@/lib/trip/layout";
-import { TRAY, type Layout, type Segment, type Stay, type Stop, type TripData } from "@/lib/trip/types";
+import {
+  TRAY,
+  type Layout,
+  type Segment,
+  type Stay,
+  type Stop,
+  type TripData,
+} from "@/lib/trip/types";
 import { dayWarnings } from "@/lib/trip/warnings";
 import { addLabel, deleteLabel, renameLabel } from "@/app/labels/actions";
 import { DaySection, type DayDriveInfo } from "./day-section";
@@ -39,7 +53,12 @@ import { StopInfo } from "./stop-info";
 import { googleMapsLink, hipcampLink } from "@/lib/trip/maps-link";
 import { TripEditor } from "./trip-editor";
 import { MapSearch, ResultCard, type SearchResult } from "./map-search";
-import { TripMap, type MapBounds, type MapPoint, type MapRoute } from "./trip-map";
+import {
+  TripMap,
+  type MapBounds,
+  type MapPoint,
+  type MapRoute,
+} from "./trip-map";
 import { TripSummary } from "./trip-summary";
 import { legColour, useIsDesktop } from "./use-media";
 import { useIsDark } from "@/components/theme";
@@ -70,7 +89,11 @@ type Labels = { tags: string[]; categories: string[] };
 
 type PlannerProps = { initial: TripData; labels: Labels; vehicle: Vehicle };
 
-export function TripPlanner({ initial, labels: initialLabels, vehicle }: PlannerProps) {
+export function TripPlanner({
+  initial,
+  labels: initialLabels,
+  vehicle,
+}: PlannerProps) {
   const [trip, setTrip] = useState(initial);
   const [labels, setLabels] = useState(initialLabels);
   const [segs, setSegs] = useState<SegCache>({});
@@ -83,13 +106,17 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
   const [searchOpen, setSearchOpen] = useState(false);
   const [selectedResult, setSelectedResult] = useState<string | null>(null);
   const [tapped, setTapped] = useState<SearchResult | null>(null); // a Google map icon the user tapped
-  const [addedResults, setAddedResults] = useState<Set<string>>(() => new Set());
+  const [addedResults, setAddedResults] = useState<Set<string>>(
+    () => new Set(),
+  );
   const boundsRef = useRef<MapBounds | null>(null);
   const [editor, setEditor] = useState<Editor | null>(null);
   const [saving, setSaving] = useState(false);
   const [editorError, setEditorError] = useState<string | null>(null);
   const [undo, setUndo] = useState<Undo | null>(null);
-  const [toast, setToast] = useState<{ text: string; error?: boolean } | null>(null);
+  const [toast, setToast] = useState<{ text: string; error?: boolean } | null>(
+    null,
+  );
   const isDesktop = useIsDesktop();
   const [prefs, setPrefs] = useLayoutPrefs();
   const dark = useIsDark();
@@ -99,12 +126,17 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
     tripRef.current = trip;
   });
 
-  const legById = useMemo(() => Object.fromEntries(trip.legs.map((l) => [l.id, l])), [trip.legs]);
+  const legById = useMemo(
+    () => Object.fromEntries(trip.legs.map((l) => [l.id, l])),
+    [trip.legs],
+  );
   const colourOf = useCallback(
-    (dayIndex: number) => legColour(legById[trip.days[dayIndex]?.legId ?? ""]?.colour, dark),
+    (dayIndex: number) =>
+      legColour(legById[trip.days[dayIndex]?.legId ?? ""]?.colour, dark),
     [legById, trip.days, dark],
   );
-  const placeName = (placeId: string | null) => (placeId ? (trip.places[placeId]?.name ?? null) : null);
+  const placeName = (placeId: string | null) =>
+    placeId ? (trip.places[placeId]?.name ?? null) : null;
   const nightTravel = (dayIndex: number) => {
     const t = overnightTravel(trip, dayIndex);
     if (!t) return null;
@@ -113,11 +145,17 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
     const arrival = next && trip.stops[(trip.layout[next.id] ?? [])[0]];
     const times = arrival?.transport
       ? transportSummary(
-          { departAt: arrival.transport.departAt, arriveAt: arrival.transport.arriveAt, bookingRef: arrival.transport.bookingRef },
+          {
+            departAt: arrival.transport.departAt,
+            arriveAt: arrival.transport.arriveAt,
+            bookingRef: arrival.transport.bookingRef,
+          },
           trip.days[dayIndex].date,
         )
       : "";
-    return times ? `${overnightTravelLabel(t)} · ${times}` : overnightTravelLabel(t);
+    return times
+      ? `${overnightTravelLabel(t)} · ${times}`
+      : overnightTravelLabel(t);
   };
   const stopLabel = (stopId: string) => trip.stops[stopId]?.name ?? "Stop";
   const containerLabel = (c: string) => {
@@ -127,7 +165,10 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
   };
 
   // ---- Drive times ------------------------------------------------------------------------
-  const routes = useMemo(() => trip.days.map((_, i) => dayRoute(trip, i)), [trip]);
+  const routes = useMemo(
+    () => trip.days.map((_, i) => dayRoute(trip, i)),
+    [trip],
+  );
   const requested = useRef(new Set<string>());
 
   useEffect(() => {
@@ -143,20 +184,35 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
       }
     }
     if (!pairs.length) return;
-    const body = JSON.stringify({ pairs: pairs.map(([a, b]) => [{ lat: a.lat, lng: a.lng }, { lat: b.lat, lng: b.lng }]) });
-    fetch("/api/drive", { method: "POST", headers: { "Content-Type": "application/json" }, body })
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
+    const body = JSON.stringify({
+      pairs: pairs.map(([a, b]) => [
+        { lat: a.lat, lng: a.lng },
+        { lat: b.lat, lng: b.lng },
+      ]),
+    });
+    fetch("/api/drive", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+    })
+      .then((res) =>
+        res.ok ? res.json() : Promise.reject(new Error(String(res.status))),
+      )
       .then(({ segments }: { segments: Record<string, Segment> }) => {
         setSegs((prev) => {
           const next = { ...prev };
-          for (const [a, b] of pairs) next[pairKey(a, b)] = segments[pairKey(a, b)] ?? null;
+          for (const [a, b] of pairs)
+            next[pairKey(a, b)] = segments[pairKey(a, b)] ?? null;
           return next;
         });
       })
       .catch(() => {
         // Let the next change retry these pairs.
         for (const [a, b] of pairs) requested.current.delete(pairKey(a, b));
-        setToast({ text: "Couldn't load drive times. They'll retry on your next change.", error: true });
+        setToast({
+          text: "Couldn't load drive times. They'll retry on your next change.",
+          error: true,
+        });
       });
   }, [routes]);
 
@@ -176,7 +232,12 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
             continue;
           }
           const seg = segs[pairKey(route[i - 1], route[i])];
-          const d = seg === undefined ? ("loading" as const) : seg === null ? ("none" as const) : seg;
+          const d =
+            seg === undefined
+              ? ("loading" as const)
+              : seg === null
+                ? ("none" as const)
+                : seg;
           if (seg) {
             totalS += seg.durationS;
             totalM += seg.distanceM;
@@ -184,7 +245,11 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
           else noRoute++;
           const to = route[i];
           if (to.stopId) driveIn[to.stopId] = d;
-          else tail = { to: trip.places[to.placeId]?.name ?? "tonight's stop", drive: d };
+          else
+            tail = {
+              to: trip.places[to.placeId]?.name ?? "tonight's stop",
+              drive: d,
+            };
         }
         return { driveIn, tail, totalS, totalM, complete, noRoute };
       }),
@@ -192,7 +257,10 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
   );
 
   const warnings = useMemo(
-    () => trip.days.map((d, i) => dayWarnings(trip, d.id, drives[i].complete ? drives[i].totalS : null)),
+    () =>
+      trip.days.map((d, i) =>
+        dayWarnings(trip, d.id, drives[i].complete ? drives[i].totalS : null),
+      ),
     [trip, drives],
   );
 
@@ -200,7 +268,10 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
   const persistLayout = useCallback(async (before: Layout, after: Layout) => {
     const changed = changedContainers(before, after);
     if (!changed.length) return;
-    await saveLayout(tripRef.current.id, Object.fromEntries(changed.map((c) => [c, after[c] ?? []])));
+    await saveLayout(
+      tripRef.current.id,
+      Object.fromEntries(changed.map((c) => [c, after[c] ?? []])),
+    );
   }, []);
 
   const applyLayout = useCallback(
@@ -215,7 +286,10 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
         }
       } catch {
         setTrip((t) => ({ ...t, layout: before }));
-        setToast({ text: "That change didn't save. Check your connection and try again.", error: true });
+        setToast({
+          text: "That change didn't save. Check your connection and try again.",
+          error: true,
+        });
       }
     },
     [persistLayout],
@@ -227,7 +301,9 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
       const next = moveStop(before, stopId, to, index);
       const from = containerOf(before, stopId);
       const label =
-        from === to ? `Reordered ${stopLabel(stopId)}` : `Moved ${stopLabel(stopId)} to ${containerLabel(to)}`;
+        from === to
+          ? `Reordered ${stopLabel(stopId)}`
+          : `Moved ${stopLabel(stopId)} to ${containerLabel(to)}`;
       void applyLayout(next, { label, layout: before });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -241,10 +317,15 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
       const before = tripRef.current.layout;
       const result = await rerouteDay(tripRef.current.id, dayId);
       if (!result.changed) {
-        setToast({ text: result.reason ?? `${label} is already in the fastest order.` });
+        setToast({
+          text: result.reason ?? `${label} is already in the fastest order.`,
+        });
         return;
       }
-      await applyLayout({ ...before, [dayId]: result.order }, { label: `Re-routed ${label}`, layout: before });
+      await applyLayout(
+        { ...before, [dayId]: result.order },
+        { label: `Re-routed ${label}`, layout: before },
+      );
     } catch {
       setToast({ text: "Re-route didn't work. Try again.", error: true });
     } finally {
@@ -259,49 +340,85 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
     if (!original || !container) return;
     try {
       const position = tripRef.current.layout[container]?.length ?? 0;
-      const { stop, place } = await createStop(tripRef.current.id, container, position, fieldsOf(original), {
-        kind: "existing",
-        placeId: original.placeId,
-      });
+      const { stop, place } = await createStop(
+        tripRef.current.id,
+        container,
+        position,
+        fieldsOf(original),
+        {
+          kind: "existing",
+          placeId: original.placeId,
+        },
+      );
       setTrip((t) => ({
         ...t,
         stops: { ...t.stops, [stop.id]: stop },
         places: { ...t.places, [place.id]: place },
-        layout: { ...t.layout, [container]: [...(t.layout[container] ?? []), stop.id] },
+        layout: {
+          ...t.layout,
+          [container]: [...(t.layout[container] ?? []), stop.id],
+        },
       }));
       // It was saved at the end of the day; move it up to sit right after the original.
-      const current = { ...tripRef.current.layout, [container]: [...(tripRef.current.layout[container] ?? []), stop.id] };
+      const current = {
+        ...tripRef.current.layout,
+        [container]: [...(tripRef.current.layout[container] ?? []), stop.id],
+      };
       tripRef.current = { ...tripRef.current, layout: current };
       const index = current[container].indexOf(stopId) + 1;
       await applyLayout(moveStop(current, stop.id, container, index), null);
       setUndo({ label: `Duplicated ${stop.name}`, createdStopId: stop.id });
       setToast({ text: `Duplicated ${stop.name}` });
     } catch {
-      setToast({ text: "Couldn't duplicate that stop. Try again.", error: true });
+      setToast({
+        text: "Couldn't duplicate that stop. Try again.",
+        error: true,
+      });
     }
   };
 
   const removeFromState = (id: string) =>
     setTrip((t) => {
-      const layout = Object.fromEntries(Object.entries(t.layout).map(([k, ids]) => [k, ids.filter((x) => x !== id)]));
+      const layout = Object.fromEntries(
+        Object.entries(t.layout).map(([k, ids]) => [
+          k,
+          ids.filter((x) => x !== id),
+        ]),
+      );
       const stops = { ...t.stops };
       delete stops[id];
       return { ...t, layout, stops };
     });
 
   /** Saves overnight changes and returns the previous values, for undo. */
-  const applyOvernights = async (changes: OvernightChange[]): Promise<OvernightChange[]> => {
+  const applyOvernights = async (
+    changes: OvernightChange[],
+  ): Promise<OvernightChange[]> => {
     const prev: OvernightChange[] = [];
     for (const c of changes) {
       const day = tripRef.current.days.find((d) => d.id === c.dayId);
       const stay = c.placeId ? (c.stay ?? day?.stay ?? {}) : {};
-      if (!day || (day.overnightPlaceId === c.placeId && JSON.stringify(day.stay) === JSON.stringify(stay))) continue;
-      prev.push({ dayId: c.dayId, placeId: day.overnightPlaceId, stay: day.stay });
+      if (
+        !day ||
+        (day.overnightPlaceId === c.placeId &&
+          JSON.stringify(day.stay) === JSON.stringify(stay))
+      )
+        continue;
+      prev.push({
+        dayId: c.dayId,
+        placeId: day.overnightPlaceId,
+        stay: day.stay,
+      });
       await setOvernight(tripRef.current.id, c.dayId, c.placeId, stay);
       const patch = (d: TripData["days"][number]) =>
-        d.id === c.dayId ? { ...d, overnightPlaceId: c.placeId, stay: cleanStay(stay) } : d;
+        d.id === c.dayId
+          ? { ...d, overnightPlaceId: c.placeId, stay: cleanStay(stay) }
+          : d;
       setTrip((t) => ({ ...t, days: t.days.map(patch) }));
-      tripRef.current = { ...tripRef.current, days: tripRef.current.days.map(patch) };
+      tripRef.current = {
+        ...tripRef.current,
+        days: tripRef.current.days.map(patch),
+      };
     }
     return prev;
   };
@@ -331,20 +448,33 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
       if (entry.deleted) {
         // Recreate the deleted stop in its old spot with the same place and details.
         const { stop: old, container, position } = entry.deleted;
-        const { stop, place } = await createStop(tripRef.current.id, container, position, fieldsOf(old), {
-          kind: "existing",
-          placeId: old.placeId,
-        });
+        const { stop, place } = await createStop(
+          tripRef.current.id,
+          container,
+          position,
+          fieldsOf(old),
+          {
+            kind: "existing",
+            placeId: old.placeId,
+          },
+        );
         const t = tripRef.current;
         const ids = [...(t.layout[container] ?? [])];
         ids.splice(Math.min(position, ids.length), 0, stop.id);
         const next = { ...t.layout, [container]: ids };
-        setTrip((x) => ({ ...x, stops: { ...x.stops, [stop.id]: stop }, places: { ...x.places, [place.id]: place } }));
+        setTrip((x) => ({
+          ...x,
+          stops: { ...x.stops, [stop.id]: stop },
+          places: { ...x.places, [place.id]: place },
+        }));
         await applyLayout(next, null);
       }
       if (entry.stop) {
         const s = entry.stop;
-        await updateStop(tripRef.current.id, s.id, fieldsOf(s), { kind: "existing", placeId: s.placeId });
+        await updateStop(tripRef.current.id, s.id, fieldsOf(s), {
+          kind: "existing",
+          placeId: s.placeId,
+        });
         setTrip((t) => ({ ...t, stops: { ...t.stops, [s.id]: s } }));
       }
       if (entry.layout) await applyLayout(entry.layout, null);
@@ -361,7 +491,12 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
     const rewrite = (fn: (values: string[]) => string[]) =>
       setTrip((t) => ({
         ...t,
-        stops: Object.fromEntries(Object.entries(t.stops).map(([id, st]) => [id, { ...st, [field]: fn(st[field]) }])),
+        stops: Object.fromEntries(
+          Object.entries(t.stops).map(([id, st]) => [
+            id,
+            { ...st, [field]: fn(st[field]) },
+          ]),
+        ),
       }));
     return {
       add: async (name) => {
@@ -425,46 +560,93 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
     try {
       if (editor.mode === "new") {
         const ref: PlaceRef = v.picked
-          ? { kind: "google", googlePlaceId: v.picked.placeId, session: v.picked.session }
+          ? {
+              kind: "google",
+              googlePlaceId: v.picked.placeId,
+              session: v.picked.session,
+            }
           : { kind: "manual" };
         const position = trip.layout[v.container]?.length ?? 0;
-        const { stop, place } = await createStop(trip.id, v.container, position, fields, ref);
+        const { stop, place } = await createStop(
+          trip.id,
+          v.container,
+          position,
+          fields,
+          ref,
+        );
         setTrip((t) => ({
           ...t,
           stops: { ...t.stops, [stop.id]: stop },
           places: { ...t.places, [place.id]: place },
-          layout: { ...t.layout, [v.container]: [...(t.layout[v.container] ?? []), stop.id] },
+          layout: {
+            ...t.layout,
+            [v.container]: [...(t.layout[v.container] ?? []), stop.id],
+          },
         }));
         const overnights =
           v.overnight && v.container !== TRAY
-            ? await applyOvernights([{ dayId: v.container, placeId: place.id, stay: v.stay }])
+            ? await applyOvernights([
+                { dayId: v.container, placeId: place.id, stay: v.stay },
+              ])
             : [];
-        setUndo({ label: `Added ${stop.name}`, createdStopId: stop.id, overnights });
-        setToast({ text: `Added ${stop.name}${place.lat === null ? " (no map location)" : ""}` });
+        setUndo({
+          label: `Added ${stop.name}`,
+          createdStopId: stop.id,
+          overnights,
+        });
+        setToast({
+          text: `Added ${stop.name}${place.lat === null ? " (no map location)" : ""}`,
+        });
       } else {
         const prevStop = trip.stops[editor.stopId];
         const prevLayout = trip.layout;
         const from = containerOf(prevLayout, editor.stopId);
         const ref: PlaceRef | undefined = v.picked
-          ? { kind: "google", googlePlaceId: v.picked.placeId, session: v.picked.session }
+          ? {
+              kind: "google",
+              googlePlaceId: v.picked.placeId,
+              session: v.picked.session,
+            }
           : undefined;
-        const { stop: saved, place } = await updateStop(trip.id, editor.stopId, fields, ref);
+        const { stop: saved, place } = await updateStop(
+          trip.id,
+          editor.stopId,
+          fields,
+          ref,
+        );
         // Attachments are managed separately; keep the stop's current list.
         setTrip((t) => ({
           ...t,
-          stops: { ...t.stops, [saved.id]: { ...saved, attachments: t.stops[saved.id]?.attachments ?? [] } },
+          stops: {
+            ...t.stops,
+            [saved.id]: {
+              ...saved,
+              attachments: t.stops[saved.id]?.attachments ?? [],
+            },
+          },
           places: { ...t.places, [place.id]: place },
         }));
         if (from !== v.container) {
-          await applyLayout(moveStop(prevLayout, saved.id, v.container, Number.MAX_SAFE_INTEGER), null);
+          await applyLayout(
+            moveStop(
+              prevLayout,
+              saved.id,
+              v.container,
+              Number.MAX_SAFE_INTEGER,
+            ),
+            null,
+          );
         }
         // Overnight: tick sets the (new) day's overnight to this place; unticking, or moving the
         // stop off its day, clears the old day's overnight if it was this stop.
         const fromDay = trip.days.find((d) => d.id === from);
-        const wasOvernight = !!fromDay && fromDay.overnightPlaceId === prevStop.placeId;
+        const wasOvernight =
+          !!fromDay && fromDay.overnightPlaceId === prevStop.placeId;
         const changes: OvernightChange[] = [];
-        if (wasOvernight && fromDay && (from !== v.container || !v.overnight)) changes.push({ dayId: fromDay.id, placeId: null });
-        if (v.overnight && v.container !== TRAY) changes.push({ dayId: v.container, placeId: place.id, stay: v.stay });
+        if (wasOvernight && fromDay && (from !== v.container || !v.overnight))
+          changes.push({ dayId: fromDay.id, placeId: null });
+        if (v.overnight && v.container !== TRAY)
+          changes.push({ dayId: v.container, placeId: place.id, stay: v.stay });
         const overnights = await applyOvernights(changes);
         setUndo({
           label: `Saved ${saved.name}`,
@@ -477,7 +659,9 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
       closeEditor();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "";
-      setEditorError(/http|Google Maps/.test(msg) ? msg : "Couldn't save. Try again.");
+      setEditorError(
+        /http|Google Maps/.test(msg) ? msg : "Couldn't save. Try again.",
+      );
     } finally {
       setSaving(false);
     }
@@ -505,13 +689,19 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
     removeFromState(id);
     try {
       await deleteStop(trip.id, id);
-      setUndo({ label: `Deleted ${stop.name}`, deleted: { stop, container, position } });
+      setUndo({
+        label: `Deleted ${stop.name}`,
+        deleted: { stop, container, position },
+      });
       setToast({ text: `Deleted ${stop.name}` });
     } catch {
       setTrip((t) => ({
         ...t,
         stops: { ...t.stops, [id]: stop },
-        layout: { ...t.layout, [container]: moveStop(t.layout, id, container, position)[container] },
+        layout: {
+          ...t.layout,
+          [container]: moveStop(t.layout, id, container, position)[container],
+        },
       }));
       setToast({ text: "That delete didn't save. Try again.", error: true });
     }
@@ -552,10 +742,20 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
   // ---- Scroll spy -------------------------------------------------------------------------
   const planRef = useRef<HTMLElement>(null);
   const stripRef = useRef<HTMLDivElement>(null);
+  const stickyRef = useRef<HTMLDivElement>(null);
+  const [stickyHeight, setStickyHeight] = useState(360);
+  useEffect(() => {
+    const el = stickyRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setStickyHeight(el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [isDesktop]);
   const sectionEls = useRef<(HTMLElement | null)[]>([]);
 
   useEffect(() => {
-    const target: HTMLElement | Window = isDesktop && planRef.current ? planRef.current : window;
+    const target: HTMLElement | Window =
+      isDesktop && planRef.current ? planRef.current : window;
     const spy = () => {
       const line = isDesktop
         ? (planRef.current?.getBoundingClientRect().top ?? 0) + 80
@@ -573,11 +773,17 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
 
   // Keep the mobile day strip's active chip in view.
   useEffect(() => {
-    const chip = stripRef.current?.querySelector<HTMLElement>(`[data-strip-index="${activeDay}"]`);
+    const chip = stripRef.current?.querySelector<HTMLElement>(
+      `[data-strip-index="${activeDay}"]`,
+    );
     chip?.scrollIntoView({ block: "nearest", inline: "center" });
   }, [activeDay]);
 
-  const goToDay = (i: number) => sectionEls.current[i]?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const goToDay = (i: number) =>
+    sectionEls.current[i]?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
 
   // ---- Map: the day in view, or the whole trip --------------------------------------------
   const routeLines = (dayIndex: number): MapRoute[] => {
@@ -585,7 +791,9 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
     return r.slice(1).flatMap((to, i): MapRoute[] => {
       if (to.arriveBy !== "drive") {
         // Ferries, flights and walks: a dashed straight line, not a road route.
-        return [{ points: [r[i], to], colour: colourOf(dayIndex), dashed: true }];
+        return [
+          { points: [r[i], to], colour: colourOf(dayIndex), dashed: true },
+        ];
       }
       const path = segs[pairKey(r[i], to)]?.polyline;
       return path ? [{ path, colour: colourOf(dayIndex) }] : [];
@@ -620,10 +828,24 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
       for (const stopId of trip.layout[day.id] ?? []) {
         const stop = trip.stops[stopId];
         const place = trip.places[stop?.placeId ?? ""];
-        if (!place || place.lat === null || place.lng === null || place.id === night?.id || seen.has(place.id)) continue;
+        if (
+          !place ||
+          place.lat === null ||
+          place.lng === null ||
+          place.id === night?.id ||
+          seen.has(place.id)
+        )
+          continue;
         seen.add(place.id);
         dayIndexOfPoint.set(stopId, i);
-        mapPoints.push({ id: stopId, lat: place.lat, lng: place.lng, colour: colourOf(i), badge: null, name: stop.name });
+        mapPoints.push({
+          id: stopId,
+          lat: place.lat,
+          lng: place.lng,
+          colour: colourOf(i),
+          badge: null,
+          name: stop.name,
+        });
       }
       if (night && night.lat !== null && night.lng !== null) {
         const id = `night-${day.id}`;
@@ -640,13 +862,31 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
     });
   }
 
-  for (const r of [...(search ?? []), ...(tapped && !search?.some((s) => s.placeId === tapped.placeId) ? [tapped] : [])]) {
-    mapPoints.push({ id: `result:${r.placeId}`, lat: r.lat, lng: r.lng, colour: RESULT_COLOUR, badge: null, name: r.name, result: true });
+  for (const r of [
+    ...(search ?? []),
+    ...(tapped && !search?.some((s) => s.placeId === tapped.placeId)
+      ? [tapped]
+      : []),
+  ]) {
+    mapPoints.push({
+      id: `result:${r.placeId}`,
+      lat: r.lat,
+      lng: r.lng,
+      colour: RESULT_COLOUR,
+      badge: null,
+      name: r.name,
+      result: true,
+    });
   }
 
   const getArea = () => {
     const b = boundsRef.current;
-    return b ? { low: { lat: b.south, lng: b.west }, high: { lat: b.north, lng: b.east } } : null;
+    return b
+      ? {
+          low: { lat: b.south, lng: b.west },
+          high: { lat: b.north, lng: b.east },
+        }
+      : null;
   };
 
   const addResult = async (r: SearchResult, container: string) => {
@@ -663,25 +903,40 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
         bookingRef: "",
         link: "",
       };
-      const { stop, place } = await createStop(trip.id, container, position, fields, {
-        kind: "google",
-        googlePlaceId: r.placeId,
-      });
+      const { stop, place } = await createStop(
+        trip.id,
+        container,
+        position,
+        fields,
+        {
+          kind: "google",
+          googlePlaceId: r.placeId,
+        },
+      );
       setTrip((t) => ({
         ...t,
         stops: { ...t.stops, [stop.id]: stop },
         places: { ...t.places, [place.id]: place },
-        layout: { ...t.layout, [container]: [...(t.layout[container] ?? []), stop.id] },
+        layout: {
+          ...t.layout,
+          [container]: [...(t.layout[container] ?? []), stop.id],
+        },
       }));
       setAddedResults((s) => new Set(s).add(r.placeId));
-      setUndo({ label: `Added ${stop.name} to ${containerLabel(container)}`, createdStopId: stop.id });
+      setUndo({
+        label: `Added ${stop.name} to ${containerLabel(container)}`,
+        createdStopId: stop.id,
+      });
       setToast({ text: `Added ${stop.name} to ${containerLabel(container)}` });
     } catch {
       setToast({ text: "Couldn't add that place. Try again.", error: true });
     }
   };
 
-  const onSearchResults = (_query: string | null, results: SearchResult[] | null) => {
+  const onSearchResults = (
+    _query: string | null,
+    results: SearchResult[] | null,
+  ) => {
     setSearch(results);
     setSelectedResult(null);
   };
@@ -698,13 +953,20 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
     />
   );
   const pickedResult =
-    search?.find((r) => r.placeId === selectedResult) ?? (tapped?.placeId === selectedResult ? tapped : null);
+    search?.find((r) => r.placeId === selectedResult) ??
+    (tapped?.placeId === selectedResult ? tapped : null);
 
   const onPlaceClick = async (googlePlaceId: string) => {
     try {
-      const res = await fetch(`/api/places/${encodeURIComponent(googlePlaceId)}`);
-      const body = (await res.json().catch(() => ({}))) as { result?: SearchResult; error?: string };
-      if (!res.ok || !body.result) throw new Error(body.error ?? "Couldn't load that place.");
+      const res = await fetch(
+        `/api/places/${encodeURIComponent(googlePlaceId)}`,
+      );
+      const body = (await res.json().catch(() => ({}))) as {
+        result?: SearchResult;
+        error?: string;
+      };
+      if (!res.ok || !body.result)
+        throw new Error(body.error ?? "Couldn't load that place.");
       setTapped(body.result);
       setSelectedResult(body.result.placeId);
     } catch (err) {
@@ -750,9 +1012,15 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
       index={i}
       leg={legById[day.legId ?? ""]}
       colour={colourOf(i)}
-      stops={(trip.layout[day.id] ?? []).map((id) => trip.stops[id]).filter(Boolean)}
+      stops={(trip.layout[day.id] ?? [])
+        .map((id) => trip.stops[id])
+        .filter(Boolean)}
       places={trip.places}
-      overnight={overnightOf(trip, i) ? day.stay.name?.trim() || placeName(overnightOf(trip, i)) : null}
+      overnight={
+        overnightOf(trip, i)
+          ? day.stay.name?.trim() || placeName(overnightOf(trip, i))
+          : null
+      }
       overnightTravel={nightTravel(i)}
       drive={drives[i]}
       warnings={warnings[i]}
@@ -797,7 +1065,9 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
   );
   const trayCount = trip.layout[TRAY]?.length ?? 0;
 
-  const stopsOnDays = Object.fromEntries(trip.days.map((d) => [d.date, trip.layout[d.id]?.length ?? 0]));
+  const stopsOnDays = Object.fromEntries(
+    trip.days.map((d) => [d.date, trip.layout[d.id]?.length ?? 0]),
+  );
   const variant = isDesktop ? "panel" : "sheet";
   const editorEl =
     editor &&
@@ -812,7 +1082,9 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
         stopsOnDays={stopsOnDays}
         onSave={saveTrip}
         onCancel={closeEditor}
-        onCoverChange={(coverVersion) => setTrip((t) => ({ ...t, coverVersion }))}
+        onCoverChange={(coverVersion) =>
+          setTrip((t) => ({ ...t, coverVersion }))
+        }
       />
     ) : (
       <StopEditor
@@ -821,17 +1093,25 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
         variant={variant}
         isNew={editor.mode === "new"}
         stop={editor.mode === "edit" ? trip.stops[editor.stopId] : null}
-        container={editor.mode === "edit" ? (containerOf(trip.layout, editor.stopId) ?? TRAY) : editor.container}
+        container={
+          editor.mode === "edit"
+            ? (containerOf(trip.layout, editor.stopId) ?? TRAY)
+            : editor.container
+        }
         isOvernight={
           editor.mode === "edit" &&
           trip.days.some(
-            (d) => d.overnightPlaceId === trip.stops[editor.stopId]?.placeId && trip.layout[d.id]?.includes(editor.stopId),
+            (d) =>
+              d.overnightPlaceId === trip.stops[editor.stopId]?.placeId &&
+              trip.layout[d.id]?.includes(editor.stopId),
           )
         }
         stay={
           editor.mode === "edit"
             ? (trip.days.find(
-                (d) => d.overnightPlaceId === trip.stops[editor.stopId]?.placeId && trip.layout[d.id]?.includes(editor.stopId),
+                (d) =>
+                  d.overnightPlaceId === trip.stops[editor.stopId]?.placeId &&
+                  trip.layout[d.id]?.includes(editor.stopId),
               )?.stay ?? {})
             : {}
         }
@@ -848,7 +1128,10 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
         onAttachmentsChange={(attachments) => {
           if (editor.mode !== "edit") return;
           const id = editor.stopId;
-          setTrip((t) => ({ ...t, stops: { ...t.stops, [id]: { ...t.stops[id], attachments } } }));
+          setTrip((t) => ({
+            ...t,
+            stops: { ...t.stops, [id]: { ...t.stops[id], attachments } },
+          }));
         }}
       />
     ));
@@ -875,11 +1158,19 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
         labels={labels}
       />
     ) : (
-      <div className={`grid place-items-center bg-soft text-[13px] text-muted ${className}`}>Map key not set</div>
+      <div
+        className={`grid place-items-center bg-soft text-[13px] text-muted ${className}`}
+      >
+        Map key not set
+      </div>
     );
 
   const modeSwitch = (
-    <div role="group" aria-label="Map shows" className="flex rounded-full bg-paper/95 p-1 shadow">
+    <div
+      role="group"
+      aria-label="Map shows"
+      className="flex rounded-full bg-paper/95 p-1 shadow"
+    >
       {(["day", "trip"] as const).map((m) => (
         <button
           key={m}
@@ -922,21 +1213,35 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
   const legend = (
     <ul
       className={
-        isDesktop ? "text-[13.5px]" : "flex items-center gap-3.5 overflow-x-auto px-[18px] pt-3 pb-1.5 text-[12.5px] text-muted no-scrollbar"
+        isDesktop
+          ? "text-[13.5px]"
+          : "flex items-center gap-3.5 overflow-x-auto px-[18px] pt-3 pb-1.5 text-[12.5px] text-muted no-scrollbar"
       }
     >
       {trip.legs.map((l) => (
-        <li key={l.id} className={`flex items-center gap-2 ${isDesktop ? "py-0.5" : "shrink-0"}`}>
-          <i className="inline-block h-[5px] w-4 rounded-sm" style={{ background: legColour(l.colour, dark) }} />
+        <li
+          key={l.id}
+          className={`flex items-center gap-2 ${isDesktop ? "py-0.5" : "shrink-0"}`}
+        >
+          <i
+            className="inline-block h-[5px] w-4 rounded-sm"
+            style={{ background: legColour(l.colour, dark) }}
+          />
           {l.name}
           <span className={isDesktop ? "ml-auto text-[12.5px] text-muted" : ""}>
-            {isDesktop ? dateRange(l.startDate, l.endDate) : `, ${dateRange(l.startDate, l.endDate)}`}
+            {isDesktop
+              ? dateRange(l.startDate, l.endDate)
+              : `, ${dateRange(l.startDate, l.endDate)}`}
           </span>
         </li>
       ))}
       {!isDesktop && (
         <li className="shrink-0">
-          <button type="button" onClick={() => openTripEditor("legs")} className="cursor-pointer font-bold text-ocean">
+          <button
+            type="button"
+            onClick={() => openTripEditor("legs")}
+            className="cursor-pointer font-bold text-ocean"
+          >
             Edit legs
           </button>
         </li>
@@ -956,7 +1261,12 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
       <button type="button" className="btn" disabled title="Coming in Phase 4">
         Share
       </button>
-      <button type="button" className="btn btn-primary" disabled title="Coming in Phase 3">
+      <button
+        type="button"
+        className="btn btn-primary"
+        disabled
+        title="Coming in Phase 3"
+      >
         Build plan
       </button>
     </div>
@@ -988,11 +1298,20 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
     >
       <span className="truncate">{toast.text}</span>
       {undo && !toast.error && (
-        <button type="button" className="cursor-pointer font-bold underline" onClick={runUndo}>
+        <button
+          type="button"
+          className="cursor-pointer font-bold underline"
+          onClick={runUndo}
+        >
           Undo
         </button>
       )}
-      <button type="button" aria-label="Dismiss" className="cursor-pointer opacity-70" onClick={() => setToast(null)}>
+      <button
+        type="button"
+        aria-label="Dismiss"
+        className="cursor-pointer opacity-70"
+        onClick={() => setToast(null)}
+      >
         ×
       </button>
     </div>
@@ -1017,7 +1336,17 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
               title="Hide top bar"
               className="grid h-10 w-10 cursor-pointer place-items-center rounded-full text-muted hover:bg-soft hover:text-ink"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
                 <path d="m18 15-6-6-6 6" />
               </svg>
             </button>
@@ -1032,69 +1361,86 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
         }`}
       >
         {prefs.rail && (
-        <aside className="min-h-0 overflow-y-auto border-r border-line bg-paper px-4 pt-[18px] pb-10" aria-label="Trip navigation">
-          <button
-            type="button"
-            onClick={() => setPrefs({ rail: false })}
-            className="mb-3 flex cursor-pointer items-center gap-1 text-[13px] font-bold text-muted hover:text-ink"
+          <aside
+            className="min-h-0 overflow-y-auto border-r border-line bg-paper px-4 pt-[18px] pb-10"
+            aria-label="Trip navigation"
           >
-            <span aria-hidden="true">«</span> Hide sidebar
-          </button>
-          <h2 className="mb-2 flex items-center justify-between text-[19px] font-semibold">
-            Legs
             <button
               type="button"
-              onClick={() => openTripEditor("legs")}
-              className="cursor-pointer rounded-full border-[1.5px] border-line px-2.5 py-0.5 font-sans text-[12.5px] font-bold text-ink hover:border-muted"
+              onClick={() => setPrefs({ rail: false })}
+              className="mb-3 flex cursor-pointer items-center gap-1 text-[13px] font-bold text-muted hover:text-ink"
             >
-              Edit
+              <span aria-hidden="true">«</span> Hide sidebar
             </button>
-          </h2>
-          {legend}
-          <h2 className="mt-[22px] mb-2 text-[19px] font-semibold">Days</h2>
-          <nav className="flex flex-col gap-0.5" aria-label="Jump to day">
-            {trip.days.map((d, i) => {
-              const n = trip.layout[d.id]?.length ?? 0;
-              return (
-                <button
-                  key={d.id}
-                  type="button"
-                  onClick={() => goToDay(i)}
-                  aria-current={i === activeDay}
-                  style={{ "--legc": colourOf(i) } as CSSProperties}
-                  className={`flex w-full cursor-pointer items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-left hover:bg-soft ${
-                    i === activeDay ? "bg-soft shadow-[inset_0_0_0_1.5px_var(--legc)]" : ""
-                  }`}
-                >
-                  <b className="w-1 self-stretch rounded-sm bg-[var(--legc)]" />
-                  <span className="w-[76px] shrink-0 font-display text-[17px] font-semibold">{dayLabel(d.date)}</span>
-                  <small className="truncate text-[12.5px] text-muted">
-                    {n} {n === 1 ? "stop" : "stops"}
-                    {nightTravel(i)
-                      ? `, ${overnightTravel(trip, i)!.mode === "ferry" ? "⛴ on the ferry" : "✈ overnight flight"}`
-                      : placeName(overnightOf(trip, i))
-                        ? `, ${placeName(overnightOf(trip, i))}`
-                        : ""}
-                  </small>
-                </button>
-              );
-            })}
-          </nav>
-          <h2 className="mt-[22px] mb-2 flex items-baseline justify-between text-[19px] font-semibold">
-            Not yet scheduled
-            <small className="font-sans text-[12.5px] font-normal text-muted">{trayCount ? `${trayCount} places` : ""}</small>
-          </h2>
-          {tray}
-          <button type="button" className="btn btn-quiet mt-1" onClick={() => openNew(TRAY)}>
-            Add a place
-          </button>
-        </aside>
+            <h2 className="mb-2 flex items-center justify-between text-[19px] font-semibold">
+              Legs
+              <button
+                type="button"
+                onClick={() => openTripEditor("legs")}
+                className="cursor-pointer rounded-full border-[1.5px] border-line px-2.5 py-0.5 font-sans text-[12.5px] font-bold text-ink hover:border-muted"
+              >
+                Edit
+              </button>
+            </h2>
+            {legend}
+            <h2 className="mt-[22px] mb-2 text-[19px] font-semibold">Days</h2>
+            <nav className="flex flex-col gap-0.5" aria-label="Jump to day">
+              {trip.days.map((d, i) => {
+                const n = trip.layout[d.id]?.length ?? 0;
+                return (
+                  <button
+                    key={d.id}
+                    type="button"
+                    onClick={() => goToDay(i)}
+                    aria-current={i === activeDay}
+                    style={{ "--legc": colourOf(i) } as CSSProperties}
+                    className={`flex w-full cursor-pointer items-center gap-2.5 rounded-[10px] px-2 py-1.5 text-left hover:bg-soft ${
+                      i === activeDay
+                        ? "bg-soft shadow-[inset_0_0_0_1.5px_var(--legc)]"
+                        : ""
+                    }`}
+                  >
+                    <b className="w-1 self-stretch rounded-sm bg-[var(--legc)]" />
+                    <span className="w-[76px] shrink-0 font-display text-[17px] font-semibold">
+                      {dayLabel(d.date)}
+                    </span>
+                    <small className="truncate text-[12.5px] text-muted">
+                      {n} {n === 1 ? "stop" : "stops"}
+                      {nightTravel(i)
+                        ? `, ${overnightTravel(trip, i)!.mode === "ferry" ? "⛴ on the ferry" : "✈ overnight flight"}`
+                        : placeName(overnightOf(trip, i))
+                          ? `, ${placeName(overnightOf(trip, i))}`
+                          : ""}
+                    </small>
+                  </button>
+                );
+              })}
+            </nav>
+            <h2 className="mt-[22px] mb-2 flex items-baseline justify-between text-[19px] font-semibold">
+              Not yet scheduled
+              <small className="font-sans text-[12.5px] font-normal text-muted">
+                {trayCount ? `${trayCount} places` : ""}
+              </small>
+            </h2>
+            {tray}
+            <button
+              type="button"
+              className="btn btn-quiet mt-1"
+              onClick={() => openNew(TRAY)}
+            >
+              Add a place
+            </button>
+          </aside>
         )}
 
         <main
           ref={planRef}
           className="min-h-0 overflow-y-auto px-5 pb-[60vh]"
-          style={{ "--plan-top": !prefs.rail || !prefs.header ? "49px" : "0px" } as CSSProperties}
+          style={
+            {
+              "--plan-top": !prefs.rail || !prefs.header ? "49px" : "0px",
+            } as CSSProperties
+          }
         >
           {(!prefs.rail || !prefs.header) && (
             <div className="sticky top-0 z-[4] -mx-5 flex flex-wrap items-center gap-2 border-b border-line bg-bg/95 px-5 py-2 backdrop-blur">
@@ -1105,22 +1451,35 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
                 </span>
               )}
               {!prefs.rail && (
-                <button type="button" className="btn !min-h-8 !px-3 !text-[13px]" onClick={() => setPrefs({ rail: true })}>
+                <button
+                  type="button"
+                  className="btn !min-h-8 !px-3 !text-[13px]"
+                  onClick={() => setPrefs({ rail: true })}
+                >
                   <span aria-hidden="true">»</span> Show sidebar
                 </button>
               )}
               {!prefs.header && (
-                <button type="button" className="btn !min-h-8 !px-3 !text-[13px]" onClick={() => setPrefs({ header: true })}>
+                <button
+                  type="button"
+                  className="btn !min-h-8 !px-3 !text-[13px]"
+                  onClick={() => setPrefs({ header: true })}
+                >
                   Show top bar
                 </button>
               )}
             </div>
           )}
           {days}
-          <p className="py-8 text-center text-[13.5px] text-muted">End of trip.</p>
+          <p className="py-8 text-center text-[13.5px] text-muted">
+            End of trip.
+          </p>
         </main>
 
-        <aside className="relative min-h-0 border-l border-line" style={{ "--legc": colourOf(activeDay) } as CSSProperties}>
+        <aside
+          className="relative min-h-0 border-l border-line"
+          style={{ "--legc": colourOf(activeDay) } as CSSProperties}
+        >
           {map("h-full w-full", true)}
           <div className="absolute top-3 left-3 flex flex-col items-start gap-2">
             {modeSwitch}
@@ -1128,15 +1487,23 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
               ? summary(false)
               : trip.days[activeDay] && (
                   <div className="pointer-events-none rounded-xl bg-paper/95 px-3 py-2 shadow">
-                    <span className="block text-[12.5px] font-bold text-[var(--legc)]">{activeLeg?.name}</span>
+                    <span className="block text-[12.5px] font-bold text-[var(--legc)]">
+                      {activeLeg?.name}
+                    </span>
                     <span className="font-display text-[22px] leading-none font-bold">
                       {dayLabel(trip.days[activeDay].date)}
                     </span>
                   </div>
                 )}
           </div>
-          <div className="absolute top-3 right-3 max-w-[calc(100%-24px)]">{mapSearch(false)}</div>
-          {resultCard && <div className="absolute bottom-8 left-3 max-w-[calc(100%-24px)]">{resultCard}</div>}
+          <div className="absolute top-3 right-3 max-w-[calc(100%-24px)]">
+            {mapSearch(false)}
+          </div>
+          {resultCard && (
+            <div className="absolute bottom-8 left-3 max-w-[calc(100%-24px)]">
+              {resultCard}
+            </div>
+          )}
           {editorEl && (
             <div className="absolute inset-y-0 right-0 z-10 w-[420px] max-w-full overflow-y-auto border-l border-line bg-paper shadow-xl">
               {editorEl}
@@ -1152,57 +1519,92 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
         <p className="text-[14px] text-muted">{subtitle}</p>
         <div className="mt-3">{actions}</div>
       </header>
-      <div className="relative">
-        {map(`${mapMode === "trip" || search ? "h-[320px]" : "h-[220px]"} border-y border-line`, false)}
-        <div className="absolute top-2.5 right-2.5">{modeSwitch}</div>
-        {!searchOpen && <div className="absolute top-2.5 left-2.5">{mapSearch(true)}</div>}
-      </div>
-      {(searchOpen || resultCard) && (
-        <div className="flex flex-col gap-2 border-b border-line bg-soft px-[18px] py-2.5">
-          {searchOpen && mapSearch(true)}
-          {resultCard}
+      {/* Map, search and day strip stay pinned while the trip list scrolls underneath. */}
+      <div
+        ref={stickyRef}
+        className="sticky top-0 z-10 bg-paper shadow-[0_2px_8px_rgba(10,20,22,0.08)]"
+      >
+        <div className="relative">
+          {map(
+            `${mapMode === "trip" || search ? "h-[260px]" : "h-[200px]"} border-b border-line`,
+            false,
+          )}
+          <div className="absolute top-2.5 right-2.5">{modeSwitch}</div>
+          {!searchOpen && (
+            <div className="absolute top-2.5 left-2.5">{mapSearch(true)}</div>
+          )}
         </div>
+        {(searchOpen || resultCard) && (
+          <div className="flex flex-col gap-2 border-b border-line bg-soft px-[18px] py-2.5">
+            {searchOpen && mapSearch(true)}
+            {resultCard}
+          </div>
+        )}
+        <div ref={stripRef} className="border-b border-line bg-paper">
+          {legend}
+          <div
+            className="flex gap-1.5 overflow-x-auto px-[18px] pt-1.5 pb-3 no-scrollbar"
+            role="group"
+            aria-label="Jump to day"
+          >
+            {trip.days.map((d, i) => {
+              const date = new Date(`${d.date}T00:00:00`);
+              return (
+                <button
+                  key={d.id}
+                  type="button"
+                  data-strip-index={i}
+                  onClick={() => goToDay(i)}
+                  aria-pressed={i === activeDay}
+                  aria-label={`Jump to ${dayLabel(d.date)}`}
+                  style={{ "--legc": colourOf(i) } as CSSProperties}
+                  className={`w-[52px] shrink-0 cursor-pointer overflow-hidden rounded-xl border-[1.5px] bg-paper pb-1.5 text-center ${
+                    i === activeDay
+                      ? "border-[var(--legc)] shadow-[inset_0_0_0_1.5px_var(--legc)]"
+                      : "border-line"
+                  }`}
+                >
+                  <b className="block h-[5px] bg-[var(--legc)]" />
+                  <small className="mt-[5px] block text-[11px] text-muted">
+                    {date.toLocaleDateString("en-AU", { weekday: "short" })}
+                  </small>
+                  <em className="block font-display text-[22px] leading-[1.05] font-bold not-italic">
+                    {date.getDate()}
+                  </em>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+      {mapMode === "trip" && (
+        <div className="border-b border-line">{summary(true)}</div>
       )}
-      {mapMode === "trip" && <div className="border-b border-line">{summary(true)}</div>}
-      <div ref={stripRef} className="sticky top-0 z-10 border-b border-line bg-paper">
-        {legend}
-        <div className="flex gap-1.5 overflow-x-auto px-[18px] pt-1.5 pb-3 no-scrollbar" role="group" aria-label="Jump to day">
-          {trip.days.map((d, i) => {
-            const date = new Date(`${d.date}T00:00:00`);
-            return (
-              <button
-                key={d.id}
-                type="button"
-                data-strip-index={i}
-                onClick={() => goToDay(i)}
-                aria-pressed={i === activeDay}
-                aria-label={`Jump to ${dayLabel(d.date)}`}
-                style={{ "--legc": colourOf(i) } as CSSProperties}
-                className={`w-[52px] shrink-0 cursor-pointer overflow-hidden rounded-xl border-[1.5px] bg-paper pb-1.5 text-center ${
-                  i === activeDay ? "border-[var(--legc)] shadow-[inset_0_0_0_1.5px_var(--legc)]" : "border-line"
-                }`}
-              >
-                <b className="block h-[5px] bg-[var(--legc)]" />
-                <small className="mt-[5px] block text-[11px] text-muted">
-                  {date.toLocaleDateString("en-AU", { weekday: "short" })}
-                </small>
-                <em className="block font-display text-[22px] leading-[1.05] font-bold not-italic">{date.getDate()}</em>
-              </button>
-            );
-          })}
-        </div>
+      <div style={{ "--sticky-h": `${stickyHeight + 8}px` } as CSSProperties}>
+        {days}
       </div>
-      {days}
       <section className="px-[18px] pt-6 pb-2" aria-labelledby="tray-heading">
-        <h2 id="tray-heading" className="mb-2 border-b-2 border-line pb-2 text-[22px] font-bold">
-          Not yet scheduled <small className="font-sans text-[13px] font-normal text-muted">{trayCount || ""}</small>
+        <h2
+          id="tray-heading"
+          className="mb-2 border-b-2 border-line pb-2 text-[22px] font-bold"
+        >
+          Not yet scheduled{" "}
+          <small className="font-sans text-[13px] font-normal text-muted">
+            {trayCount || ""}
+          </small>
         </h2>
         {tray}
-        <button type="button" className="btn btn-quiet mt-1" onClick={() => openNew(TRAY)}>
+        <button
+          type="button"
+          className="btn btn-quiet mt-1"
+          onClick={() => openNew(TRAY)}
+        >
           Add a place
         </button>
       </section>
-      <p className="px-[18px] pt-6 pb-40 text-center text-[13px] text-muted">End of trip.</p>
+      <p className="px-[18px] pt-6 pb-40 text-center text-[13px] text-muted">
+        End of trip.
+      </p>
       {editorEl}
     </div>
   );
@@ -1215,8 +1617,14 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
         <StopInfo
           stopId={infoStop}
           stopName={trip.stops[infoStop].name}
-          mapsUrl={googleMapsLink(trip.places[trip.stops[infoStop].placeId], trip.stops[infoStop].name)}
-          hipcampUrl={hipcampLink(trip.places[trip.stops[infoStop].placeId], trip.stops[infoStop].name)}
+          mapsUrl={googleMapsLink(
+            trip.places[trip.stops[infoStop].placeId],
+            trip.stops[infoStop].name,
+          )}
+          hipcampUrl={hipcampLink(
+            trip.places[trip.stops[infoStop].placeId],
+            trip.stops[infoStop].name,
+          )}
           onClose={() => setInfoStop(null)}
         />
       )}

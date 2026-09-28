@@ -62,7 +62,7 @@ export function DaySection({ sectionRef, ...p }: Props) {
       ref={sectionRef}
       data-day-index={p.index}
       style={style}
-      className={p.compact ? "scroll-mt-[128px] px-[18px] pb-1" : "scroll-mt-[var(--plan-top,0px)] pt-[26px]"}
+      className={p.compact ? "scroll-mt-[var(--sticky-h,360px)] px-[18px] pb-1" : "scroll-mt-[var(--plan-top,0px)] pt-[26px]"}
       aria-labelledby={`day-${p.day.id}`}
     >
       <div className={`${p.compact ? "pt-[18px]" : "sticky top-[var(--plan-top,0px)] z-[3] bg-bg pt-3"} border-b-2 border-[var(--legc)] pb-2`}>
