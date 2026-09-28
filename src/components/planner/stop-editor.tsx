@@ -93,28 +93,24 @@ export function StopEditor(props: Props) {
 
       <label className="field">
         {isNew ? "Place" : "Name"}
-        {isNew ? (
-          <PlaceSearch
-            tripId={tripId}
-            session={session}
-            inputRef={nameRef}
-            value={values.name}
-            onChange={(text) => setValues((v) => ({ ...v, name: text, picked: null }))}
-            onPick={(sug) => setValues((v) => ({ ...v, name: sug.main, picked: { ...sug, session } }))}
-          />
-        ) : (
-          <input ref={nameRef} value={values.name} onChange={(e) => set("name", e.target.value)} autoComplete="off" />
-        )}
+        <PlaceSearch
+          tripId={tripId}
+          session={session}
+          inputRef={nameRef}
+          value={values.name}
+          onChange={(text) => setValues((v) => ({ ...v, name: text, picked: null }))}
+          onPick={(sug) => setValues((v) => ({ ...v, name: sug.main, picked: { ...sug, session } }))}
+        />
       </label>
-      {isNew && (
-        <p className={`-mt-2 text-[12.5px] ${values.picked ? "text-good-ink" : "text-muted"}`}>
-          {values.picked
-            ? `On the map: ${values.picked.main}${values.picked.secondary ? `, ${values.picked.secondary}` : ""}`
-            : values.name.trim()
+      <p className={`-mt-2 text-[12.5px] ${values.picked ? "text-good-ink" : "text-muted"}`}>
+        {values.picked
+          ? `${isNew ? "On the map" : "Moves to"}: ${values.picked.main}${values.picked.secondary ? `, ${values.picked.secondary}` : ""}`
+          : isNew
+            ? values.name.trim()
               ? "Pick a match to put it on the map, or save to add it without a location."
-              : "Search Google Maps and pick the right place."}
-        </p>
-      )}
+              : "Search Google Maps and pick the right place."
+            : "Pick a match to move this stop to that place, or just edit the name."}
+      </p>
 
       <div className="grid grid-cols-2 gap-2.5">
         <label className="field">

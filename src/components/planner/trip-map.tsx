@@ -10,7 +10,9 @@ export type MapPoint = {
   colour: string;
   badge: string | null; // text inside the pin (stop number, day of month); null draws a small dot
   name: string; // side label and tooltip
+  result?: boolean; // a map search result rather than a trip stop
 };
+export type MapBounds = { north: number; south: number; east: number; west: number };
 export type MapRoute = { path: string; colour: string }; // encoded polyline
 
 type Props = {
@@ -21,13 +23,14 @@ type Props = {
   fitKey: string; // refit the view when this changes (the day in view, or whole-trip mode)
   className?: string;
   labels?: boolean;
+  onBoundsChanged?: (bounds: MapBounds) => void;
 };
 
 const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID;
 const TASMANIA = { lat: -42.0, lng: 146.6 };
 
 /** A Google map of pins and drive routes: one day, or the whole trip. */
-export function TripMap({ points, routes, selectedId, onSelect, fitKey, className, labels = true }: Props) {
+export function TripMap({ points, routes, selectedId, onSelect, fitKey, className, labels = true, onBoundsChanged }: Props) {
   return (
     <div className={`relative ${className ?? ""}`}>
       <Map
@@ -40,6 +43,7 @@ export function TripMap({ points, routes, selectedId, onSelect, fitKey, classNam
         zoomControl
         clickableIcons={false}
         className="h-full w-full"
+        onCameraChanged={(e) => onBoundsChanged?.(e.detail.bounds)}
       >
         {routes.map((r, i) => (
           <Polyline
@@ -52,6 +56,33 @@ export function TripMap({ points, routes, selectedId, onSelect, fitKey, classNam
         ))}
         {points.map((p) => {
           const selected = p.id === selectedId;
+          if (p.result) {
+            return (
+              <AdvancedMarker
+                key={p.id}
+                position={p}
+                title={p.name}
+                zIndex={selected ? 20 : 5}
+                anchorPoint={AdvancedMarkerAnchorPoint.BOTTOM_CENTER}
+                onClick={() => onSelect(p.id)}
+              >
+                <div className="relative flex flex-col items-center">
+                  <span
+                    className="grid place-items-center rounded-full border-2 border-white shadow-md"
+                    style={{ width: selected ? 30 : 24, height: selected ? 30 : 24, background: p.colour }}
+                  >
+                    <span className="h-2 w-2 rounded-full bg-white" />
+                  </span>
+                  <span className="-mt-0.5 h-2 w-0.5" style={{ background: p.colour }} />
+                  {selected && (
+                    <span className="absolute top-0 left-full ml-1.5 rounded bg-paper/95 px-1 font-display text-[14px] font-semibold whitespace-nowrap text-ink shadow">
+                      {p.name}
+                    </span>
+                  )}
+                </div>
+              </AdvancedMarker>
+            );
+          }
           const size = p.badge === null ? (selected ? 14 : 10) : selected ? 32 : 26;
           return (
             <AdvancedMarker

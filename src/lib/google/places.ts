@@ -99,3 +99,78 @@ export async function placeDetails(placeId: string, sessionToken?: string): Prom
     mapsUrl: p.googleMapsUri ?? null,
   };
 }
+
+export type SearchResult = {
+  placeId: string;
+  name: string;
+  lat: number;
+  lng: number;
+  address: string | null;
+  type: string | null;
+  rating: number | null;
+  ratings: number | null;
+  businessStatus: string | null;
+  mapsUrl: string | null;
+};
+
+/** Places matching free text ("campgrounds", "fuel") inside a rectangle, best matches first. */
+export async function searchInArea(query: string, area: Bounds): Promise<SearchResult[]> {
+  const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Goog-Api-Key": key(),
+      "X-Goog-FieldMask": [
+        "places.id",
+        "places.displayName",
+        "places.location",
+        "places.formattedAddress",
+        "places.primaryTypeDisplayName",
+        "places.rating",
+        "places.userRatingCount",
+        "places.businessStatus",
+        "places.googleMapsUri",
+      ].join(","),
+    },
+    body: JSON.stringify({
+      textQuery: query,
+      locationRestriction: rectangle(area),
+      pageSize: 20,
+      languageCode: "en-AU",
+      regionCode: "AU",
+    }),
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Places text search ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  const body = (await res.json()) as {
+    places?: {
+      id: string;
+      displayName?: { text: string };
+      location?: { latitude: number; longitude: number };
+      formattedAddress?: string;
+      primaryTypeDisplayName?: { text: string };
+      rating?: number;
+      userRatingCount?: number;
+      businessStatus?: string;
+      googleMapsUri?: string;
+    }[];
+  };
+  return (body.places ?? []).flatMap((p) =>
+    p.location
+      ? [
+          {
+            placeId: p.id,
+            name: p.displayName?.text ?? "Unnamed place",
+            lat: p.location.latitude,
+            lng: p.location.longitude,
+            address: p.formattedAddress ?? null,
+            type: p.primaryTypeDisplayName?.text ?? null,
+            rating: p.rating ?? null,
+            ratings: p.userRatingCount ?? null,
+            businessStatus: p.businessStatus ?? null,
+            mapsUrl: p.googleMapsUri ?? null,
+          },
+        ]
+      : [],
+  );
+}

@@ -19,7 +19,7 @@ export function PlaceSearch({ tripId, session, value, onChange, onPick, inputRef
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
-  const skipNext = useRef(false);
+  const skipNext = useRef(true); // no search for the name the field opens with, only for typing
   const listId = useId();
 
   useEffect(() => {

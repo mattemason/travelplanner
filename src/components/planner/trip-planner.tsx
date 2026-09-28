@@ -24,7 +24,8 @@ import { SortableList } from "./sortable-list";
 import { StopCard, type DriveIn } from "./stop-card";
 import { StopEditor, type EditorValues } from "./stop-editor";
 import { TripEditor } from "./trip-editor";
-import { TripMap, type MapPoint, type MapRoute } from "./trip-map";
+import { MapSearch, ResultCard, type SearchResult } from "./map-search";
+import { TripMap, type MapBounds, type MapPoint, type MapRoute } from "./trip-map";
 import { TripSummary } from "./trip-summary";
 import { legColour, useIsDesktop, usePrefersDark } from "./use-media";
 
@@ -38,6 +39,7 @@ type Undo = { label: string; layout?: Layout; stop?: Stop; createdStopId?: strin
 type SegCache = Record<string, Segment | null>;
 
 const MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY ?? "";
+const RESULT_COLOUR = "#6B3FA0"; // search results, distinct from the leg colours
 
 export function TripPlanner({ initial }: { initial: TripData }) {
   const [trip, setTrip] = useState(initial);
@@ -46,6 +48,10 @@ export function TripPlanner({ initial }: { initial: TripData }) {
   const [selectedStop, setSelectedStop] = useState<string | null>(null);
   const [mapMode, setMapMode] = useState<"day" | "trip">("day");
   const [rerouting, setRerouting] = useState<string | null>(null);
+  const [search, setSearch] = useState<SearchResult[] | null>(null);
+  const [selectedResult, setSelectedResult] = useState<string | null>(null);
+  const [addedResults, setAddedResults] = useState<Set<string>>(() => new Set());
+  const boundsRef = useRef<MapBounds | null>(null);
   const [editor, setEditor] = useState<Editor | null>(null);
   const [saving, setSaving] = useState(false);
   const [editorError, setEditorError] = useState<string | null>(null);
@@ -235,7 +241,7 @@ export function TripPlanner({ initial }: { initial: TripData }) {
       }
       if (entry.stop) {
         const s = entry.stop;
-        await updateStop(tripRef.current.id, s.id, fieldsOf(s));
+        await updateStop(tripRef.current.id, s.id, fieldsOf(s), { kind: "existing", placeId: s.placeId });
         setTrip((t) => ({ ...t, stops: { ...t.stops, [s.id]: s } }));
       }
       if (entry.layout) await applyLayout(entry.layout, null);
@@ -287,8 +293,15 @@ export function TripPlanner({ initial }: { initial: TripData }) {
         const prevStop = trip.stops[editor.stopId];
         const prevLayout = trip.layout;
         const from = containerOf(prevLayout, editor.stopId);
-        const saved = await updateStop(trip.id, editor.stopId, fields);
-        setTrip((t) => ({ ...t, stops: { ...t.stops, [saved.id]: saved } }));
+        const ref: PlaceRef | undefined = v.picked
+          ? { kind: "google", googlePlaceId: v.picked.placeId, session: v.picked.session }
+          : undefined;
+        const { stop: saved, place } = await updateStop(trip.id, editor.stopId, fields, ref);
+        setTrip((t) => ({
+          ...t,
+          stops: { ...t.stops, [saved.id]: saved },
+          places: { ...t.places, [place.id]: place },
+        }));
         if (from !== v.container) {
           await applyLayout(moveStop(prevLayout, saved.id, v.container, Number.MAX_SAFE_INTEGER), null);
         }
@@ -447,7 +460,63 @@ export function TripPlanner({ initial }: { initial: TripData }) {
     });
   }
 
+  for (const r of search ?? []) {
+    mapPoints.push({ id: `result:${r.placeId}`, lat: r.lat, lng: r.lng, colour: RESULT_COLOUR, badge: null, name: r.name, result: true });
+  }
+
+  const getArea = () => {
+    const b = boundsRef.current;
+    return b ? { low: { lat: b.south, lng: b.west }, high: { lat: b.north, lng: b.east } } : null;
+  };
+
+  const addResult = async (r: SearchResult, container: string) => {
+    try {
+      const position = tripRef.current.layout[container]?.length ?? 0;
+      const fields = { name: r.name, time: null, tags: [], notes: "", bookingRef: "", link: "" };
+      const { stop, place } = await createStop(trip.id, container, position, fields, {
+        kind: "google",
+        googlePlaceId: r.placeId,
+      });
+      setTrip((t) => ({
+        ...t,
+        stops: { ...t.stops, [stop.id]: stop },
+        places: { ...t.places, [place.id]: place },
+        layout: { ...t.layout, [container]: [...(t.layout[container] ?? []), stop.id] },
+      }));
+      setAddedResults((s) => new Set(s).add(r.placeId));
+      setUndo({ label: `Added ${stop.name} to ${containerLabel(container)}`, createdStopId: stop.id });
+      setToast({ text: `Added ${stop.name} to ${containerLabel(container)}` });
+    } catch {
+      setToast({ text: "Couldn't add that place. Try again.", error: true });
+    }
+  };
+
+  const onSearchResults = (_query: string | null, results: SearchResult[] | null) => {
+    setSearch(results);
+    setSelectedResult(null);
+  };
+
+  const mapSearch = (compact: boolean) => (
+    <MapSearch tripId={trip.id} getArea={getArea} results={search} onResults={onSearchResults} compact={compact} />
+  );
+  const pickedResult = search?.find((r) => r.placeId === selectedResult) ?? null;
+  const resultCard = pickedResult && (
+    <ResultCard
+      key={pickedResult.placeId}
+      result={pickedResult}
+      days={trip.days}
+      defaultContainer={activeDayId ?? TRAY}
+      added={addedResults.has(pickedResult.placeId)}
+      onAdd={(container) => addResult(pickedResult, container)}
+      onClose={() => setSelectedResult(null)}
+    />
+  );
+
   const onMapSelect = (id: string) => {
+    if (id.startsWith("result:")) {
+      setSelectedResult(id.slice("result:".length));
+      return;
+    }
     setSelectedStop(id);
     const dayIndex = dayIndexOfPoint.get(id);
     if (mapMode === "trip" && dayIndex !== undefined) goToDay(dayIndex);
@@ -545,8 +614,11 @@ export function TripPlanner({ initial }: { initial: TripData }) {
       <TripMap
         points={mapPoints}
         routes={mapRoutes}
-        selectedId={selectedStop}
+        selectedId={selectedResult ? `result:${selectedResult}` : selectedStop}
         onSelect={onMapSelect}
+        onBoundsChanged={(b) => {
+          boundsRef.current = b;
+        }}
         fitKey={mapMode === "trip" ? `trip-${isDesktop}` : `${activeDay}-${mapPoints.length}-${isDesktop}`}
         className={className}
         labels={labels}
@@ -747,6 +819,8 @@ export function TripPlanner({ initial }: { initial: TripData }) {
                   </div>
                 )}
           </div>
+          <div className="absolute top-3 right-3 max-w-[calc(100%-24px)]">{mapSearch(false)}</div>
+          {resultCard && <div className="absolute bottom-8 left-3 max-w-[calc(100%-24px)]">{resultCard}</div>}
           {editorEl && (
             <div className="absolute inset-y-0 right-0 z-10 w-[420px] max-w-full overflow-y-auto border-l border-line bg-paper shadow-xl">
               {editorEl}
@@ -763,8 +837,12 @@ export function TripPlanner({ initial }: { initial: TripData }) {
         <div className="mt-3">{actions}</div>
       </header>
       <div className="relative">
-        {map(`${mapMode === "trip" ? "h-[320px]" : "h-[220px]"} border-y border-line`, false)}
+        {map(`${mapMode === "trip" || search ? "h-[320px]" : "h-[220px]"} border-y border-line`, false)}
         <div className="absolute top-2.5 right-2.5">{modeSwitch}</div>
+      </div>
+      <div className="flex flex-col gap-2 border-b border-line bg-soft px-[18px] py-2.5">
+        {mapSearch(true)}
+        {resultCard}
       </div>
       {mapMode === "trip" && <div className="border-b border-line">{summary(true)}</div>}
       <div ref={stripRef} className="sticky top-0 z-10 border-b border-line bg-paper">

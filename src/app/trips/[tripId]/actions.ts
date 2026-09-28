@@ -9,7 +9,7 @@ import { placeDetails } from "@/lib/google/places";
 import { loadTrip } from "@/lib/trip/load";
 import { applyOrder, rerouteParts } from "@/lib/trip/reroute";
 import { optimiseOrder } from "@/lib/google/routes";
-import { TAGS, TRAY, type Stop } from "@/lib/trip/types";
+import { TAGS, TRAY, type Place, type Stop } from "@/lib/trip/types";
 
 // Every function here is reachable by direct POST: each one re-checks that the signed-in
 // user owns the trip, and that every id it touches belongs to that trip.
@@ -77,23 +77,79 @@ const stopFields = z.object({
 });
 export type StopFields = z.infer<typeof stopFields>;
 
-/** Saves the editor's fields for an existing stop. */
-export async function updateStop(tripId: string, stopId: string, fields: StopFields): Promise<Stop> {
-  const { tripId: id } = await ownedTrip(tripId);
-  const f = stopFields.parse(fields);
-  const db = getDb();
-  const [stop] = await db
-    .select({ placeId: t.stops.placeId, placeName: t.places.name })
-    .from(t.stops)
-    .innerJoin(t.places, eq(t.places.id, t.stops.placeId))
-    .where(and(eq(t.stops.id, stopId), eq(t.stops.tripId, id)));
-  if (!stop) throw new Error("Stop not found");
+const placeRef = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("google"), googlePlaceId: z.string().min(10).max(300), session: z.string().uuid().optional() }),
+  z.object({ kind: z.literal("existing"), placeId: uuid }),
+  z.object({ kind: z.literal("manual") }),
+]);
+export type PlaceRef = z.infer<typeof placeRef>;
 
-  const name = f.name || stop.placeName;
+/** The place a PlaceRef points at, creating or refreshing the row as needed. */
+async function resolvePlace(userId: string, ref: PlaceRef, fallbackName: string) {
+  const db = getDb();
+  if (ref.kind === "google") {
+    const found = await placeDetails(ref.googlePlaceId, ref.session);
+    if (!found) throw new Error("That place couldn't be found on Google Maps. Search again.");
+    const [place] = await db
+      .insert(t.places)
+      .values({ userId, sourceList: "manual", ...found, lastEnrichedAt: new Date() })
+      .onConflictDoUpdate({
+        target: [t.places.userId, t.places.googlePlaceId],
+        targetWhere: sql`google_place_id is not null`,
+        set: { lat: found.lat, lng: found.lng, businessStatus: found.businessStatus, lastEnrichedAt: new Date() },
+      })
+      .returning();
+    return place;
+  }
+  if (ref.kind === "existing") {
+    const [place] = await db
+      .select()
+      .from(t.places)
+      .where(and(eq(t.places.id, ref.placeId), eq(t.places.userId, userId)));
+    if (!place) throw new Error("Place not found");
+    return place;
+  }
+  const [place] = await db
+    .insert(t.places)
+    .values({ userId, name: fallbackName || "Untitled stop", sourceList: "manual" })
+    .returning();
+  return place;
+}
+
+const clientPlace = (p: typeof t.places.$inferSelect): Place => ({
+  id: p.id,
+  name: p.name,
+  lat: p.lat,
+  lng: p.lng,
+  businessStatus: p.businessStatus,
+  mapsUrl: p.mapsUrl,
+});
+
+/**
+ * Saves the editor's fields for an existing stop. With a place (a Google pick, or the old place
+ * when undoing), the stop moves to that place; otherwise only its name label changes.
+ */
+export async function updateStop(tripId: string, stopId: string, fields: StopFields, ref?: PlaceRef) {
+  const { tripId: id, userId } = await ownedTrip(tripId);
+  const f = stopFields.parse(fields);
+  const where = ref ? placeRef.parse(ref) : null;
+  if (where?.kind === "manual") throw new Error("A stop can only move to a known place");
+  const db = getDb();
+  const [row] = await db
+    .select({ placeId: t.stops.placeId })
+    .from(t.stops)
+    .where(and(eq(t.stops.id, uuid.parse(stopId)), eq(t.stops.tripId, id)));
+  if (!row) throw new Error("Stop not found");
+
+  const place = where
+    ? await resolvePlace(userId, where, f.name)
+    : (await db.select().from(t.places).where(eq(t.places.id, row.placeId)))[0];
+  const name = f.name || place.name;
   await db
     .update(t.stops)
     .set({
-      label: name === stop.placeName ? null : name,
+      placeId: place.id,
+      label: name === place.name ? null : name,
       plannedTime: f.time,
       tags: f.tags,
       notes: f.notes || null,
@@ -102,9 +158,9 @@ export async function updateStop(tripId: string, stopId: string, fields: StopFie
     })
     .where(eq(t.stops.id, stopId));
 
-  return {
+  const stop: Stop = {
     id: stopId,
-    placeId: stop.placeId,
+    placeId: place.id,
     name,
     time: f.time,
     tags: f.tags as Stop["tags"],
@@ -112,14 +168,8 @@ export async function updateStop(tripId: string, stopId: string, fields: StopFie
     bookingRef: f.bookingRef,
     link: f.link,
   };
+  return { stop, place: clientPlace(place) };
 }
-
-const placeRef = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("google"), googlePlaceId: z.string().min(10).max(300), session: z.string().uuid().optional() }),
-  z.object({ kind: z.literal("existing"), placeId: uuid }),
-  z.object({ kind: z.literal("manual") }),
-]);
-export type PlaceRef = z.infer<typeof placeRef>;
 
 /**
  * Creates a stop. The place is the Google result picked in the editor, an existing place
@@ -146,31 +196,7 @@ export async function createStop(
     if (!day) throw new Error("Day not found");
   }
 
-  let place: typeof t.places.$inferSelect | undefined;
-  if (where.kind === "google") {
-    const found = await placeDetails(where.googlePlaceId, where.session);
-    if (!found) throw new Error("That place couldn't be found on Google Maps. Search again.");
-    [place] = await db
-      .insert(t.places)
-      .values({ userId, sourceList: "manual", ...found, lastEnrichedAt: new Date() })
-      .onConflictDoUpdate({
-        target: [t.places.userId, t.places.googlePlaceId],
-        targetWhere: sql`google_place_id is not null`,
-        set: { lat: found.lat, lng: found.lng, businessStatus: found.businessStatus, lastEnrichedAt: new Date() },
-      })
-      .returning();
-  } else if (where.kind === "existing") {
-    [place] = await db
-      .select()
-      .from(t.places)
-      .where(and(eq(t.places.id, where.placeId), eq(t.places.userId, userId)));
-    if (!place) throw new Error("Place not found");
-  } else {
-    [place] = await db
-      .insert(t.places)
-      .values({ userId, name: f.name || "Untitled stop", sourceList: "manual" })
-      .returning();
-  }
+  const place = await resolvePlace(userId, where, f.name);
 
   const name = f.name || place.name;
   const [stop] = await db
@@ -200,14 +226,7 @@ export async function createStop(
       bookingRef: f.bookingRef,
       link: f.link,
     } satisfies Stop,
-    place: {
-      id: place.id,
-      name: place.name,
-      lat: place.lat,
-      lng: place.lng,
-      businessStatus: place.businessStatus,
-      mapsUrl: place.mapsUrl,
-    },
+    place: clientPlace(place),
   };
 }
 
