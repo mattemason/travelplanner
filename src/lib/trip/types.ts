@@ -65,7 +65,7 @@ export type Transport = {
 };
 
 /** Where you stay the night: times "HH:MM". */
-export type Stay = { checkIn?: string; checkOut?: string; bookingRef?: string; phone?: string };
+export type Stay = { name?: string; checkIn?: string; checkOut?: string; bookingRef?: string; phone?: string };
 
 /** Modes you book and ride, which get travel details. */
 export const BOOKED_MODES: readonly ArriveBy[] = ["ferry", "flight", "bus", "train"];

@@ -79,7 +79,7 @@ const transportFields = z.object({
   checkInBy: hhmm,
   seat: text(40),
 });
-const stayFields = z.object({ checkIn: hhmm, checkOut: hhmm, bookingRef: text(80), phone: text(40) });
+const stayFields = z.object({ name: text(120), checkIn: hhmm, checkOut: hhmm, bookingRef: text(80), phone: text(40) });
 
 const stopFields = z.object({
   name: z.string().trim().max(200),

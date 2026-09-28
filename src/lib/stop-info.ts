@@ -39,8 +39,14 @@ export async function stopContext(userId: string, stopId: string): Promise<StopC
 
   let overnight: string | null = null;
   if (day?.overnightPlaceId) {
-    const [night] = await db.select({ name: t.places.name }).from(t.places).where(eq(t.places.id, day.overnightPlaceId));
-    overnight = night?.name ?? null;
+    // Only a real overnight: one of that day's stops must be the overnight place.
+    const [night] = await db
+      .select({ name: t.places.name })
+      .from(t.stops)
+      .innerJoin(t.places, eq(t.places.id, t.stops.placeId))
+      .where(and(eq(t.stops.dayId, day.id), eq(t.stops.placeId, day.overnightPlaceId)))
+      .limit(1);
+    overnight = (day.stay as { name?: string } | null)?.name || night?.name || null;
   }
 
   const lines = [

@@ -66,7 +66,8 @@ export function StopEditor(props: Props) {
     categories: stop?.categories ?? [],
     arriveBy: stop?.arriveBy ?? "drive",
     transport: stop?.transport ?? {},
-    stay: isOvernight ? initialStay : {},
+    // Existing overnights without a lodging name start from the stop name.
+    stay: isOvernight ? { ...initialStay, name: initialStay.name?.trim() || stop?.name || "" } : {},
     notes: stop?.notes ?? "",
     bookingRef: stop?.bookingRef ?? "",
     link: stop?.link ?? "",
@@ -207,7 +208,15 @@ export function StopEditor(props: Props) {
           <input
             type="checkbox"
             checked={values.overnight}
-            onChange={(e) => set("overnight", e.target.checked)}
+            onChange={(e) => {
+              const on = e.target.checked;
+              // Start the lodging name from the stop name; it stays editable.
+              setValues((v) => ({
+                ...v,
+                overnight: on,
+                stay: on && !v.stay.name?.trim() ? { ...v.stay, name: v.name } : v.stay,
+              }));
+            }}
             className="h-5 w-5 cursor-pointer accent-[var(--ocean)]"
           />
           Overnight here
@@ -217,6 +226,7 @@ export function StopEditor(props: Props) {
       {values.container !== TRAY && values.overnight && (
         <fieldset className="mt-2 rounded-xl border border-line px-3 pt-1 pb-3">
           <legend className="px-1 text-[13px] font-bold text-muted">Stay details</legend>
+          <Text label="Lodging name" value={values.stay.name} onChange={(name) => setStay({ name })} />
           <div className="grid grid-cols-2 gap-x-2.5">
             <label className="field !my-1.5">
               Check-in

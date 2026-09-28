@@ -728,7 +728,7 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
       colour={colourOf(i)}
       stops={(trip.layout[day.id] ?? []).map((id) => trip.stops[id]).filter(Boolean)}
       places={trip.places}
-      overnight={placeName(overnightOf(trip, i))}
+      overnight={overnightOf(trip, i) ? day.stay.name?.trim() || placeName(overnightOf(trip, i)) : null}
       overnightTravel={nightTravel(i)}
       drive={drives[i]}
       warnings={warnings[i]}

@@ -55,7 +55,7 @@ export default async function DayViewPage({ params }: PageProps<"/trips/[tripId]
   const overnight = travel
     ? overnightTravelLabel(travel)
     : overnightOf(trip, index)
-      ? trip.places[overnightOf(trip, index)!]?.name
+      ? day.stay.name?.trim() || trip.places[overnightOf(trip, index)!]?.name
       : null;
   const prevOvernight = trip.places[dayStart(trip, index) ?? ""]?.name ?? null;
   const weatherStops = stops.filter((s) => s.tags.includes("weather"));
