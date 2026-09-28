@@ -157,14 +157,12 @@ export function DaySection({ sectionRef, ...p }: Props) {
         >
           {p.rerouting ? "Re-routing…" : "Re-route"}
         </button>
-        {p.compact && (
-          <Link
-            href={`/trips/${p.tripId}/day/${p.day.date}`}
-            className="text-[14px] font-bold text-ocean underline-offset-2 hover:underline"
-          >
-            Day view ›
-          </Link>
-        )}
+        <Link
+          href={`/trips/${p.tripId}/day/${p.day.date}`}
+          className="text-[14px] font-bold text-ocean underline-offset-2 hover:underline"
+        >
+          Day view ›
+        </Link>
       </div>
     </section>
   );
