@@ -33,9 +33,14 @@ export default async function TripsPage() {
         </div>
       </header>
 
-      <Link href="/trips/new" className="btn btn-primary self-start">
-        Add a new trip
-      </Link>
+      <div className="flex flex-wrap gap-2">
+        <Link href="/trips/new" className="btn btn-primary">
+          Add a new trip
+        </Link>
+        <Link href="/checklists" className="btn">
+          Checklists
+        </Link>
+      </div>
 
       {myTrips.length === 0 ? (
         <p className="text-muted">No trips yet. Add one to get started.</p>

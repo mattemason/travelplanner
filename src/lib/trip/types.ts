@@ -8,7 +8,10 @@ export const TAGS = [
   { key: "book_ahead", label: "Book ahead" },
   { key: "weather", label: "Weather" },
 ] as const;
-export type Tag = (typeof TAGS)[number]["key"];
+export type BuiltinTag = (typeof TAGS)[number]["key"];
+/** A built-in tag key, or the name of one of the user's own tags. */
+export type Tag = string;
+export const tagLabel = (tag: string) => TAGS.find((t) => t.key === tag)?.label ?? tag;
 
 export type LatLng = { lat: number; lng: number };
 
@@ -27,6 +30,7 @@ export type Stop = {
   name: string; // label override, or the place name
   time: string | null; // "HH:MM"
   tags: Tag[];
+  categories: string[];
   notes: string;
   bookingRef: string;
   link: string;

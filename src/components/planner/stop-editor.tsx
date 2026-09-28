@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { CategoryPicker, TagPicker, type LabelOps } from "./label-pickers";
 import { PlaceSearch, type Suggestion } from "./place-search";
 import { dayLabel } from "@/lib/trip/format";
-import { TAGS, TRAY, type Day, type Stop, type Tag } from "@/lib/trip/types";
+import { TRAY, type Day, type Stop, type Tag } from "@/lib/trip/types";
 
 export type EditorValues = {
   name: string;
   container: string; // day id or "tray"
   time: string | null;
   tags: Tag[];
+  categories: string[];
   notes: string;
   bookingRef: string;
   link: string;
@@ -25,6 +27,9 @@ type Props = {
   container: string;
   isOvernight: boolean;
   days: Day[];
+  labels: { tags: string[]; categories: string[] };
+  tagOps: LabelOps;
+  categoryOps: LabelOps;
   saving: boolean;
   error: string | null;
   onSave: (values: EditorValues) => void;
@@ -34,14 +39,15 @@ type Props = {
 };
 
 export function StopEditor(props: Props) {
-  const { tripId, variant, isNew, stop, container, isOvernight, days, saving, error, onSave, onCancel, onUnschedule, onDelete } =
-    props;
+  const { tripId, variant, isNew, stop, container, isOvernight, days, labels, tagOps, categoryOps } = props;
+  const { saving, error, onSave, onCancel, onUnschedule, onDelete } = props;
   const [session] = useState(() => crypto.randomUUID());
   const [values, setValues] = useState<EditorValues>(() => ({
     name: stop?.name ?? "",
     container,
     time: stop?.time ?? null,
     tags: stop?.tags ?? [],
+    categories: stop?.categories ?? [],
     notes: stop?.notes ?? "",
     bookingRef: stop?.bookingRef ?? "",
     link: stop?.link ?? "",
@@ -148,25 +154,18 @@ export function StopEditor(props: Props) {
       )}
 
       <div className="field">
+        Categories
+        <CategoryPicker
+          options={labels.categories}
+          selected={values.categories}
+          onChange={(next) => set("categories", next)}
+          ops={categoryOps}
+        />
+      </div>
+
+      <div className="field">
         Tags
-        <div className="mt-1.5 flex flex-wrap gap-1.5" role="group" aria-label="Tags">
-          {TAGS.map((t) => {
-            const on = values.tags.includes(t.key);
-            return (
-              <button
-                key={t.key}
-                type="button"
-                aria-pressed={on}
-                onClick={() => set("tags", on ? values.tags.filter((x) => x !== t.key) : [...values.tags, t.key])}
-                className={`min-h-9 cursor-pointer rounded-full border-[1.5px] px-3 text-[13px] font-normal ${
-                  on ? "border-ink bg-ink text-paper" : "border-line bg-paper text-ink"
-                }`}
-              >
-                {t.label}
-              </button>
-            );
-          })}
-        </div>
+        <TagPicker custom={labels.tags} selected={values.tags} onChange={(next) => set("tags", next)} ops={tagOps} />
       </div>
 
       <label className="field">

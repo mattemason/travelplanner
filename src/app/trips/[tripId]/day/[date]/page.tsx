@@ -6,10 +6,9 @@ import { getSegments } from "@/lib/google/routes";
 import { dayRoute, formatDistance, formatDuration, pairKey } from "@/lib/trip/drive";
 import { dayLabel, timeLabel } from "@/lib/trip/format";
 import { loadTrip } from "@/lib/trip/load";
-import { TAGS, type Segment } from "@/lib/trip/types";
+import { tagLabel, type Segment } from "@/lib/trip/types";
 import { dayWarnings } from "@/lib/trip/warnings";
 
-const tagLabel = Object.fromEntries(TAGS.map((t) => [t.key, t.label]));
 
 export default async function DayViewPage({ params }: PageProps<"/trips/[tripId]/day/[date]">) {
   const user = await currentUser();
@@ -103,11 +102,16 @@ export default async function DayViewPage({ params }: PageProps<"/trips/[tripId]
                 </span>
                 <span className="absolute top-[18px] left-[47px] h-3 w-3 rounded-full border-[3px] border-[var(--legc)] bg-paper" />
                 <div className="font-bold">{stop.name}</div>
-                {(stop.tags.length > 0 || place?.businessStatus?.startsWith("CLOSED")) && (
+                {(stop.tags.length > 0 || stop.categories.length > 0 || place?.businessStatus?.startsWith("CLOSED")) && (
                   <div className="mt-1 flex flex-wrap gap-1.5">
+                    {stop.categories.map((c) => (
+                      <span key={`c-${c}`} className="chip border-ocean bg-paper text-ocean">
+                        {c}
+                      </span>
+                    ))}
                     {stop.tags.map((t) => (
                       <span key={t} className="chip">
-                        {tagLabel[t]}
+                        {tagLabel(t)}
                       </span>
                     ))}
                     {place?.businessStatus?.startsWith("CLOSED") && (

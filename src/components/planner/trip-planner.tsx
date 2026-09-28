@@ -19,7 +19,9 @@ import { dateRange, dayCount, dayLabel } from "@/lib/trip/format";
 import { changedContainers, containerOf, moveStop } from "@/lib/trip/layout";
 import { TRAY, type Layout, type Segment, type Stop, type TripData } from "@/lib/trip/types";
 import { dayWarnings } from "@/lib/trip/warnings";
+import { addLabel, deleteLabel, renameLabel } from "@/app/labels/actions";
 import { DaySection, type DayDriveInfo } from "./day-section";
+import type { LabelOps } from "./label-pickers";
 import { PencilIcon } from "./icons";
 import { SortableList } from "./sortable-list";
 import { StopCard, type DriveIn } from "./stop-card";
@@ -50,8 +52,11 @@ type SegCache = Record<string, Segment | null>;
 const MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY ?? "";
 const RESULT_COLOUR = "#6B3FA0"; // search results, distinct from the leg colours
 
-export function TripPlanner({ initial }: { initial: TripData }) {
+type Labels = { tags: string[]; categories: string[] };
+
+export function TripPlanner({ initial, labels: initialLabels }: { initial: TripData; labels: Labels }) {
   const [trip, setTrip] = useState(initial);
+  const [labels, setLabels] = useState(initialLabels);
   const [segs, setSegs] = useState<SegCache>({});
   const [activeDay, setActiveDay] = useState(0);
   const [selectedStop, setSelectedStop] = useState<string | null>(null);
@@ -239,6 +244,7 @@ export function TripPlanner({ initial }: { initial: TripData }) {
     name: s.name,
     time: s.time,
     tags: s.tags,
+    categories: s.categories,
     notes: s.notes,
     bookingRef: s.bookingRef,
     link: s.link,
@@ -280,6 +286,40 @@ export function TripPlanner({ initial }: { initial: TripData }) {
     }
   };
 
+  // ---- Tags and categories -----------------------------------------------------------------
+  const labelOps = (kind: "tag" | "category"): LabelOps => {
+    const field = kind === "tag" ? "tags" : "categories";
+    // Mirror a rename/delete onto the stops on screen (the server updated the database).
+    const rewrite = (fn: (values: string[]) => string[]) =>
+      setTrip((t) => ({
+        ...t,
+        stops: Object.fromEntries(Object.entries(t.stops).map(([id, st]) => [id, { ...st, [field]: fn(st[field]) }])),
+      }));
+    return {
+      add: async (name) => {
+        const r = await addLabel(kind, name);
+        if (r.ok) setLabels(r.labels);
+        return r;
+      },
+      rename: async (from, to) => {
+        const r = await renameLabel(kind, from, to);
+        if (r.ok) {
+          setLabels(r.labels);
+          rewrite((vals) => vals.map((v) => (v === from ? to.trim() : v)));
+        }
+        return r;
+      },
+      remove: async (name) => {
+        const r = await deleteLabel(kind, name);
+        if (r.ok) {
+          setLabels(r.labels);
+          rewrite((vals) => vals.filter((v) => v !== name));
+        }
+        return r;
+      },
+    };
+  };
+
   // ---- Editors ----------------------------------------------------------------------------
   const openEditor = (stopId: string) => {
     setEditorError(null);
@@ -303,7 +343,15 @@ export function TripPlanner({ initial }: { initial: TripData }) {
     if (!editor || editor.mode === "trip") return;
     setSaving(true);
     setEditorError(null);
-    const fields = { name: v.name, time: v.time, tags: v.tags, notes: v.notes, bookingRef: v.bookingRef, link: v.link };
+    const fields = {
+      name: v.name,
+      time: v.time,
+      tags: v.tags,
+      categories: v.categories,
+      notes: v.notes,
+      bookingRef: v.bookingRef,
+      link: v.link,
+    };
     try {
       if (editor.mode === "new") {
         const ref: PlaceRef = v.picked
@@ -517,7 +565,7 @@ export function TripPlanner({ initial }: { initial: TripData }) {
   const addResult = async (r: SearchResult, container: string) => {
     try {
       const position = tripRef.current.layout[container]?.length ?? 0;
-      const fields = { name: r.name, time: null, tags: [], notes: "", bookingRef: "", link: "" };
+      const fields = { name: r.name, time: null, tags: [], categories: [], notes: "", bookingRef: "", link: "" };
       const { stop, place } = await createStop(trip.id, container, position, fields, {
         kind: "google",
         googlePlaceId: r.placeId,
@@ -651,6 +699,9 @@ export function TripPlanner({ initial }: { initial: TripData }) {
           )
         }
         days={trip.days}
+        labels={labels}
+        tagOps={labelOps("tag")}
+        categoryOps={labelOps("category")}
         saving={saving}
         error={editorError}
         onSave={saveEditor}
@@ -745,8 +796,8 @@ export function TripPlanner({ initial }: { initial: TripData }) {
 
   const actions = (
     <div className="flex flex-wrap gap-2">
-      <Link href={`/trips/${trip.id}/checklist`} className="btn">
-        Checklist
+      <Link href={`/checklists?trip=${trip.id}`} className="btn">
+        Checklists
       </Link>
       <button type="button" className="btn" disabled title="Coming in Phase 2">
         {isDesktop ? "Sync from Google" : "Sync"}

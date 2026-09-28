@@ -9,7 +9,7 @@ import { placeDetails } from "@/lib/google/places";
 import { loadTrip } from "@/lib/trip/load";
 import { applyOrder, rerouteParts } from "@/lib/trip/reroute";
 import { optimiseOrder } from "@/lib/google/routes";
-import { TAGS, TRAY, type Place, type Stop } from "@/lib/trip/types";
+import { TRAY, type Place, type Stop } from "@/lib/trip/types";
 
 // Every function here is reachable by direct POST: each one re-checks that the signed-in
 // user owns the trip, and that every id it touches belongs to that trip.
@@ -66,7 +66,8 @@ const stopFields = z.object({
     .string()
     .regex(/^\d{2}:\d{2}$/)
     .nullable(),
-  tags: z.array(z.enum(TAGS.map((tag) => tag.key) as [string, ...string[]])),
+  tags: z.array(z.string().trim().min(1).max(40)).max(30),
+  categories: z.array(z.string().trim().min(1).max(40)).max(30),
   notes: z.string().max(4000),
   bookingRef: z.string().trim().max(200),
   link: z
@@ -152,6 +153,7 @@ export async function updateStop(tripId: string, stopId: string, fields: StopFie
       label: name === place.name ? null : name,
       plannedTime: f.time,
       tags: f.tags,
+      categories: f.categories,
       notes: f.notes || null,
       bookingRef: f.bookingRef || null,
       link: f.link || null,
@@ -163,7 +165,8 @@ export async function updateStop(tripId: string, stopId: string, fields: StopFie
     placeId: place.id,
     name,
     time: f.time,
-    tags: f.tags as Stop["tags"],
+    tags: f.tags,
+    categories: f.categories,
     notes: f.notes,
     bookingRef: f.bookingRef,
     link: f.link,
@@ -209,6 +212,7 @@ export async function createStop(
       label: name === place.name ? null : name,
       plannedTime: f.time,
       tags: f.tags,
+      categories: f.categories,
       notes: f.notes || null,
       bookingRef: f.bookingRef || null,
       link: f.link || null,
@@ -221,7 +225,8 @@ export async function createStop(
       placeId: place.id,
       name,
       time: f.time,
-      tags: f.tags as Stop["tags"],
+      tags: f.tags,
+      categories: f.categories,
       notes: f.notes,
       bookingRef: f.bookingRef,
       link: f.link,
@@ -235,13 +240,6 @@ export async function deleteStop(tripId: string, stopId: string) {
   await getDb().delete(t.stops).where(and(eq(t.stops.id, uuid.parse(stopId)), eq(t.stops.tripId, id)));
 }
 
-export async function setChecklistStatus(tripId: string, itemId: string, done: boolean) {
-  const { tripId: id } = await ownedTrip(tripId);
-  await getDb()
-    .update(t.checklistItems)
-    .set({ status: done ? "done" : "todo" })
-    .where(and(eq(t.checklistItems.id, uuid.parse(itemId)), eq(t.checklistItems.tripId, id)));
-}
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const tripDetails = z

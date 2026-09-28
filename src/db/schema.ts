@@ -170,7 +170,9 @@ export const stops = pgTable(
     label: text("label"),
     plannedTime: time("planned_time"),
     durationMins: integer("duration_mins"),
+    // Built-in tag keys (4wd, walk, camp, permit, book_ahead, weather) or the user's own tag names.
     tags: text("tags").array().notNull().default(sql`'{}'`),
+    categories: text("categories").array().notNull().default(sql`'{}'`), // names from labels
     notes: text("notes"),
     bookingRef: text("booking_ref"),
     link: text("link"),
@@ -178,16 +180,47 @@ export const stops = pgTable(
   },
   (t) => [
     index("stops_trip_day_position").on(t.tripId, t.dayId, t.position),
-    check("stops_tags", sql`${t.tags} <@ array['4wd','walk','camp','permit','book_ahead','weather']`),
     check("stops_status", sql`${t.status} in ('planned', 'done', 'skipped')`),
   ],
+);
+
+// The user's own stop tags and stop categories (built-in tags aren't stored here).
+export const labels = pgTable(
+  "labels",
+  {
+    id: id(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    name: text("name").notNull(),
+    position: integer("position").notNull().default(0),
+  },
+  (t) => [
+    uniqueIndex("labels_user_kind_name").on(t.userId, t.kind, t.name),
+    check("labels_kind", sql`${t.kind} in ('tag', 'category')`),
+  ],
+);
+
+// A checklist belongs to a user, optionally to one trip, and carries free-form tags.
+export const checklists = pgTable(
+  "checklists",
+  {
+    id: id(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    tripId: uuid("trip_id").references(() => trips.id, { onDelete: "set null" }),
+    name: text("name").notNull(),
+    tags: text("tags").array().notNull().default(sql`'{}'`),
+    createdAt: createdAt(),
+  },
+  (t) => [index("checklists_user").on(t.userId)],
 );
 
 export const checklistItems = pgTable(
   "checklist_items",
   {
     id: id(),
-    tripId: uuid("trip_id").notNull().references(() => trips.id, { onDelete: "cascade" }),
+    checklistId: uuid("checklist_id")
+      .notNull()
+      .references(() => checklists.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
     category: text("category"),
     dueDate: date("due_date"),

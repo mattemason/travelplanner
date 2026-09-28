@@ -147,8 +147,12 @@ async function main() {
         ...seed.tray.map((s, i) => stopRow(s, null, i)),
       ]);
 
+    const [checklist] = await tx
+      .insert(t.checklists)
+      .values({ userId: owner.id, tripId: trip.id, name: `${seed.trip.name} bookings`, tags: ["bookings"] })
+      .returning({ id: t.checklists.id });
     await tx.insert(t.checklistItems).values(
-      seed.checklist.map((c, i) => ({ tripId: trip.id, title: c.title, category: c.category, position: i })),
+      seed.checklist.map((c, i) => ({ checklistId: checklist.id, title: c.title, category: c.category, position: i })),
     );
     return true;
   });

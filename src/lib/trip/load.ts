@@ -2,7 +2,7 @@ import "server-only";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
 import * as t from "@/db/schema";
-import { TRAY, type Tag, type TripData } from "./types";
+import { TRAY, type TripData } from "./types";
 
 /** The trip if `userId` owns it, else null. */
 export async function loadTrip(userId: string, tripId: string): Promise<TripData | null> {
@@ -18,10 +18,17 @@ export async function loadTrip(userId: string, tripId: string): Promise<TripData
     db.select().from(t.days).where(eq(t.days.tripId, trip.id)).orderBy(asc(t.days.date)),
     db.select().from(t.stops).where(eq(t.stops.tripId, trip.id)).orderBy(asc(t.stops.position)),
     db
-      .select()
+      .select({
+        id: t.checklistItems.id,
+        title: t.checklistItems.title,
+        category: t.checklistItems.category,
+        dueDate: t.checklistItems.dueDate,
+        status: t.checklistItems.status,
+      })
       .from(t.checklistItems)
-      .where(eq(t.checklistItems.tripId, trip.id))
-      .orderBy(asc(t.checklistItems.position)),
+      .innerJoin(t.checklists, eq(t.checklists.id, t.checklistItems.checklistId))
+      .where(and(eq(t.checklists.tripId, trip.id), eq(t.checklists.userId, userId)))
+      .orderBy(asc(t.checklists.createdAt), asc(t.checklistItems.position)),
   ]);
 
   const placeIds = [
@@ -67,7 +74,8 @@ export async function loadTrip(userId: string, tripId: string): Promise<TripData
           placeId: s.placeId,
           name: s.label ?? placeById.get(s.placeId)?.name ?? "Untitled stop",
           time: s.plannedTime ? s.plannedTime.slice(0, 5) : null,
-          tags: s.tags as Tag[],
+          tags: s.tags,
+          categories: s.categories,
           notes: s.notes ?? "",
           bookingRef: s.bookingRef ?? "",
           link: s.link ?? "",
