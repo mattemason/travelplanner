@@ -137,8 +137,10 @@ export function TripMap({ points, routes, selectedId, onSelect, fitKey, classNam
   );
 }
 
-function FitBounds({ points, fitKey }: { points: MapPoint[]; fitKey: string }) {
+function FitBounds({ points: all, fitKey }: { points: MapPoint[]; fitKey: string }) {
   const map = useMap();
+  // Search results never move the map: you searched the area you were looking at.
+  const points = all.filter((p) => !p.result);
   useEffect(() => {
     if (!map || !points.length) return;
     if (points.length === 1) {

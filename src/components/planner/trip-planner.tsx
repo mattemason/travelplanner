@@ -844,7 +844,12 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
         onBoundsChanged={(b) => {
           boundsRef.current = b;
         }}
-        fitKey={mapMode === "trip" ? `trip-${isDesktop}` : `${activeDay}-${mapPoints.length}-${isDesktop}`}
+        // Refit when the day, its stops or the view mode change; never for search results.
+        fitKey={
+          mapMode === "trip"
+            ? `trip-${isDesktop}`
+            : `${activeDay}-${mapPoints.filter((p) => !p.result).length}-${isDesktop}`
+        }
         className={className}
         labels={labels}
       />
