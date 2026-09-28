@@ -86,11 +86,11 @@ Use a standard, well-documented stack that Claude Code handles well and that cos
 | Drive times | Routes API | Leg-by-leg time and distance |
 | Takeout access | Google Drive API, `drive.file` scope via Google Picker | The user picks the Takeout file, so the app never needs access to the whole Drive |
 | AI | Claude API (Anthropic), called server-side | Plan builder and re-planning |
-| Hosting | Vercel | Free tier is enough; preview deploys per branch |
+| Hosting | Railway | Deploys from GitHub `main`; runs `next start` as a Node service |
 
 ```mermaid
 flowchart LR
-  B["Phone or browser<br/>Installable PWA, trip cached offline"] <--> S["Next.js on Vercel<br/>UI + API routes, keys server-side"]
+  B["Phone or browser<br/>Installable PWA, trip cached offline"] <--> S["Next.js on Railway<br/>UI + API routes, keys server-side"]
   S <--> DB[("Supabase<br/>Postgres, Google sign-in, imported files")]
   S --> D["Google Drive<br/>Takeout archive (CSV)"]
   S --> P["Places API<br/>Details, photos, status"]

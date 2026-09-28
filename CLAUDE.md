@@ -23,3 +23,11 @@ Copy `.env.local.example` to `.env.local` and fill it in. Never commit `.env.loc
 - Every table has RLS. Service-role access is limited to the seed script and server routes that need it (route cache, share links).
 - `stops.position` is the stop order; the spec calls it `order`.
 - Seed coordinates are approximate until Places enrichment (Phase 2) replaces them.
+
+## Hosting
+
+Railway (project `renewed-dedication`, service `travelplanner`) deploys every push to `main`: https://travelplanner-production-1644.up.railway.app. Build and start commands are in `railway.json`.
+
+- Set env vars in the Railway service, not in the repo. `NEXT_PUBLIC_*` values are baked in at build time, so changing one needs a redeploy.
+- The Google browser key's referrer restrictions must include the Railway domain and `localhost:3000`.
+- `railway logs` / `railway status` from the repo root (it's linked).
