@@ -1109,11 +1109,11 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
       <div className="relative">
         {map(`${mapMode === "trip" || search ? "h-[320px]" : "h-[220px]"} border-y border-line`, false)}
         <div className="absolute top-2.5 right-2.5">{modeSwitch}</div>
-        {!searchOpen && !search && <div className="absolute top-2.5 left-2.5">{mapSearch(true)}</div>}
+        {!searchOpen && <div className="absolute top-2.5 left-2.5">{mapSearch(true)}</div>}
       </div>
-      {(searchOpen || search) && (
+      {(searchOpen || resultCard) && (
         <div className="flex flex-col gap-2 border-b border-line bg-soft px-[18px] py-2.5">
-          {mapSearch(true)}
+          {searchOpen && mapSearch(true)}
           {resultCard}
         </div>
       )}

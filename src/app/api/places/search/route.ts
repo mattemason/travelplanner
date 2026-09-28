@@ -10,6 +10,10 @@ const body = z.object({
   trip: z.string().uuid(),
   q: z.string().trim().min(2).max(120),
   area: z.object({ low: corner, high: corner }),
+  type: z
+    .string()
+    .regex(/^[a-z_]{3,40}$/)
+    .optional(), // a Places type for the shortcuts, e.g. "campground"
 });
 
 // Search the visible map area (campgrounds, fuel, cafes...). Signed-in trip owners only.
@@ -26,7 +30,7 @@ export async function POST(request: Request) {
   if (!trip) return Response.json({ error: "Trip not found" }, { status: 404 });
 
   try {
-    return Response.json({ results: await searchInArea(parsed.data.q, parsed.data.area) });
+    return Response.json({ results: await searchInArea(parsed.data.q, parsed.data.area, parsed.data.type) });
   } catch (err) {
     console.error(err);
     return Response.json({ error: "Search unavailable" }, { status: 502 });

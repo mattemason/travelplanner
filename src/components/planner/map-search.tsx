@@ -8,7 +8,17 @@ import { TRAY, type Day } from "@/lib/trip/types";
 export type { SearchResult };
 type Area = { low: { lat: number; lng: number }; high: { lat: number; lng: number } };
 
-const SHORTCUTS = ["Campgrounds", "Fuel", "Cafés", "Restaurants", "Supermarkets", "Public toilets", "Lookouts"];
+// Shortcuts filter by Places type where one exists, so "Campgrounds" doesn't return parks.
+const SHORTCUTS: { label: string; query: string; type?: string }[] = [
+  { label: "Campgrounds", query: "campground", type: "campground" },
+  { label: "Caravan parks", query: "caravan park", type: "rv_park" },
+  { label: "Fuel", query: "petrol station", type: "gas_station" },
+  { label: "Cafés", query: "cafe", type: "cafe" },
+  { label: "Restaurants", query: "restaurant", type: "restaurant" },
+  { label: "Supermarkets", query: "supermarket", type: "supermarket" },
+  { label: "Public toilets", query: "public toilet", type: "public_bathroom" },
+  { label: "Lookouts", query: "lookout" },
+];
 
 type Props = {
   tripId: string;
@@ -25,18 +35,21 @@ export function MapSearch({ tripId, getArea, results, onResults, open, onOpenCha
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
 
-  const run = async (q: string) => {
+  const [shortcut, setShortcut] = useState<(typeof SHORTCUTS)[number] | null>(null);
+
+  const run = async (q: string, pick: (typeof SHORTCUTS)[number] | null = null) => {
     const text = q.trim();
     if (text.length < 2) return;
     const area = getArea();
     if (!area) return;
-    setQuery(text);
+    setShortcut(pick);
+    setQuery(pick ? pick.label : text);
     setStatus("loading");
     try {
       const res = await fetch("/api/places/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ trip: tripId, q: text, area }),
+        body: JSON.stringify({ trip: tripId, q: pick ? pick.query : text, area, type: pick?.type }),
       });
       if (!res.ok) throw new Error(String(res.status));
       const { results: found } = (await res.json()) as { results: SearchResult[] };
@@ -53,15 +66,20 @@ export function MapSearch({ tripId, getArea, results, onResults, open, onOpenCha
     onResults(null, null);
   };
 
-  if (!open && !results) {
+  if (!open) {
     return (
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Search this map area"
-        title="Search this map area"
-        className="grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-paper/95 text-ink shadow hover:bg-paper"
+        aria-label={results ? `Show search (${results.length} results)` : "Search this map area"}
+        title={results ? `${results.length} results for "${query}"` : "Search this map area"}
+        className="relative grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-paper/95 text-ink shadow hover:bg-paper"
       >
+        {results && (
+          <span className="absolute -top-1 -right-1 grid h-5 min-w-5 place-items-center rounded-full bg-[#6B3FA0] px-1 text-[11px] font-bold text-white">
+            {results.length}
+          </span>
+        )}
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
           <circle cx="11" cy="11" r="7" />
           <path d="m20 20-3.5-3.5" />
@@ -76,7 +94,8 @@ export function MapSearch({ tripId, getArea, results, onResults, open, onOpenCha
         role="search"
         onSubmit={(e) => {
           e.preventDefault();
-          void run(query);
+          // Re-running a shortcut keeps its type filter; typed text searches freely.
+          void run(query, shortcut && shortcut.label === query ? shortcut : null);
         }}
         className="flex gap-1.5"
       >
@@ -85,7 +104,7 @@ export function MapSearch({ tripId, getArea, results, onResults, open, onOpenCha
           autoFocus
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Escape" && !results) setOpen(false);
+            if (e.key === "Escape") setOpen(false);
           }}
           placeholder="Search this area"
           aria-label="Search this map area"
@@ -111,6 +130,15 @@ export function MapSearch({ tripId, getArea, results, onResults, open, onOpenCha
             >
               Clear
             </button>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              aria-label="Hide search (keep results on the map)"
+              title="Hide search (keep results on the map)"
+              className="cursor-pointer px-1.5 text-[20px] leading-none text-muted"
+            >
+              ×
+            </button>
           </>
         ) : (
           <>
@@ -132,12 +160,12 @@ export function MapSearch({ tripId, getArea, results, onResults, open, onOpenCha
         <div className="mt-1.5 flex gap-1.5 overflow-x-auto no-scrollbar">
           {SHORTCUTS.map((s) => (
             <button
-              key={s}
+              key={s.label}
               type="button"
-              onClick={() => void run(s)}
+              onClick={() => void run(s.label, s)}
               className="shrink-0 cursor-pointer rounded-full border-[1.5px] border-line bg-paper px-2.5 py-1 text-[12.5px] text-ink"
             >
-              {s}
+              {s.label}
             </button>
           ))}
         </div>

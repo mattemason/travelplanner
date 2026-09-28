@@ -113,8 +113,11 @@ export type SearchResult = {
   mapsUrl: string | null;
 };
 
-/** Places matching free text ("campgrounds", "fuel") inside a rectangle, best matches first. */
-export async function searchInArea(query: string, area: Bounds): Promise<SearchResult[]> {
+/**
+ * Places matching free text inside a rectangle, best matches first. With a Places type
+ * ("campground", "gas_station") only places of exactly that type come back.
+ */
+export async function searchInArea(query: string, area: Bounds, includedType?: string): Promise<SearchResult[]> {
   const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
     method: "POST",
     headers: {
@@ -135,6 +138,7 @@ export async function searchInArea(query: string, area: Bounds): Promise<SearchR
     body: JSON.stringify({
       textQuery: query,
       locationRestriction: rectangle(area),
+      ...(includedType && { includedType, strictTypeFiltering: true }),
       pageSize: 20,
       languageCode: "en-AU",
       regionCode: "AU",
