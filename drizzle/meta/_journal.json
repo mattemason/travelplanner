@@ -64,6 +64,13 @@
       "when": 1790626907473,
       "tag": "0008_trip_cover",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790629165905,
+      "tag": "0009_transport_stay",
+      "breakpoints": true
     }
   ]
 }

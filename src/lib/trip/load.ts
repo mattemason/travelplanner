@@ -65,6 +65,7 @@ export async function loadTrip(userId: string, tripId: string): Promise<TripData
       date: d.date,
       legId: d.legId,
       overnightPlaceId: d.overnightPlaceId,
+      stay: d.stay ?? {},
       notes: d.notes ?? "",
     })),
     places: Object.fromEntries(
@@ -87,6 +88,7 @@ export async function loadTrip(userId: string, tripId: string): Promise<TripData
           bookingRef: s.bookingRef ?? "",
           link: s.link ?? "",
           arriveBy: s.arriveBy as Stop["arriveBy"],
+          transport: s.transport ?? {},
         },
       ]),
     ),

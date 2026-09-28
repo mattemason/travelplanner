@@ -4,7 +4,18 @@ import { useEffect, useRef, useState } from "react";
 import { CategoryPicker, TagPicker, type LabelOps } from "./label-pickers";
 import { PlaceSearch, type Suggestion } from "./place-search";
 import { dayLabel } from "@/lib/trip/format";
-import { ARRIVE_BY, TRAY, type ArriveBy, type Day, type Stop, type Tag } from "@/lib/trip/types";
+import { carrierLabel, numberLabel, seatLabel } from "@/lib/trip/details";
+import {
+  ARRIVE_BY,
+  BOOKED_MODES,
+  TRAY,
+  type ArriveBy,
+  type Day,
+  type Stay,
+  type Stop,
+  type Tag,
+  type Transport,
+} from "@/lib/trip/types";
 
 export type EditorValues = {
   name: string;
@@ -13,6 +24,8 @@ export type EditorValues = {
   tags: Tag[];
   categories: string[];
   arriveBy: ArriveBy;
+  transport: Transport;
+  stay: Stay; // saved with the overnight
   notes: string;
   bookingRef: string;
   link: string;
@@ -27,6 +40,7 @@ type Props = {
   stop: Stop | null; // null for a new stop
   container: string;
   isOvernight: boolean;
+  stay: Stay; // the day's current stay details, when this stop is its overnight
   days: Day[];
   labels: { tags: string[]; categories: string[] };
   tagOps: LabelOps;
@@ -41,6 +55,7 @@ type Props = {
 
 export function StopEditor(props: Props) {
   const { tripId, variant, isNew, stop, container, isOvernight, days, labels, tagOps, categoryOps } = props;
+  const initialStay = props.stay;
   const { saving, error, onSave, onCancel, onUnschedule, onDelete } = props;
   const [session] = useState(() => crypto.randomUUID());
   const [values, setValues] = useState<EditorValues>(() => ({
@@ -50,6 +65,8 @@ export function StopEditor(props: Props) {
     tags: stop?.tags ?? [],
     categories: stop?.categories ?? [],
     arriveBy: stop?.arriveBy ?? "drive",
+    transport: stop?.transport ?? {},
+    stay: isOvernight ? initialStay : {},
     notes: stop?.notes ?? "",
     bookingRef: stop?.bookingRef ?? "",
     link: stop?.link ?? "",
@@ -58,6 +75,8 @@ export function StopEditor(props: Props) {
   }));
   const nameRef = useRef<HTMLInputElement>(null);
   const set = <K extends keyof EditorValues>(key: K, value: EditorValues[K]) => setValues((v) => ({ ...v, [key]: value }));
+  const setTransport = (patch: Transport) => setValues((v) => ({ ...v, transport: { ...v.transport, ...patch } }));
+  const setStay = (patch: Stay) => setValues((v) => ({ ...v, stay: { ...v.stay, ...patch } }));
 
   useEffect(() => {
     nameRef.current?.focus();
@@ -157,6 +176,31 @@ export function StopEditor(props: Props) {
           The trip to this stop isn&apos;t counted as driving (time, distance or fuel).
         </p>
       )}
+      {BOOKED_MODES.includes(values.arriveBy) && (
+        <fieldset className="mb-3 rounded-xl border border-line px-3 pt-1 pb-3">
+          <legend className="px-1 text-[13px] font-bold text-muted">
+            {ARRIVE_BY.find((m) => m.key === values.arriveBy)?.label} details
+          </legend>
+          <div className="grid grid-cols-2 gap-x-2.5">
+            <Text label={carrierLabel(values.arriveBy)} value={values.transport.carrier} onChange={(carrier) => setTransport({ carrier })} placeholder={values.arriveBy === "ferry" ? "Spirit of Tasmania" : values.arriveBy === "flight" ? "Qantas" : ""} />
+            <Text label={numberLabel(values.arriveBy)} value={values.transport.number} onChange={(number) => setTransport({ number })} />
+            <label className="field !my-1.5">
+              Departs
+              <input type="datetime-local" value={values.transport.departAt ?? ""} onChange={(e) => setTransport({ departAt: e.target.value })} />
+            </label>
+            <label className="field !my-1.5">
+              Arrives
+              <input type="datetime-local" value={values.transport.arriveAt ?? ""} onChange={(e) => setTransport({ arriveAt: e.target.value })} />
+            </label>
+            <Text label="Booking confirmation" value={values.transport.bookingRef} onChange={(bookingRef) => setTransport({ bookingRef })} />
+            <label className="field !my-1.5">
+              {values.arriveBy === "flight" ? "Bag drop / check-in by" : "Check-in / boarding by"}
+              <input type="time" value={values.transport.checkInBy ?? ""} onChange={(e) => setTransport({ checkInBy: e.target.value })} />
+            </label>
+            <Text label={seatLabel(values.arriveBy)} value={values.transport.seat} onChange={(seat) => setTransport({ seat })} />
+          </div>
+        </fieldset>
+      )}
 
       {values.container !== TRAY && (
         <label className="mt-1 flex cursor-pointer items-center gap-2.5 text-[15px] font-bold text-ink">
@@ -169,6 +213,23 @@ export function StopEditor(props: Props) {
           Overnight here
           <span className="text-[12.5px] font-normal text-muted">Where you sleep this day</span>
         </label>
+      )}
+      {values.container !== TRAY && values.overnight && (
+        <fieldset className="mt-2 rounded-xl border border-line px-3 pt-1 pb-3">
+          <legend className="px-1 text-[13px] font-bold text-muted">Stay details</legend>
+          <div className="grid grid-cols-2 gap-x-2.5">
+            <label className="field !my-1.5">
+              Check-in
+              <input type="time" value={values.stay.checkIn ?? ""} onChange={(e) => setStay({ checkIn: e.target.value })} />
+            </label>
+            <label className="field !my-1.5">
+              Check-out
+              <input type="time" value={values.stay.checkOut ?? ""} onChange={(e) => setStay({ checkOut: e.target.value })} />
+            </label>
+            <Text label="Booking confirmation" value={values.stay.bookingRef} onChange={(bookingRef) => setStay({ bookingRef })} />
+            <Text label="Phone" value={values.stay.phone} onChange={(phone) => setStay({ phone })} type="tel" />
+          </div>
+        </fieldset>
       )}
       {values.container !== TRAY && (
         <p className="mt-1 text-[12px] text-muted">
@@ -258,5 +319,26 @@ export function StopEditor(props: Props) {
         {form}
       </div>
     </>
+  );
+}
+
+function Text({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+}: {
+  label: string;
+  value: string | undefined;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+}) {
+  return (
+    <label className="field !my-1.5">
+      {label}
+      <input type={type} value={value ?? ""} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} autoComplete="off" />
+    </label>
   );
 }

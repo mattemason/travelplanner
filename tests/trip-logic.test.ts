@@ -5,6 +5,7 @@ import { TRAY, type TripData } from "@/lib/trip/types";
 import { dayWarnings } from "@/lib/trip/warnings";
 import { applyOrder, rerouteParts } from "@/lib/trip/reroute";
 import { formatCost, fuelCost } from "@/lib/trip/fuel";
+import { cleanStay, staySummary, transportSummary } from "@/lib/trip/details";
 
 const place = (id: string, lat: number | null, lng: number | null, businessStatus: string | null = null) => ({
   id,
@@ -22,6 +23,7 @@ const stop = (id: string, placeId: string, tags: string[] = []) => ({
   tags,
   categories: [],
   arriveBy: "drive" as const,
+  transport: {},
   notes: "",
   bookingRef: "",
   link: "",
@@ -39,8 +41,8 @@ function trip(): TripData {
     coverVersion: null,
     legs: [],
     days: [
-      { id: "d1", date: "2027-01-18", legId: null, overnightPlaceId: "camp", notes: "" },
-      { id: "d2", date: "2027-01-19", legId: null, overnightPlaceId: "town", notes: "" },
+      { id: "d1", date: "2027-01-18", legId: null, overnightPlaceId: "camp", stay: {}, notes: "" },
+      { id: "d2", date: "2027-01-19", legId: null, overnightPlaceId: "town", stay: {}, notes: "" },
     ],
     places: {
       port: place("port", -41, 146),
@@ -188,5 +190,28 @@ describe("overnightTravel", () => {
   });
   it("is a normal night when the next day starts by road", () => {
     expect(overnightTravel(trip(), 0)).toBeNull();
+  });
+});
+
+describe("travel and stay details", () => {
+  it("summarises a booked ferry, showing the date only when it isn't the day's", () => {
+    const line = transportSummary(
+      {
+        carrier: "Spirit of Tasmania",
+        number: "SOT2",
+        checkInBy: "17:30",
+        departAt: "2027-01-18T19:30",
+        arriveAt: "2027-01-19T06:00",
+        bookingRef: "ABC123",
+      },
+      "2027-01-19",
+    );
+    expect(line).toBe(
+      "Spirit of Tasmania SOT2 · check in by 5:30pm · departs Mon 18 Jan 7:30pm · arrives 6:00am · Ref ABC123",
+    );
+  });
+  it("summarises a stay and drops empty fields", () => {
+    expect(staySummary({ checkIn: "14:00", checkOut: "10:00", bookingRef: "XYZ" })).toBe("in 2:00pm · out 10:00am · Ref XYZ");
+    expect(cleanStay({ checkIn: "", phone: " ", bookingRef: "R1" })).toEqual({ bookingRef: "R1" });
   });
 });

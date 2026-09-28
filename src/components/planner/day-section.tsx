@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { CSSProperties } from "react";
 import { formatDistance, formatDuration } from "@/lib/trip/drive";
 import { formatCost } from "@/lib/trip/fuel";
+import { staySummary } from "@/lib/trip/details";
 import { dayLabel } from "@/lib/trip/format";
 import type { Day, Leg, Place, Stop } from "@/lib/trip/types";
 import type { Warning } from "@/lib/trip/warnings";
@@ -86,6 +87,7 @@ export function DaySection({ sectionRef, ...p }: Props) {
           ) : p.overnight ? (
             <>
               Overnight <b className="text-ink">{p.overnight}</b>
+              {staySummary(p.day.stay) && <span> · {staySummary(p.day.stay)}</span>}
             </>
           ) : (
             "No overnight set"
@@ -117,6 +119,7 @@ export function DaySection({ sectionRef, ...p }: Props) {
               editing={p.editingStopId === stop.id}
               compact={p.compact}
               overnight={!!p.day.overnightPlaceId && stop.placeId === p.day.overnightPlaceId}
+              dayDate={p.day.date}
               onSelect={() => p.onSelectStop(stop.id, p.index)}
               onEdit={() => p.onEditStop(stop.id)}
               onInfo={() => p.onInfoStop(stop.id)}

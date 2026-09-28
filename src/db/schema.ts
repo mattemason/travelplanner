@@ -165,6 +165,7 @@ export const days = pgTable(
     date: date("date").notNull(),
     legId: uuid("leg_id").references(() => legs.id, { onDelete: "set null" }),
     overnightPlaceId: uuid("overnight_place_id").references(() => places.id, { onDelete: "set null" }),
+    stay: jsonb("stay").$type<Record<string, string>>(), // check-in/out times, booking, phone
     notes: text("notes"),
   },
   (t) => [uniqueIndex("days_trip_date").on(t.tripId, t.date)],
@@ -191,12 +192,14 @@ export const stops = pgTable(
     link: text("link"),
     // How you get to this stop from the previous one. Only "drive" counts toward driving time.
     arriveBy: text("arrive_by").notNull().default("drive"),
+    // Ferry/flight/bus/train details for getting here: carrier, number, times, booking...
+    transport: jsonb("transport").$type<Record<string, string>>(),
     status: text("status").notNull().default("planned"),
   },
   (t) => [
     index("stops_trip_day_position").on(t.tripId, t.dayId, t.position),
     check("stops_status", sql`${t.status} in ('planned', 'done', 'skipped')`),
-    check("stops_arrive_by", sql`${t.arriveBy} in ('drive', 'ferry', 'flight', 'walk')`),
+    check("stops_arrive_by", sql`${t.arriveBy} in ('drive', 'ferry', 'flight', 'bus', 'train', 'walk')`),
   ],
 );
 

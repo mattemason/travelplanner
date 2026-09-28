@@ -20,6 +20,8 @@ export const ARRIVE_BY = [
   { key: "drive", label: "Drive", icon: "" },
   { key: "ferry", label: "Ferry", icon: "⛴" },
   { key: "flight", label: "Flight", icon: "✈" },
+  { key: "bus", label: "Bus", icon: "🚌" },
+  { key: "train", label: "Train", icon: "🚆" },
   { key: "walk", label: "Walk", icon: "🚶" },
 ] as const;
 export type ArriveBy = (typeof ARRIVE_BY)[number]["key"];
@@ -48,7 +50,25 @@ export type Stop = {
   bookingRef: string;
   link: string;
   arriveBy: ArriveBy;
+  transport: Transport; // only meaningful for ferry, flight, bus and train
 };
+
+/** Booked travel to a stop. Times are local: departAt/arriveAt "YYYY-MM-DDTHH:MM", checkInBy "HH:MM". */
+export type Transport = {
+  carrier?: string;
+  number?: string;
+  departAt?: string;
+  arriveAt?: string;
+  bookingRef?: string;
+  checkInBy?: string;
+  seat?: string;
+};
+
+/** Where you stay the night: times "HH:MM". */
+export type Stay = { checkIn?: string; checkOut?: string; bookingRef?: string; phone?: string };
+
+/** Modes you book and ride, which get travel details. */
+export const BOOKED_MODES: readonly ArriveBy[] = ["ferry", "flight", "bus", "train"];
 
 export type Leg = { id: string; name: string; startDate: string; endDate: string; colour: string };
 
@@ -57,6 +77,7 @@ export type Day = {
   date: string; // YYYY-MM-DD
   legId: string | null;
   overnightPlaceId: string | null;
+  stay: Stay;
   notes: string;
 };
 

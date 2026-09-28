@@ -9,7 +9,8 @@ import { placeDetails } from "@/lib/google/places";
 import { loadTrip } from "@/lib/trip/load";
 import { applyOrder, rerouteParts } from "@/lib/trip/reroute";
 import { optimiseOrder } from "@/lib/google/routes";
-import { TRAY, type Place, type Stop } from "@/lib/trip/types";
+import { BOOKED_MODES, TRAY, type Place, type Stay, type Stop } from "@/lib/trip/types";
+import { cleanStay, cleanTransport } from "@/lib/trip/details";
 
 // Every function here is reachable by direct POST: each one re-checks that the signed-in
 // user owns the trip, and that every id it touches belongs to that trip.
@@ -60,6 +61,26 @@ export async function saveLayout(tripId: string, changes: Record<string, string[
   });
 }
 
+const text = (max: number) => z.string().trim().max(max).optional();
+const localDateTime = z
+  .string()
+  .regex(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})?$/)
+  .optional();
+const hhmm = z
+  .string()
+  .regex(/^(\d{2}:\d{2})?$/)
+  .optional();
+const transportFields = z.object({
+  carrier: text(80),
+  number: text(40),
+  departAt: localDateTime,
+  arriveAt: localDateTime,
+  bookingRef: text(80),
+  checkInBy: hhmm,
+  seat: text(40),
+});
+const stayFields = z.object({ checkIn: hhmm, checkOut: hhmm, bookingRef: text(80), phone: text(40) });
+
 const stopFields = z.object({
   name: z.string().trim().max(200),
   time: z
@@ -68,7 +89,8 @@ const stopFields = z.object({
     .nullable(),
   tags: z.array(z.string().trim().min(1).max(40)).max(30),
   categories: z.array(z.string().trim().min(1).max(40)).max(30),
-  arriveBy: z.enum(["drive", "ferry", "flight", "walk"]),
+  arriveBy: z.enum(["drive", "ferry", "flight", "bus", "train", "walk"]),
+  transport: transportFields,
   notes: z.string().max(4000),
   bookingRef: z.string().trim().max(200),
   link: z
@@ -156,6 +178,7 @@ export async function updateStop(tripId: string, stopId: string, fields: StopFie
       tags: f.tags,
       categories: f.categories,
       arriveBy: f.arriveBy,
+      transport: BOOKED_MODES.includes(f.arriveBy) ? cleanTransport(f.transport) : null,
       notes: f.notes || null,
       bookingRef: f.bookingRef || null,
       link: f.link || null,
@@ -170,6 +193,7 @@ export async function updateStop(tripId: string, stopId: string, fields: StopFie
     tags: f.tags,
     categories: f.categories,
     arriveBy: f.arriveBy,
+    transport: BOOKED_MODES.includes(f.arriveBy) ? cleanTransport(f.transport) : {},
     notes: f.notes,
     bookingRef: f.bookingRef,
     link: f.link,
@@ -217,6 +241,7 @@ export async function createStop(
       tags: f.tags,
       categories: f.categories,
       arriveBy: f.arriveBy,
+      transport: BOOKED_MODES.includes(f.arriveBy) ? cleanTransport(f.transport) : null,
       notes: f.notes || null,
       bookingRef: f.bookingRef || null,
       link: f.link || null,
@@ -232,6 +257,7 @@ export async function createStop(
       tags: f.tags,
       categories: f.categories,
       arriveBy: f.arriveBy,
+      transport: BOOKED_MODES.includes(f.arriveBy) ? cleanTransport(f.transport) : {},
       notes: f.notes,
       bookingRef: f.bookingRef,
       link: f.link,
@@ -400,8 +426,8 @@ export async function rerouteDay(tripId: string, dayId: string) {
   return { order: next, changed: next.join() !== current.join(), reason: null };
 }
 
-/** Sets (or clears, with null) where the trip stays on a day: one of the user's places. */
-export async function setOvernight(tripId: string, dayId: string, placeId: string | null) {
+/** Sets (or clears, with null) where the trip stays on a day, and its stay details. */
+export async function setOvernight(tripId: string, dayId: string, placeId: string | null, stay: Stay = {}) {
   const { tripId: id, userId } = await ownedTrip(tripId);
   const db = getDb();
   if (placeId) {
@@ -413,7 +439,7 @@ export async function setOvernight(tripId: string, dayId: string, placeId: strin
   }
   const updated = await db
     .update(t.days)
-    .set({ overnightPlaceId: placeId })
+    .set({ overnightPlaceId: placeId, stay: placeId ? cleanStay(stayFields.parse(stay)) : null })
     .where(and(eq(t.days.id, uuid.parse(dayId)), eq(t.days.tripId, id)))
     .returning({ id: t.days.id });
   if (!updated.length) throw new Error("Day not found");

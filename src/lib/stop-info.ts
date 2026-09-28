@@ -5,6 +5,7 @@ import * as t from "@/db/schema";
 import { getProfile } from "@/lib/profile";
 import { dayLabel, timeLabel } from "@/lib/trip/format";
 import { tagLabel } from "@/lib/trip/types";
+import { staySummary, transportSummary } from "@/lib/trip/details";
 
 // Stable instructions: kept separate from the per-stop context so they read the same every call.
 const INSTRUCTIONS = `You are a well-travelled local guide helping someone plan a road trip. They're asking about one stop on their itinerary, often on a phone, so keep every answer short.
@@ -58,6 +59,12 @@ export async function stopContext(userId: string, stopId: string): Promise<StopC
     stop.tags.length ? `Tags: ${stop.tags.map(tagLabel).join(", ")}` : null,
     stop.notes ? `Their notes: ${stop.notes}` : null,
     stop.bookingRef ? `They have a booking (ref ${stop.bookingRef}).` : null,
+    stop.transport && Object.keys(stop.transport).length && ["ferry", "flight", "bus", "train"].includes(stop.arriveBy)
+      ? `Their ${stop.arriveBy} booking: ${transportSummary(stop.transport)}`
+      : null,
+    day?.stay && Object.keys(day.stay).length && day.overnightPlaceId === stop.placeId
+      ? `They're staying the night here: ${staySummary(day.stay)}`
+      : null,
     ``,
     profile?.about ? `About the traveller: ${profile.about}` : null,
     profile?.vehicle ? `Vehicle: ${profile.vehicle}${profile.fuelType ? ` (${profile.fuelType})` : ""}` : null,

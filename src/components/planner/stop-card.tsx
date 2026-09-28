@@ -2,7 +2,8 @@
 
 import { formatDistance, formatDuration } from "@/lib/trip/drive";
 import { timeLabel } from "@/lib/trip/format";
-import { arriveByLabel, tagLabel, type ArriveBy, type Place, type Segment, type Stop } from "@/lib/trip/types";
+import { transportSummary } from "@/lib/trip/details";
+import { arriveByLabel, BOOKED_MODES, tagLabel, type ArriveBy, type Place, type Segment, type Stop } from "@/lib/trip/types";
 import { CopyIcon, GripIcon, InfoIcon, PencilIcon } from "./icons";
 
 type Props = {
@@ -14,6 +15,7 @@ type Props = {
   editing: boolean;
   compact?: boolean;
   overnight?: boolean; // this stop is the day's overnight
+  dayDate?: string; // the stop's day, so travel times on that day show without a date
   onSelect: () => void;
   onEdit: () => void;
   onInfo: () => void;
@@ -25,7 +27,8 @@ export type DriveIn = Segment | "loading" | "none" | { mode: Exclude<ArriveBy, "
 
 
 export function StopCard(props: Props) {
-  const { stop, place, number, driveIn, selected, editing, compact, overnight, onSelect, onEdit, onInfo, onDuplicate } = props;
+  const { stop, place, number, driveIn, selected, editing, compact, overnight, onSelect, onEdit, onInfo, onDuplicate, dayDate } = props;
+  const travel = BOOKED_MODES.includes(stop.arriveBy) ? transportSummary(stop.transport, dayDate) : "";
   const closed = place?.businessStatus === "CLOSED_TEMPORARILY" || place?.businessStatus === "CLOSED_PERMANENTLY";
   const noMap = place && (place.lat === null || place.lng === null);
 
@@ -72,6 +75,11 @@ export function StopCard(props: Props) {
             {stop.time && <span className="mr-2 font-normal text-muted">{timeLabel(stop.time)}</span>}
             {stop.name}
           </div>
+          {travel && (
+            <div className="mt-0.5 text-[13px] text-ink">
+              {arriveByLabel(stop.arriveBy).split(" ")[0]} {travel}
+            </div>
+          )}
           {stop.notes && <div className="mt-0.5 text-[13.5px] whitespace-pre-line text-muted">{stop.notes}</div>}
           {(stop.tags.length > 0 || stop.categories.length > 0 || closed || stop.bookingRef || stop.link || noMap || overnight) && (
             <div className="mt-1.5 flex flex-wrap gap-1.5">

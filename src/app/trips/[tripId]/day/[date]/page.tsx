@@ -6,7 +6,8 @@ import { getSegments } from "@/lib/google/routes";
 import { dayRoute, formatDistance, formatDuration, overnightTravel, overnightTravelLabel, pairKey } from "@/lib/trip/drive";
 import { dayLabel, timeLabel } from "@/lib/trip/format";
 import { loadTrip } from "@/lib/trip/load";
-import { arriveByLabel, tagLabel, type Segment } from "@/lib/trip/types";
+import { arriveByLabel, BOOKED_MODES, tagLabel, type Segment } from "@/lib/trip/types";
+import { staySummary, transportSummary } from "@/lib/trip/details";
 import { dayWarnings } from "@/lib/trip/warnings";
 
 
@@ -71,6 +72,9 @@ export default async function DayViewPage({ params }: PageProps<"/trips/[tripId]
         <Stat value={String(stops.length)} label={stops.length === 1 ? "stop" : "stops"} />
         <Stat value={overnight ?? "–"} label="tonight" />
       </div>
+      {!travel && staySummary(day.stay) && (
+        <p className="px-[18px] pb-3 text-[13.5px] text-muted">Stay: {staySummary(day.stay)}</p>
+      )}
 
       {warnings.length > 0 && (
         <div className="flex flex-col gap-2 px-[18px] pb-2">
@@ -132,6 +136,9 @@ export default async function DayViewPage({ params }: PageProps<"/trips/[tripId]
                   </div>
                 )}
                 {stop.notes && <p className="mt-1 mb-1.5 text-[13.5px] whitespace-pre-line text-muted">{stop.notes}</p>}
+                {BOOKED_MODES.includes(stop.arriveBy) && transportSummary(stop.transport, day.date) && (
+                  <p className="text-[13px] text-ink">{transportSummary(stop.transport, day.date)}</p>
+                )}
                 {stop.bookingRef && <p className="text-[13px] text-good-ink">Ref {stop.bookingRef}</p>}
                 {nav && (
                   <a

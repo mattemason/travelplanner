@@ -16,9 +16,10 @@ import {
 } from "@/app/trips/[tripId]/actions";
 import { dayRoute, overnightTravel, overnightTravelLabel, pairKey, type RoutePoint } from "@/lib/trip/drive";
 import { fuelCost, type Vehicle } from "@/lib/trip/fuel";
+import { cleanStay, transportSummary } from "@/lib/trip/details";
 import { dateRange, dayCount, dayLabel } from "@/lib/trip/format";
 import { changedContainers, containerOf, moveStop } from "@/lib/trip/layout";
-import { TRAY, type Layout, type Segment, type Stop, type TripData } from "@/lib/trip/types";
+import { TRAY, type Layout, type Segment, type Stay, type Stop, type TripData } from "@/lib/trip/types";
 import { dayWarnings } from "@/lib/trip/warnings";
 import { addLabel, deleteLabel, renameLabel } from "@/app/labels/actions";
 import { DaySection, type DayDriveInfo } from "./day-section";
@@ -39,7 +40,7 @@ type Editor =
   | { mode: "new"; container: string }
   | { mode: "trip"; focus: "trip" | "legs" };
 type Deleted = { stop: Stop; container: string; position: number };
-type OvernightChange = { dayId: string; placeId: string | null };
+type OvernightChange = { dayId: string; placeId: string | null; stay?: Stay };
 type Undo = {
   label: string;
   layout?: Layout;
@@ -93,7 +94,17 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
   const placeName = (placeId: string | null) => (placeId ? (trip.places[placeId]?.name ?? null) : null);
   const nightTravel = (dayIndex: number) => {
     const t = overnightTravel(trip, dayIndex);
-    return t ? overnightTravelLabel(t) : null;
+    if (!t) return null;
+    // Add the sailing/flight times from the arrival stop's travel details, if entered.
+    const next = trip.days[dayIndex + 1];
+    const arrival = next && trip.stops[(trip.layout[next.id] ?? [])[0]];
+    const times = arrival?.transport
+      ? transportSummary(
+          { departAt: arrival.transport.departAt, arriveAt: arrival.transport.arriveAt, bookingRef: arrival.transport.bookingRef },
+          trip.days[dayIndex].date,
+        )
+      : "";
+    return times ? `${overnightTravelLabel(t)} · ${times}` : overnightTravelLabel(t);
   };
   const stopLabel = (stopId: string) => trip.stops[stopId]?.name ?? "Stop";
   const containerLabel = (c: string) => {
@@ -270,17 +281,14 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
     const prev: OvernightChange[] = [];
     for (const c of changes) {
       const day = tripRef.current.days.find((d) => d.id === c.dayId);
-      if (!day || day.overnightPlaceId === c.placeId) continue;
-      prev.push({ dayId: c.dayId, placeId: day.overnightPlaceId });
-      await setOvernight(tripRef.current.id, c.dayId, c.placeId);
-      setTrip((t) => ({
-        ...t,
-        days: t.days.map((d) => (d.id === c.dayId ? { ...d, overnightPlaceId: c.placeId } : d)),
-      }));
-      tripRef.current = {
-        ...tripRef.current,
-        days: tripRef.current.days.map((d) => (d.id === c.dayId ? { ...d, overnightPlaceId: c.placeId } : d)),
-      };
+      const stay = c.placeId ? (c.stay ?? day?.stay ?? {}) : {};
+      if (!day || (day.overnightPlaceId === c.placeId && JSON.stringify(day.stay) === JSON.stringify(stay))) continue;
+      prev.push({ dayId: c.dayId, placeId: day.overnightPlaceId, stay: day.stay });
+      await setOvernight(tripRef.current.id, c.dayId, c.placeId, stay);
+      const patch = (d: TripData["days"][number]) =>
+        d.id === c.dayId ? { ...d, overnightPlaceId: c.placeId, stay: cleanStay(stay) } : d;
+      setTrip((t) => ({ ...t, days: t.days.map(patch) }));
+      tripRef.current = { ...tripRef.current, days: tripRef.current.days.map(patch) };
     }
     return prev;
   };
@@ -291,6 +299,7 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
     tags: s.tags,
     categories: s.categories,
     arriveBy: s.arriveBy,
+    transport: s.transport,
     notes: s.notes,
     bookingRef: s.bookingRef,
     link: s.link,
@@ -395,6 +404,7 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
       tags: v.tags,
       categories: v.categories,
       arriveBy: v.arriveBy,
+      transport: v.transport,
       notes: v.notes,
       bookingRef: v.bookingRef,
       link: v.link,
@@ -413,7 +423,9 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
           layout: { ...t.layout, [v.container]: [...(t.layout[v.container] ?? []), stop.id] },
         }));
         const overnights =
-          v.overnight && v.container !== TRAY ? await applyOvernights([{ dayId: v.container, placeId: place.id }]) : [];
+          v.overnight && v.container !== TRAY
+            ? await applyOvernights([{ dayId: v.container, placeId: place.id, stay: v.stay }])
+            : [];
         setUndo({ label: `Added ${stop.name}`, createdStopId: stop.id, overnights });
         setToast({ text: `Added ${stop.name}${place.lat === null ? " (no map location)" : ""}` });
       } else {
@@ -438,7 +450,7 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
         const wasOvernight = !!fromDay && fromDay.overnightPlaceId === prevStop.placeId;
         const changes: OvernightChange[] = [];
         if (wasOvernight && fromDay && (from !== v.container || !v.overnight)) changes.push({ dayId: fromDay.id, placeId: null });
-        if (v.overnight && v.container !== TRAY) changes.push({ dayId: v.container, placeId: place.id });
+        if (v.overnight && v.container !== TRAY) changes.push({ dayId: v.container, placeId: place.id, stay: v.stay });
         const overnights = await applyOvernights(changes);
         setUndo({
           label: `Saved ${saved.name}`,
@@ -622,6 +634,7 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
         tags: [],
         categories: [],
         arriveBy: "drive" as const,
+        transport: {},
         notes: "",
         bookingRef: "",
         link: "",
@@ -772,6 +785,13 @@ export function TripPlanner({ initial, labels: initialLabels, vehicle }: Planner
           trip.days.some(
             (d) => d.overnightPlaceId === trip.stops[editor.stopId]?.placeId && trip.layout[d.id]?.includes(editor.stopId),
           )
+        }
+        stay={
+          editor.mode === "edit"
+            ? (trip.days.find(
+                (d) => d.overnightPlaceId === trip.stops[editor.stopId]?.placeId && trip.layout[d.id]?.includes(editor.stopId),
+              )?.stay ?? {})
+            : {}
         }
         days={trip.days}
         labels={labels}
