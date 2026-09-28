@@ -11,6 +11,7 @@ type Props = { stopId: string; stopName: string; onClose: () => void };
 export function StopInfo({ stopId, stopName, onClose }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [streaming, setStreaming] = useState(false);
+  const [status, setStatus] = useState<string | null>(null); // progress while streaming
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -38,25 +39,37 @@ export function StopInfo({ stopId, stopName, onClose }: Props) {
           const body = (await res.json().catch(() => ({}))) as { error?: string };
           throw new Error(body.error ?? "Couldn't get an answer. Try again.");
         }
+        // Newline-delimited JSON events: answer text, or a progress status.
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
-        for (;;) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
+        let buffer = "";
+        const handle = (line: string) => {
+          if (!line.trim()) return;
+          const event = JSON.parse(line) as { t: "text" | "status"; v: string };
+          if (event.t === "status") return setStatus(event.v);
           setMessages((m) => {
             const next = [...m];
             const last = next[next.length - 1];
-            next[next.length - 1] = { ...last, content: last.content + chunk };
+            next[next.length - 1] = { ...last, content: last.content + event.v };
             return next;
           });
+        };
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+          lines.forEach(handle);
         }
+        handle(buffer);
       } catch (err) {
         if ((err as Error).name === "AbortError") return;
         setError((err as Error).message);
         setMessages((m) => (m.at(-1)?.role === "assistant" && !m.at(-1)!.content ? m.slice(0, -1) : m));
       } finally {
         setStreaming(false);
+        setStatus(null);
         abortRef.current = null;
       }
     },
@@ -150,10 +163,19 @@ export function StopInfo({ stopId, stopName, onClose }: Props) {
                     {m.content}
                   </ReactMarkdown>
                 ) : (
-                  <p className="text-muted">Looking into it… this can take a moment while it checks current info.</p>
+                  <p className="text-muted">Starting…</p>
                 )}
               </div>
             ),
+          )}
+          {streaming && status && (
+            <p className="my-2 flex items-center gap-2 text-[13.5px] text-muted" role="status">
+              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-line border-t-ocean" aria-hidden="true" />
+              {status}
+              {status.startsWith("Search") || status.startsWith("Read")
+                ? " Checking current info can take up to a minute."
+                : ""}
+            </p>
           )}
           {error && (
             <p role="alert" className="notice notice-bad my-2">

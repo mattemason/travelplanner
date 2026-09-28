@@ -66,10 +66,14 @@ export async function POST(request: Request, ctx: RouteContext<"/api/stops/[stop
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       let reply = "";
+      // Newline-delimited JSON: {"t":"text"} is the answer, {"t":"status"} is progress.
+      const emit = (event: { t: "text" | "status"; v: string }) =>
+        controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
       const send = (text: string) => {
         reply += text;
-        controller.enqueue(encoder.encode(text));
+        emit({ t: "text", v: text });
       };
+      emit({ t: "status", v: "Thinking…" });
       try {
         // Server tools can pause a long turn (pause_turn); resume it a few times.
         const turn: Anthropic.Beta.BetaMessageParam[] = messages.map((m) => ({ role: m.role, content: m.content }));
@@ -95,6 +99,13 @@ export async function POST(request: Request, ctx: RouteContext<"/api/stops/[stop
           );
           for await (const event of response) {
             if (event.type === "content_block_delta" && event.delta.type === "text_delta") send(event.delta.text);
+            else if (event.type === "content_block_start") {
+              const kind = event.content_block.type;
+              if (kind === "server_tool_use") emit({ t: "status", v: "Searching the web…" });
+              else if (kind === "web_search_tool_result") emit({ t: "status", v: "Reading results…" });
+              else if (kind === "thinking") emit({ t: "status", v: "Thinking…" });
+              else if (kind === "text") emit({ t: "status", v: "Writing…" });
+            }
           }
           const final = await response.finalMessage();
           if (final.stop_reason === "refusal") {
@@ -124,13 +135,13 @@ export async function POST(request: Request, ctx: RouteContext<"/api/stops/[stop
               : err instanceof Anthropic.BadRequestError && /workspace/i.test(err.message)
                 ? "The Anthropic API key needs a workspace. Use a key created inside a workspace, or set ANTHROPIC_WORKSPACE_ID in Railway."
                 : "Something went wrong getting an answer. Try again.";
-        controller.enqueue(encoder.encode(`${reply ? "\n\n" : ""}⚠ ${text}`));
+        emit({ t: "text", v: `${reply ? "\n\n" : ""}⚠ ${text}` });
         controller.close();
       }
     },
   });
 
   return new Response(stream, {
-    headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store", "X-Accel-Buffering": "no" },
+    headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-store", "X-Accel-Buffering": "no" },
   });
 }
