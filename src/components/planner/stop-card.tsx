@@ -15,6 +15,7 @@ type Props = {
   editing: boolean;
   compact?: boolean;
   overnight?: boolean; // this stop is the day's overnight
+  stayBooked?: boolean; // the overnight has a booking confirmation
   dayDate?: string; // the stop's day, so travel times on that day show without a date
   onSelect: () => void;
   onEdit: () => void;
@@ -28,7 +29,7 @@ export type DriveIn = Segment | "loading" | "none" | { mode: Exclude<ArriveBy, "
 
 
 export function StopCard(props: Props) {
-  const { stop, place, number, driveIn, selected, editing, compact, overnight, onSelect, onEdit, onInfo, onDuplicate, onDelete, dayDate } = props;
+  const { stop, place, number, driveIn, selected, editing, compact, overnight, stayBooked, onSelect, onEdit, onInfo, onDuplicate, onDelete, dayDate } = props;
   const travel = BOOKED_MODES.includes(stop.arriveBy) ? transportSummary(stop.transport, dayDate) : "";
   const closed = place?.businessStatus === "CLOSED_TEMPORARILY" || place?.businessStatus === "CLOSED_PERMANENTLY";
   const noMap = place && (place.lat === null || place.lng === null);
@@ -85,6 +86,7 @@ export function StopCard(props: Props) {
           {(stop.tags.length > 0 || stop.categories.length > 0 || closed || stop.bookingRef || stop.link || noMap || overnight) && (
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               {overnight && <span className="chip border-transparent bg-ink text-paper">Overnight</span>}
+              {overnight && stayBooked && <span className="chip chip-ref font-bold">Booked</span>}
               {stop.categories.map((c) => (
                 <span key={`c-${c}`} className="chip border-ocean bg-paper text-ocean">
                   {c}
