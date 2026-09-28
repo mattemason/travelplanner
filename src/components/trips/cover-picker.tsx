@@ -1,9 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { coverUrl } from "@/lib/trip/cover";
 
-export const coverUrl = (tripId: string, version: number | null) =>
-  version ? `/api/trips/${tripId}/cover?v=${version}` : null;
 
 /** Shrinks a photo to at most 1600px wide as a JPEG, so uploads stay small. */
 async function resize(file: File): Promise<Blob> {

@@ -2,7 +2,7 @@ import { and, asc, count, eq, inArray, isNotNull } from "drizzle-orm";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { CSSProperties } from "react";
-import { coverUrl } from "@/components/trips/cover-picker";
+import { coverUrl } from "@/lib/trip/cover";
 import { getDb } from "@/db";
 import { legs, stops, trips } from "@/db/schema";
 import { currentUser } from "@/lib/auth";

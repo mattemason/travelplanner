@@ -58,7 +58,9 @@ export async function POST(request: Request, ctx: RouteContext<"/api/stops/[stop
     return Response.json({ error: "This conversation is full. Start over to ask more." }, { status: 400 });
   }
 
-  const client = new Anthropic();
+  // Keys that aren't scoped to a workspace need the workspace named on every request.
+  const workspace = process.env.ANTHROPIC_WORKSPACE_ID;
+  const client = new Anthropic(workspace ? { defaultHeaders: { "anthropic-workspace-id": workspace } } : {});
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream<Uint8Array>({
@@ -119,7 +121,9 @@ export async function POST(request: Request, ctx: RouteContext<"/api/stops/[stop
             ? "Claude is busy right now. Try again in a minute."
             : err instanceof Anthropic.AuthenticationError
               ? "The Anthropic API key isn't valid. Check ANTHROPIC_API_KEY in Railway."
-              : "Something went wrong getting an answer. Try again.";
+              : err instanceof Anthropic.BadRequestError && /workspace/i.test(err.message)
+                ? "The Anthropic API key needs a workspace. Use a key created inside a workspace, or set ANTHROPIC_WORKSPACE_ID in Railway."
+                : "Something went wrong getting an answer. Try again.";
         controller.enqueue(encoder.encode(`${reply ? "\n\n" : ""}⚠ ${text}`));
         controller.close();
       }
