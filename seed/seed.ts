@@ -9,7 +9,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { and, eq } from "drizzle-orm";
-import { db, pool } from "../src/db";
+import { getDb, getPool } from "../src/db";
 import * as t from "../src/db/schema";
 import { parseSeed } from "../src/lib/seed-schema";
 
@@ -21,6 +21,7 @@ const sourceList = `seed:${seed.meta.seedKey}`;
 const placeName = (key: string) => seed.places.find((p) => p.key === key)!.name;
 
 async function main() {
+  const db = getDb();
   await db.transaction(async (tx) => {
     const [owner] = await tx
       .insert(t.users)
@@ -139,4 +140,4 @@ main()
     console.error(err);
     process.exitCode = 1;
   })
-  .finally(() => pool.end());
+  .finally(() => getPool().end());
