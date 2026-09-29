@@ -758,12 +758,26 @@ export function TripPlanner({
     ro.observe(el);
     return () => ro.disconnect();
   }, [isDesktop]);
+  // Full-screen map: the day strip docks at the bottom and the map stops above it.
+  const [stripHeight, setStripHeight] = useState(0);
+  useEffect(() => {
+    const el = stripRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setStripHeight(el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [isDesktop]);
+  const mapFullRef = useRef(false);
+  useEffect(() => {
+    mapFullRef.current = mapFull;
+  }, [mapFull]);
   const sectionEls = useRef<(HTMLElement | null)[]>([]);
 
   useEffect(() => {
     const target: HTMLElement | Window =
       isDesktop && planRef.current ? planRef.current : window;
     const spy = () => {
+      if (mapFullRef.current) return; // the strip is docked; the list isn't what's in view
       const line = isDesktop
         ? (planRef.current?.getBoundingClientRect().top ?? 0) + 80
         : (stripRef.current?.getBoundingClientRect().bottom ?? 0) + 8;
@@ -786,11 +800,24 @@ export function TripPlanner({
     chip?.scrollIntoView({ block: "nearest", inline: "center" });
   }, [activeDay]);
 
-  const goToDay = (i: number) =>
+  const goToDay = (i: number) => {
+    if (mapFull) {
+      // Full-screen map: show that day on the map; the list catches up on exit.
+      setActiveDay(i);
+      setMapMode("day");
+      return;
+    }
     sectionEls.current[i]?.scrollIntoView({
       behavior: "smooth",
       block: "start",
     });
+  };
+  const toggleMapFull = () => {
+    if (!mapFull) return setMapFull(true);
+    setMapFull(false);
+    // Bring the list to the day chosen on the map.
+    requestAnimationFrame(() => sectionEls.current[activeDay]?.scrollIntoView({ block: "start" }));
+  };
 
   // ---- Map: the day in view, or the whole trip --------------------------------------------
   const routeLines = (dayIndex: number): MapRoute[] => {
@@ -1630,7 +1657,10 @@ export function TripPlanner({
         className="sticky top-0 z-10 bg-paper shadow-[0_2px_8px_rgba(10,20,22,0.08)]"
       >
         {/* Full screen: the same map fills the viewport (not remounted, so it keeps its place). */}
-        <div className={mapFull ? "fixed inset-0 z-30 bg-paper" : "relative"}>
+        <div
+          className={mapFull ? "fixed inset-x-0 top-0 z-30 bg-paper" : "relative"}
+          style={mapFull ? { bottom: stripHeight } : undefined}
+        >
           {map(
             mapFull
               ? "h-full"
@@ -1642,7 +1672,7 @@ export function TripPlanner({
             {!searchOpen && mapSearch(true)}
             <button
               type="button"
-              onClick={() => setMapFull((f) => !f)}
+              onClick={toggleMapFull}
               aria-label={mapFull ? "Exit full-screen map" : "Full-screen map"}
               title={mapFull ? "Exit full screen" : "Full screen"}
               className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full bg-paper/95 text-ink shadow"
@@ -1662,7 +1692,7 @@ export function TripPlanner({
             </div>
           )}
           {mapFull && (resultCard || stopCard) && (
-            <div className="absolute right-2.5 bottom-[calc(28px+env(safe-area-inset-bottom))] left-2.5">{resultCard ?? stopCard}</div>
+            <div className="absolute right-2.5 bottom-7 left-2.5">{resultCard ?? stopCard}</div>
           )}
         </div>
         {!mapFull && (searchOpen || resultCard || stopCard) && (
@@ -1671,7 +1701,14 @@ export function TripPlanner({
             {resultCard ?? stopCard}
           </div>
         )}
-        <div ref={stripRef} className="border-b border-line bg-paper">
+        <div
+          ref={stripRef}
+          className={
+            mapFull
+              ? "fixed inset-x-0 bottom-0 z-30 border-t border-line bg-paper pb-[env(safe-area-inset-bottom)]"
+              : "border-b border-line bg-paper"
+          }
+        >
           {legend}
           <div
             className="flex gap-1.5 overflow-x-auto px-[18px] pt-1.5 pb-3 no-scrollbar"
