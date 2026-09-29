@@ -51,6 +51,7 @@ import { StopCard, type DriveIn } from "./stop-card";
 import { StopEditor, type EditorValues } from "./stop-editor";
 import { StopInfo } from "./stop-info";
 import { SyncDialog } from "./sync-dialog";
+import { StopMoveCard } from "./stop-move-card";
 import { PlanDialog } from "./plan-dialog";
 import { googleMapsLink, hipcampLink } from "@/lib/trip/maps-link";
 import { TripEditor } from "./trip-editor";
@@ -101,7 +102,7 @@ export function TripPlanner({
   const [segs, setSegs] = useState<SegCache>({});
   const [activeDay, setActiveDay] = useState(0);
   const [selectedStop, setSelectedStop] = useState<string | null>(null);
-  const [mapMode, setMapMode] = useState<"day" | "trip">("day");
+  const [mapMode, setMapMode] = useState<"day" | "trip" | "stops">("day");
   const [rerouting, setRerouting] = useState<string | null>(null);
   const [infoStop, setInfoStop] = useState<string | null>(null);
   const [syncOpen, setSyncOpen] = useState(false);
@@ -820,6 +821,37 @@ export function TripPlanner({
       name: p.stopId ? stopLabel(p.stopId) : (placeName(p.placeId) ?? ""),
     }));
     mapRoutes = routeLines(activeDay);
+  } else if (mapMode === "stops") {
+    // All stops: every stop as a pin in its leg colour showing its date; unscheduled ones grey.
+    mapPoints = [];
+    mapRoutes = [];
+    trip.days.forEach((day, i) => {
+      const date = String(new Date(`${day.date}T00:00:00`).getDate());
+      for (const stopId of trip.layout[day.id] ?? []) {
+        const place = trip.places[trip.stops[stopId]?.placeId ?? ""];
+        if (place?.lat == null || place.lng == null) continue;
+        mapPoints.push({
+          id: stopId,
+          lat: place.lat,
+          lng: place.lng,
+          colour: colourOf(i),
+          badge: date,
+          name: trip.stops[stopId].name,
+        });
+      }
+    });
+    for (const stopId of trip.layout[TRAY] ?? []) {
+      const place = trip.places[trip.stops[stopId]?.placeId ?? ""];
+      if (place?.lat == null || place.lng == null) continue;
+      mapPoints.push({
+        id: stopId,
+        lat: place.lat,
+        lng: place.lng,
+        colour: "#8A9A9C",
+        badge: "?",
+        name: trip.stops[stopId].name,
+      });
+    }
   } else {
     // Whole trip: every route in its leg colour, a dot per stop, and a pin per night's stop
     // showing the date, so the shape of the trip reads at a glance.
@@ -1154,12 +1186,13 @@ export function TripPlanner({
         }}
         // Refit when the day, its stops or the view mode change; never for search results.
         fitKey={
-          mapMode === "trip"
-            ? `trip-${isDesktop}`
+          mapMode === "trip" || mapMode === "stops"
+            ? `${mapMode}-${isDesktop}` // refit only when switching to this view
             : `${activeDay}-${mapPoints.filter((p) => !p.result).length}-${isDesktop}`
         }
         className={className}
-        labels={labels}
+        labels={labels || mapMode === "stops"}
+        labelSelectedOnly={mapMode === "stops"}
       />
     ) : (
       <div
@@ -1169,13 +1202,28 @@ export function TripPlanner({
       </div>
     );
 
+  // All stops view: the tapped stop, with a quick way to move it to another day.
+  const stopCard =
+    mapMode === "stops" && selectedStop && trip.stops[selectedStop] ? (
+      <StopMoveCard
+        key={selectedStop}
+        stop={trip.stops[selectedStop]}
+        container={containerOf(trip.layout, selectedStop) ?? TRAY}
+        days={trip.days}
+        onMove={(to) => onMove(selectedStop, to, Number.MAX_SAFE_INTEGER)}
+        onEdit={() => openEditor(selectedStop)}
+        onInfo={() => setInfoStop(selectedStop)}
+        onClose={() => setSelectedStop(null)}
+      />
+    ) : null;
+
   const modeSwitch = (
     <div
       role="group"
       aria-label="Map shows"
       className="flex rounded-full bg-paper/95 p-1 shadow"
     >
-      {(["day", "trip"] as const).map((m) => (
+      {(["day", "trip", "stops"] as const).map((m) => (
         <button
           key={m}
           type="button"
@@ -1185,7 +1233,7 @@ export function TripPlanner({
             mapMode === m ? "bg-ink text-paper" : "text-ink"
           }`}
         >
-          {m === "day" ? "This day" : "Whole trip"}
+          {m === "day" ? "This day" : m === "trip" ? "Whole trip" : "All stops"}
         </button>
       ))}
     </div>
@@ -1265,7 +1313,11 @@ export function TripPlanner({
       <button type="button" className="btn" disabled title="Coming in Phase 4">
         Share
       </button>
-      <button type="button" className="btn btn-primary" onClick={() => setPlanOpen(true)}>
+      <button
+        type="button"
+        className="btn btn-primary"
+        onClick={() => setPlanOpen(true)}
+      >
         Plan my trip
       </button>
     </div>
@@ -1482,25 +1534,33 @@ export function TripPlanner({
           {map("h-full w-full", true)}
           <div className="absolute top-3 left-3 flex flex-col items-start gap-2">
             {modeSwitch}
-            {mapMode === "trip"
-              ? summary(false)
-              : trip.days[activeDay] && (
-                  <div className="pointer-events-none rounded-xl bg-paper/95 px-3 py-2 shadow">
-                    <span className="block text-[12.5px] font-bold text-[var(--legc)]">
-                      {activeLeg?.name}
-                    </span>
-                    <span className="font-display text-[22px] leading-none font-bold">
-                      {dayLabel(trip.days[activeDay].date)}
-                    </span>
-                  </div>
-                )}
+            {mapMode === "trip" ? (
+              summary(false)
+            ) : mapMode === "stops" ? (
+              <p className="pointer-events-none rounded-xl bg-paper/95 px-3 py-2 text-[12.5px] text-muted shadow">
+                Coloured by leg · date on each pin · grey = not yet scheduled.
+                <br />
+                Tap a stop to move it.
+              </p>
+            ) : (
+              trip.days[activeDay] && (
+                <div className="pointer-events-none rounded-xl bg-paper/95 px-3 py-2 shadow">
+                  <span className="block text-[12.5px] font-bold text-[var(--legc)]">
+                    {activeLeg?.name}
+                  </span>
+                  <span className="font-display text-[22px] leading-none font-bold">
+                    {dayLabel(trip.days[activeDay].date)}
+                  </span>
+                </div>
+              )
+            )}
           </div>
           <div className="absolute top-3 right-3 max-w-[calc(100%-24px)]">
             {mapSearch(false)}
           </div>
-          {resultCard && (
+          {(resultCard || stopCard) && (
             <div className="absolute bottom-8 left-3 max-w-[calc(100%-24px)]">
-              {resultCard}
+              {resultCard ?? stopCard}
             </div>
           )}
           {editorEl && (
@@ -1525,7 +1585,7 @@ export function TripPlanner({
       >
         <div className="relative">
           {map(
-            `${mapMode === "trip" || search ? "h-[260px]" : "h-[200px]"} border-b border-line`,
+            `${mapMode !== "day" || search ? "h-[260px]" : "h-[200px]"} border-b border-line`,
             false,
           )}
           <div className="absolute top-2.5 right-2.5">{modeSwitch}</div>
@@ -1533,10 +1593,10 @@ export function TripPlanner({
             <div className="absolute top-2.5 left-2.5">{mapSearch(true)}</div>
           )}
         </div>
-        {(searchOpen || resultCard) && (
+        {(searchOpen || resultCard || stopCard) && (
           <div className="flex flex-col gap-2 border-b border-line bg-soft px-[18px] py-2.5">
             {searchOpen && mapSearch(true)}
-            {resultCard}
+            {resultCard ?? stopCard}
           </div>
         )}
         <div ref={stripRef} className="border-b border-line bg-paper">
@@ -1624,7 +1684,11 @@ export function TripPlanner({
             setUndo({
               label: "Applied the plan",
               layout: before.layout,
-              overnights: before.days.map((d) => ({ dayId: d.id, placeId: d.overnightPlaceId, stay: d.stay })),
+              overnights: before.days.map((d) => ({
+                dayId: d.id,
+                placeId: d.overnightPlaceId,
+                stay: d.stay,
+              })),
             });
             setToast({ text: "Plan applied" });
           }}
@@ -1638,7 +1702,9 @@ export function TripPlanner({
             setSyncOpen(false);
             setTrip(fresh);
             setUndo(null);
-            setToast({ text: `Added ${added} ${added === 1 ? "place" : "places"} to Not yet scheduled` });
+            setToast({
+              text: `Added ${added} ${added === 1 ? "place" : "places"} to Not yet scheduled`,
+            });
             if (!isDesktop || !prefs.rail) setPrefs({ rail: true }); // show where they landed
           }}
         />

@@ -28,6 +28,7 @@ type Props = {
   fitKey: string; // refit the view when this changes (the day in view, or whole-trip mode)
   className?: string;
   labels?: boolean;
+  labelSelectedOnly?: boolean; // busy maps: only the tapped pin gets its name
   onBoundsChanged?: (bounds: MapBounds) => void;
   dark?: boolean; // the app's theme, so the map matches Light/Dark choices
   onPlaceClick?: (googlePlaceId: string) => void; // a tap on one of Google's own map icons
@@ -39,7 +40,7 @@ const TASMANIA = { lat: -42.0, lng: 146.6 };
 /** A Google map of pins and drive routes: one day, or the whole trip. */
 export function TripMap(props: Props) {
   const { points, routes, selectedId, onSelect, fitKey, className, labels = true, onBoundsChanged, dark = false } = props;
-  const { onPlaceClick } = props;
+  const { onPlaceClick, labelSelectedOnly = false } = props;
   return (
     <div className={`relative ${className ?? ""}`}>
       <Map
@@ -129,7 +130,7 @@ export function TripMap(props: Props) {
                 }}
               >
                 {p.badge}
-                {labels && (p.badge !== null || selected) && (
+                {labels && (labelSelectedOnly ? selected : p.badge !== null || selected) && (
                   <span
                     className="absolute top-1/2 left-full ml-1.5 -translate-y-1/2 rounded bg-paper/85 px-1 font-display text-[14px] font-semibold whitespace-nowrap text-ink"
                     style={{ maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis" }}
