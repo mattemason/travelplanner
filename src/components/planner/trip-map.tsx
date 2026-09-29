@@ -1,7 +1,7 @@
 "use client";
 
 import { AdvancedMarker, AdvancedMarkerAnchorPoint, Map, Polyline, useMap } from "@vis.gl/react-google-maps";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export type MapPoint = {
   id: string;
@@ -35,15 +35,43 @@ type Props = {
 };
 
 const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID;
+
+type MapType = "roadmap" | "terrain" | "hybrid";
+const MAP_TYPES: { id: MapType; label: string }[] = [
+  { id: "roadmap", label: "Map" },
+  { id: "terrain", label: "Terrain" },
+  { id: "hybrid", label: "Satellite" },
+];
+const MAP_TYPE_KEY = "trip-map-type";
+function savedMapType(): MapType {
+  try {
+    const v = typeof window === "undefined" ? null : localStorage.getItem(MAP_TYPE_KEY);
+    return MAP_TYPES.some((t) => t.id === v) ? (v as MapType) : "roadmap";
+  } catch {
+    return "roadmap";
+  }
+}
 const TASMANIA = { lat: -42.0, lng: 146.6 };
 
 /** A Google map of pins and drive routes: one day, or the whole trip. */
 export function TripMap(props: Props) {
   const { points, routes, selectedId, onSelect, fitKey, className, labels = true, onBoundsChanged, dark = false } = props;
   const { onPlaceClick, labelSelectedOnly = false } = props;
+  const [mapType, setMapType] = useState<MapType>(savedMapType);
+  const [typeMenuOpen, setTypeMenuOpen] = useState(false);
+  const chooseType = (t: MapType) => {
+    setMapType(t);
+    setTypeMenuOpen(false);
+    try {
+      localStorage.setItem(MAP_TYPE_KEY, t);
+    } catch {
+      // private mode: the choice lasts for this page only
+    }
+  };
   return (
     <div className={`relative ${className ?? ""}`}>
       <Map
+        mapTypeId={mapType}
         key={dark ? "dark" : "light"} // the colour scheme is fixed when the map is created
         mapId={MAP_ID}
         defaultCenter={TASMANIA}
@@ -144,6 +172,40 @@ export function TripMap(props: Props) {
         })}
         <FitBounds points={points} fitKey={fitKey} />
       </Map>
+      {/* Map type: plain map, terrain or satellite (with labels). Remembered on this device. */}
+      <div className="absolute bottom-7 left-2.5">
+        {typeMenuOpen && (
+          <div role="menu" className="absolute bottom-full left-0 mb-1.5 flex flex-col overflow-hidden rounded-xl border border-line bg-paper shadow-lg">
+            {MAP_TYPES.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                role="menuitemradio"
+                aria-checked={mapType === t.id}
+                onClick={() => chooseType(t.id)}
+                className={`cursor-pointer px-3.5 py-2 text-left text-[14px] whitespace-nowrap ${
+                  mapType === t.id ? "bg-soft font-semibold text-ink" : "text-muted"
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => setTypeMenuOpen((o) => !o)}
+          aria-label="Map type"
+          aria-expanded={typeMenuOpen}
+          title="Map type"
+          className="grid h-10 w-10 cursor-pointer place-items-center rounded-full bg-paper/95 text-ink shadow"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M3 20h18L14.5 8l-4 6.5L8 11z" />
+            <circle cx="17" cy="5" r="1.8" />
+          </svg>
+        </button>
+      </div>
     </div>
   );
 }
