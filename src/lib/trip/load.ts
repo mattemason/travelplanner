@@ -95,6 +95,7 @@ export async function loadTrip(userId: string, tripId: string): Promise<TripData
           placeId: s.placeId,
           name: s.label ?? placeById.get(s.placeId)?.name ?? "Untitled stop",
           time: s.plannedTime ? s.plannedTime.slice(0, 5) : null,
+          departTime: s.departTime ? s.departTime.slice(0, 5) : null,
           tags: s.tags,
           categories: s.categories,
           notes: s.notes ?? "",

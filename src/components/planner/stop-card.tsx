@@ -11,6 +11,7 @@ type Props = {
   place: Place | undefined;
   number: number | null; // null in the tray
   driveIn?: DriveIn; // drive from the previous point; undefined when there is none
+  eta?: string; // estimated arrival from the previous stop's departure, when this stop has no set time
   selected: boolean;
   editing: boolean;
   compact?: boolean;
@@ -29,7 +30,7 @@ export type DriveIn = Segment | "loading" | "none" | { mode: Exclude<ArriveBy, "
 
 
 export function StopCard(props: Props) {
-  const { stop, place, number, driveIn, selected, editing, compact, overnight, stayBooked, onSelect, onEdit, onInfo, onDuplicate, onDelete, dayDate } = props;
+  const { eta, stop, place, number, driveIn, selected, editing, compact, overnight, stayBooked, onSelect, onEdit, onInfo, onDuplicate, onDelete, dayDate } = props;
   const travel = BOOKED_MODES.includes(stop.arriveBy) ? transportSummary(stop.transport, dayDate) : "";
   const closed = place?.businessStatus === "CLOSED_TEMPORARILY" || place?.businessStatus === "CLOSED_PERMANENTLY";
   const noMap = place && (place.lat === null || place.lng === null);
@@ -74,7 +75,16 @@ export function StopCard(props: Props) {
         )}
         <div className="min-w-0 flex-1">
           <div className="text-[15.5px] font-bold">
-            {stop.time && <span className="mr-2 font-normal text-muted">{timeLabel(stop.time)}</span>}
+            {(stop.time || eta || stop.departTime) && (
+              <span className="mr-2 font-normal text-muted">
+                {stop.time ? (
+                  timeLabel(stop.time)
+                ) : eta ? (
+                  <span title="Estimated from the last stop's departure and the drive">~{timeLabel(eta)}</span>
+                ) : null}
+                {stop.departTime && <>{stop.time || eta ? "–" : "Leave "}{timeLabel(stop.departTime)}</>}
+              </span>
+            )}
             {stop.name}
           </div>
           {travel && (

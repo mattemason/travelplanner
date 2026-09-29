@@ -1,0 +1,1 @@
+ALTER TABLE "stops" ADD COLUMN "depart_time" time;

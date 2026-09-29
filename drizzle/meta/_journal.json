@@ -85,6 +85,13 @@
       "when": 1790637834756,
       "tag": "0011_shared_list_sync",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790715025714,
+      "tag": "0012_stop_depart_time",
+      "breakpoints": true
     }
   ]
 }

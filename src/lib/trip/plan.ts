@@ -58,6 +58,7 @@ export function buildPlanRequest(
       categories: s.categories,
       arrive_by: s.arriveBy,
       planned_time: s.time,
+      planned_departure: s.departTime ?? undefined,
       closed: place?.businessStatus?.startsWith("CLOSED") ? place.businessStatus : undefined,
       notes: s.notes ? s.notes.slice(0, 240) : undefined,
     };

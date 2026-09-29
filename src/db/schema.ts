@@ -185,6 +185,7 @@ export const stops = pgTable(
     position: integer("position").notNull(),
     label: text("label"),
     plannedTime: time("planned_time"),
+    departTime: time("depart_time"),
     durationMins: integer("duration_mins"),
     // Built-in tag keys (4wd, walk, camp, permit, book_ahead, weather) or the user's own tag names.
     tags: text("tags").array().notNull().default(sql`'{}'`),

@@ -44,6 +44,7 @@ import {
 import { dayWarnings } from "@/lib/trip/warnings";
 import { addLabel, deleteLabel, renameLabel } from "@/app/labels/actions";
 import { DaySection, type DayDriveInfo } from "./day-section";
+import { estimatedArrivals } from "@/lib/trip/eta";
 import type { LabelOps } from "./label-pickers";
 import { PencilIcon } from "./icons";
 import { SortableList } from "./sortable-list";
@@ -258,9 +259,10 @@ export function TripPlanner({
               drive: d,
             };
         }
-        return { driveIn, tail, totalS, totalM, complete, noRoute };
+        const eta = estimatedArrivals(route, trip.stops, (a, b) => segs[pairKey(a, b)]);
+        return { driveIn, tail, totalS, totalM, complete, noRoute, eta };
       }),
-    [routes, segs, trip.places],
+    [routes, segs, trip.places, trip.stops],
   );
 
   const warnings = useMemo(
@@ -433,6 +435,7 @@ export function TripPlanner({
   const fieldsOf = (s: Stop) => ({
     name: s.name,
     time: s.time,
+    departTime: s.departTime,
     tags: s.tags,
     categories: s.categories,
     arriveBy: s.arriveBy,
@@ -556,6 +559,7 @@ export function TripPlanner({
     const fields = {
       name: v.name,
       time: v.time,
+      departTime: v.departTime,
       tags: v.tags,
       categories: v.categories,
       arriveBy: v.arriveBy,
@@ -960,6 +964,7 @@ export function TripPlanner({
       const fields = {
         name: r.name,
         time: null,
+        departTime: null,
         tags: [],
         categories: [],
         arriveBy: "drive" as const,
@@ -1158,6 +1163,11 @@ export function TripPlanner({
         variant={variant}
         isNew={editor.mode === "new"}
         stop={editor.mode === "edit" ? trip.stops[editor.stopId] : null}
+        estimatedArrival={
+          editor.mode === "edit"
+            ? drives[trip.days.findIndex((d) => trip.layout[d.id]?.includes(editor.stopId))]?.eta[editor.stopId]
+            : null
+        }
         container={
           editor.mode === "edit"
             ? (containerOf(trip.layout, editor.stopId) ?? TRAY)

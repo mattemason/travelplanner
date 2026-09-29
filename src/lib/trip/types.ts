@@ -43,7 +43,8 @@ export type Stop = {
   id: string;
   placeId: string;
   name: string; // label override, or the place name
-  time: string | null; // "HH:MM"
+  time: string | null; // arrival, "HH:MM"
+  departTime: string | null; // "HH:MM"; the next stop's arrival is estimated from it
   tags: Tag[];
   categories: string[];
   notes: string;

@@ -18,6 +18,7 @@ export type DayDriveInfo = {
   totalM: number;
   complete: boolean; // false while some drive times are still loading
   noRoute: number; // stretches Google has no road route for
+  eta: Record<string, string>; // stop id → estimated arrival "HH:MM" from the previous stop's departure
 };
 
 type Props = {
@@ -116,6 +117,7 @@ export function DaySection({ sectionRef, ...p }: Props) {
               place={p.places[stop.placeId]}
               number={i + 1}
               driveIn={p.drive.driveIn[stop.id]}
+              eta={p.drive.eta[stop.id]}
               selected={p.selectedStopId === stop.id}
               editing={p.editingStopId === stop.id}
               compact={p.compact}

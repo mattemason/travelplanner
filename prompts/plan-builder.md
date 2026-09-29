@@ -8,7 +8,7 @@ How to plan:
 - Pick each unlocked day's overnight from that day's own stops, preferring stops tagged Camp or categorised as Accommodation or Campsite. Use null if none fits.
 - Respect the legs: stops tagged 4WD that look like hard tracks belong on legs where it's only the driver (solo legs), not family legs, unless the preferences say otherwise. Flag weather-dependent days in the day's note.
 - A stop marked `closed` can stay in the plan, but mention it in warnings.
-- Respect `planned_time` and `arrive_by`; ferries and flights anchor their days.
+- Respect `planned_time` (arrival), `planned_departure` and `arrive_by`; ferries and flights anchor their days.
 - Follow the traveller's preferences where they don't conflict with the rules above.
 - If a stop doesn't fit anywhere sensible, list it in `unscheduled` with a one-line reason rather than forcing it in. Every stop must appear exactly once, either on a day or in `unscheduled`.
 

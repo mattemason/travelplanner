@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AttachmentsField } from "./attachments-field";
 import { CategoryPicker, TagPicker, type LabelOps } from "./label-pickers";
 import { PlaceSearch, type Suggestion } from "./place-search";
-import { dayLabel } from "@/lib/trip/format";
+import { dayLabel, timeLabel } from "@/lib/trip/format";
 import { carrierLabel, numberLabel, seatLabel } from "@/lib/trip/details";
 import {
   ARRIVE_BY,
@@ -23,6 +23,7 @@ export type EditorValues = {
   name: string;
   container: string; // day id or "tray"
   time: string | null;
+  departTime: string | null;
   tags: Tag[];
   categories: string[];
   arriveBy: ArriveBy;
@@ -40,6 +41,7 @@ type Props = {
   variant: "panel" | "sheet";
   isNew: boolean;
   stop: Stop | null; // null for a new stop
+  estimatedArrival?: string | null; // "HH:MM" from the previous stop's departure plus the drive
   container: string;
   isOvernight: boolean;
   stay: Stay; // the day's current stay details, when this stop is its overnight
@@ -65,6 +67,7 @@ export function StopEditor(props: Props) {
     name: stop?.name ?? "",
     container,
     time: stop?.time ?? null,
+    departTime: stop?.departTime ?? null,
     tags: stop?.tags ?? [],
     categories: stop?.categories ?? [],
     arriveBy: stop?.arriveBy ?? "drive",
@@ -78,6 +81,8 @@ export function StopEditor(props: Props) {
     overnight: isOvernight,
   }));
   const nameRef = useRef<HTMLInputElement>(null);
+  // The estimate is for this stop's current day and place in it; moving it elsewhere makes it stale.
+  const estimate = values.container === container ? (props.estimatedArrival ?? null) : null;
   const set = <K extends keyof EditorValues>(key: K, value: EditorValues[K]) => setValues((v) => ({ ...v, [key]: value }));
   const setTransport = (patch: Transport) => setValues((v) => ({ ...v, transport: { ...v.transport, ...patch } }));
   const setStay = (patch: Stay) => setValues((v) => ({ ...v, stay: { ...v.stay, ...patch } }));
@@ -147,23 +152,38 @@ export function StopEditor(props: Props) {
             : "Pick a match to move this stop to that place, or just edit the name."}
       </p>
 
+      <label className="field">
+        Day
+        <select value={values.container} onChange={(e) => set("container", e.target.value)}>
+          {days.map((d) => (
+            <option key={d.id} value={d.id}>
+              {dayLabel(d.date)}
+            </option>
+          ))}
+          <option value={TRAY}>Not yet scheduled</option>
+        </select>
+      </label>
       <div className="grid grid-cols-2 gap-2.5">
-        <label className="field">
-          Day
-          <select value={values.container} onChange={(e) => set("container", e.target.value)}>
-            {days.map((d) => (
-              <option key={d.id} value={d.id}>
-                {dayLabel(d.date)}
-              </option>
-            ))}
-            <option value={TRAY}>Not yet scheduled</option>
-          </select>
-        </label>
         <label className="field">
           Arrival time
           <input type="time" value={values.time ?? ""} onChange={(e) => set("time", e.target.value || null)} />
         </label>
+        <label className="field">
+          Departure time
+          <input type="time" value={values.departTime ?? ""} onChange={(e) => set("departTime", e.target.value || null)} />
+        </label>
       </div>
+      {estimate && values.time !== estimate && (
+        <p className="-mt-2 text-[12.5px] text-muted">
+          About {timeLabel(estimate)} by road from the last stop&apos;s departure.{" "}
+          <button type="button" className="cursor-pointer font-semibold text-ocean underline" onClick={() => set("time", estimate)}>
+            Use {timeLabel(estimate)}
+          </button>
+        </p>
+      )}
+      {values.departTime && values.time && values.departTime < values.time && (
+        <p className="-mt-2 text-[12.5px] text-warn-ink">Departure is before arrival.</p>
+      )}
 
       <label className="field">
         Getting here

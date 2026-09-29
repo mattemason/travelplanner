@@ -87,6 +87,10 @@ const stopFields = z.object({
     .string()
     .regex(/^\d{2}:\d{2}$/)
     .nullable(),
+  departTime: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .nullable(),
   tags: z.array(z.string().trim().min(1).max(40)).max(30),
   categories: z.array(z.string().trim().min(1).max(40)).max(30),
   arriveBy: z.enum(["drive", "ferry", "flight", "bus", "train", "walk"]),
@@ -175,6 +179,7 @@ export async function updateStop(tripId: string, stopId: string, fields: StopFie
       placeId: place.id,
       label: name === place.name ? null : name,
       plannedTime: f.time,
+      departTime: f.departTime,
       tags: f.tags,
       categories: f.categories,
       arriveBy: f.arriveBy,
@@ -190,6 +195,7 @@ export async function updateStop(tripId: string, stopId: string, fields: StopFie
     placeId: place.id,
     name,
     time: f.time,
+    departTime: f.departTime,
     tags: f.tags,
     categories: f.categories,
     arriveBy: f.arriveBy,
@@ -239,6 +245,7 @@ export async function createStop(
       position,
       label: name === place.name ? null : name,
       plannedTime: f.time,
+      departTime: f.departTime,
       tags: f.tags,
       categories: f.categories,
       arriveBy: f.arriveBy,
@@ -255,6 +262,7 @@ export async function createStop(
       placeId: place.id,
       name,
       time: f.time,
+      departTime: f.departTime,
       tags: f.tags,
       categories: f.categories,
       arriveBy: f.arriveBy,

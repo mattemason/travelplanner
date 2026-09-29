@@ -30,6 +30,7 @@ const stop = (id: string, placeId: string, tags: string[] = []) => ({
   placeId,
   name: placeId,
   time: null,
+  departTime: null,
   tags,
   categories: [],
   arriveBy: "drive" as const,

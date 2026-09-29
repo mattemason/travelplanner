@@ -4,6 +4,7 @@ import type { CSSProperties } from "react";
 import { DayMap, type DayMapPoint, type DayMapRoute } from "@/components/planner/day-map";
 import { currentUser } from "@/lib/auth";
 import { getSegments } from "@/lib/google/routes";
+import { estimatedArrivals } from "@/lib/trip/eta";
 import {
   dayRoute,
   dayStart,
@@ -51,6 +52,7 @@ export default async function DayViewPage({ params }: PageProps<"/trips/[tripId]
     .slice(1)
     .reduce((n, to, i) => n + (to.arriveBy === "drive" ? (segments[pairKey(route[i], to)]?.durationS ?? 0) : 0), 0);
   const stops = (trip.layout[day.id] ?? []).map((id) => trip.stops[id]);
+  const eta = estimatedArrivals(route, trip.stops, (a, b) => segments[pairKey(a, b)]);
   // Map: numbered stops, the day's start/overnight as plain pins, road routes or dashed crossings.
   const mapPoints: DayMapPoint[] = route.map((p) => ({
     id: p.stopId ?? `place-${p.placeId}`,
@@ -141,7 +143,7 @@ export default async function DayViewPage({ params }: PageProps<"/trips/[tripId]
               )}
               <div className="relative py-3 pl-16">
                 <span className="absolute top-3.5 left-0 font-display text-[17px] font-semibold">
-                  {timeLabel(stop.time)}
+                  {stop.time ? timeLabel(stop.time) : eta[stop.id] ? `~${timeLabel(eta[stop.id])}` : ""}
                 </span>
                 <span className="absolute top-[18px] left-[47px] h-3 w-3 rounded-full border-[3px] border-[var(--legc)] bg-paper" />
                 <div className="font-bold">{stop.name}</div>
