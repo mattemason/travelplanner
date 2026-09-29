@@ -107,6 +107,8 @@ export function TripPlanner({
   const [infoStop, setInfoStop] = useState<string | null>(null);
   const [syncOpen, setSyncOpen] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
+  const [modeMenuOpen, setModeMenuOpen] = useState(false); // mobile: map view picker
+  const [mapFull, setMapFull] = useState(false); // mobile: full-screen map
   const [search, setSearch] = useState<SearchResult[] | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [selectedResult, setSelectedResult] = useState<string | null>(null);
@@ -1217,6 +1219,50 @@ export function TripPlanner({
       />
     ) : null;
 
+  const MODE_LABEL = { day: "This day", trip: "Whole trip", stops: "All stops" } as const;
+
+  // Mobile: the three map views sit behind one round button.
+  const modeMenu = (
+    <div className="relative flex flex-col items-end">
+      <button
+        type="button"
+        onClick={() => setModeMenuOpen((o) => !o)}
+        aria-expanded={modeMenuOpen}
+        aria-label={`Map view: ${MODE_LABEL[mapMode]}`}
+        title={`Map view: ${MODE_LABEL[mapMode]}`}
+        className="grid h-11 w-11 cursor-pointer place-items-center rounded-full bg-paper/95 text-ink shadow"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="m12 2 10 5-10 5L2 7Z" />
+          <path d="m2 12 10 5 10-5" />
+          <path d="m2 17 10 5 10-5" />
+        </svg>
+      </button>
+      {modeMenuOpen && (
+        <div role="menu" className="absolute top-full right-0 z-20 mt-1.5 w-40 overflow-hidden rounded-xl bg-paper py-1 shadow-lg">
+          {(["day", "trip", "stops"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              role="menuitemradio"
+              aria-checked={mapMode === m}
+              onClick={() => {
+                setMapMode(m);
+                setModeMenuOpen(false);
+              }}
+              className={`flex w-full cursor-pointer items-center justify-between px-3.5 py-2.5 text-left text-[15px] ${
+                mapMode === m ? "font-bold text-ink" : "text-ink"
+              }`}
+            >
+              {MODE_LABEL[m]}
+              {mapMode === m && <span aria-hidden="true">✓</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   const modeSwitch = (
     <div
       role="group"
@@ -1583,17 +1629,43 @@ export function TripPlanner({
         ref={stickyRef}
         className="sticky top-0 z-10 bg-paper shadow-[0_2px_8px_rgba(10,20,22,0.08)]"
       >
-        <div className="relative">
+        {/* Full screen: the same map fills the viewport (not remounted, so it keeps its place). */}
+        <div className={mapFull ? "fixed inset-0 z-30 bg-paper" : "relative"}>
           {map(
-            `${mapMode !== "day" || search ? "h-[260px]" : "h-[200px]"} border-b border-line`,
-            false,
+            mapFull
+              ? "h-full"
+              : `${mapMode !== "day" || search ? "h-[300px]" : "h-[240px]"} border-b border-line`,
+            mapFull,
           )}
-          <div className="absolute top-2.5 right-2.5">{modeSwitch}</div>
-          {!searchOpen && (
-            <div className="absolute top-2.5 left-2.5">{mapSearch(true)}</div>
+          <div className={`absolute right-2.5 ${mapFull ? "top-[calc(10px+env(safe-area-inset-top))]" : "top-2.5"}`}>{modeMenu}</div>
+          <div className={`absolute left-2.5 flex items-start gap-2 ${mapFull ? "top-[calc(10px+env(safe-area-inset-top))]" : "top-2.5"}`}>
+            {!searchOpen && mapSearch(true)}
+            <button
+              type="button"
+              onClick={() => setMapFull((f) => !f)}
+              aria-label={mapFull ? "Exit full-screen map" : "Full-screen map"}
+              title={mapFull ? "Exit full screen" : "Full screen"}
+              className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full bg-paper/95 text-ink shadow"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                {mapFull ? (
+                  <path d="M9 3v6H3M15 3v6h6M9 21v-6H3M15 21v-6h6" />
+                ) : (
+                  <path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6" />
+                )}
+              </svg>
+            </button>
+          </div>
+          {mapFull && searchOpen && (
+            <div className="absolute top-[calc(64px+env(safe-area-inset-top))] right-2.5 left-2.5 rounded-xl bg-paper p-2 shadow">
+              {mapSearch(true)}
+            </div>
+          )}
+          {mapFull && (resultCard || stopCard) && (
+            <div className="absolute right-2.5 bottom-[calc(28px+env(safe-area-inset-bottom))] left-2.5">{resultCard ?? stopCard}</div>
           )}
         </div>
-        {(searchOpen || resultCard || stopCard) && (
+        {!mapFull && (searchOpen || resultCard || stopCard) && (
           <div className="flex flex-col gap-2 border-b border-line bg-soft px-[18px] py-2.5">
             {searchOpen && mapSearch(true)}
             {resultCard ?? stopCard}
