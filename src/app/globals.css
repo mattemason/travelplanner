@@ -214,6 +214,22 @@ h3 {
     font: inherit;
     font-size: 16px; /* 16px stops iOS zooming into fields */
     font-weight: 400;
+    min-width: 0;
+  }
+  /* In a two-column grid, let fields shrink to their column instead of their content. */
+  .field {
+    min-width: 0;
+  }
+  /* iOS Safari gives date/time inputs a native minimum width that overflows narrow columns. */
+  .field input[type="time"],
+  .field input[type="date"],
+  .field input[type="datetime-local"] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-height: 45px;
+  }
+  .field input::-webkit-date-and-time-value {
+    text-align: left;
   }
 }
 
