@@ -2,6 +2,7 @@
 
 import { and, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import { z } from "zod";
+import { MAP_TYPE_IDS } from "@/lib/trip/map-types";
 import { getDb } from "@/db";
 import * as t from "@/db/schema";
 import { currentUser } from "@/lib/auth";
@@ -289,6 +290,7 @@ const tripDetails = z
     startDate: isoDate,
     endDate: isoDate,
     maxDriveHours: z.number().min(1).max(16),
+    mapTypes: z.array(z.enum(MAP_TYPE_IDS)).min(1, "Pick at least one map type").max(MAP_TYPE_IDS.length),
     dieselPrice: z.number().min(0.5).max(10).nullable(),
     petrolPrice: z.number().min(0.5).max(10).nullable(),
     icon: z.string().trim().max(16).nullable(),
@@ -337,6 +339,7 @@ export async function updateTrip(tripId: string, details: TripDetails) {
         startDate: v.startDate,
         endDate: v.endDate,
         maxDriveHoursPerDay: v.maxDriveHours,
+        mapTypes: [...new Set(v.mapTypes)],
         dieselPrice: v.dieselPrice,
         petrolPrice: v.petrolPrice,
         icon: v.icon || null,

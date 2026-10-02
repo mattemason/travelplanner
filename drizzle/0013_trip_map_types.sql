@@ -1,0 +1,1 @@
+ALTER TABLE "trips" ADD COLUMN "map_types" text[];

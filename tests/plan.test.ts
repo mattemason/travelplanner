@@ -26,6 +26,7 @@ function trip(): TripData {
     startDate: "2027-01-01",
     endDate: "2027-01-02",
     maxDriveHours: 5,
+    mapTypes: ["roadmap"],
     fuelPrices: { diesel: null, petrol: null },
     icon: null,
     coverVersion: null,

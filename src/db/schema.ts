@@ -77,6 +77,7 @@ export const trips = pgTable(
       .notNull()
       .default(5),
     seedVersion: integer("seed_version"),
+    mapTypes: text("map_types").array(), // map types offered in the map menu; null = all
     dieselPrice: numeric("diesel_price", { precision: 6, scale: 3, mode: "number" }), // $ per litre
     petrolPrice: numeric("petrol_price", { precision: 6, scale: 3, mode: "number" }),
     icon: text("icon"), // an emoji shown on the trip card

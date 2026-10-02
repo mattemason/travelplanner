@@ -46,6 +46,8 @@ type Props = {
   onAddStop: (dayId: string) => void;
   onReroute: (dayId: string) => void;
   rerouting: boolean;
+  navigateUrl: string | null; // Google Maps directions through the day's stops, from your location
+  navigateStops: number;
   fuelCost: number | null; // estimated $ for the day's driving; null when vehicle or prices aren't set
 };
 
@@ -159,6 +161,17 @@ export function DaySection({ sectionRef, ...p }: Props) {
         >
           {p.rerouting ? "Re-routing…" : "Re-route"}
         </button>
+        {p.navigateUrl && (
+          <a
+            href={p.navigateUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn"
+            title={`Turn-by-turn in Google Maps from where you are, through ${p.navigateStops} ${p.navigateStops === 1 ? "stop" : "stops"}`}
+          >
+            Navigate day
+          </a>
+        )}
         <Link
           href={`/trips/${p.tripId}/day/${p.day.date}`}
           className="text-[14px] font-bold text-ocean underline-offset-2 hover:underline"

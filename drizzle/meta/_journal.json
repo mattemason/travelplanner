@@ -92,6 +92,13 @@
       "when": 1790715025714,
       "tag": "0012_stop_depart_time",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790967443912,
+      "tag": "0013_trip_map_types",
+      "breakpoints": true
     }
   ]
 }

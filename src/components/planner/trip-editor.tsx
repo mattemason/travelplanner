@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { TripDetails } from "@/app/trips/[tripId]/actions";
+import { MAP_TYPE_IDS, MAP_TYPES } from "@/lib/trip/map-types";
 import { dayCount } from "@/lib/trip/format";
 import type { TripData } from "@/lib/trip/types";
 import { CoverPicker, IconPicker } from "@/components/trips/cover-picker";
@@ -28,6 +29,7 @@ export function TripEditor({ trip, focus, variant, saving, error, stopsOnDays, o
     startDate: trip.startDate,
     endDate: trip.endDate,
     maxDriveHours: trip.maxDriveHours,
+    mapTypes: trip.mapTypes,
     dieselPrice: trip.fuelPrices.diesel,
     petrolPrice: trip.fuelPrices.petrol,
     icon: trip.icon,
@@ -118,6 +120,33 @@ export function TripEditor({ trip, focus, variant, saving, error, stopsOnDays, o
           onChange={(e) => setV({ ...v, maxDriveHours: Number(e.target.value) })}
         />
       </label>
+
+      <fieldset className="mt-3">
+        <legend className="text-[13px] font-bold text-muted">Map types on this trip</legend>
+        <div className="mt-1.5 flex flex-wrap gap-1.5">
+          {MAP_TYPES.map((m) => {
+            const on = v.mapTypes.includes(m.id);
+            return (
+              <label key={m.id} className={`chip cursor-pointer !py-1.5 ${on ? "border-ocean text-ocean" : "text-muted"}`}>
+                <input
+                  type="checkbox"
+                  className="mr-1.5 accent-[var(--ocean)]"
+                  checked={on}
+                  disabled={on && v.mapTypes.length === 1}
+                  onChange={() =>
+                    setV({
+                      ...v,
+                      mapTypes: on ? v.mapTypes.filter((id) => id !== m.id) : MAP_TYPE_IDS.filter((id) => id === m.id || v.mapTypes.includes(id)),
+                    })
+                  }
+                />
+                {m.label}
+              </label>
+            );
+          })}
+        </div>
+        <p className="mt-1 text-[12.5px] text-muted">The choices in the map&apos;s type menu. Tas topo only covers Tasmania.</p>
+      </fieldset>
 
       <div className="grid grid-cols-2 gap-2.5">
         <PriceField label="Diesel ($/L)" value={v.dieselPrice} onChange={(dieselPrice) => setV({ ...v, dieselPrice })} />

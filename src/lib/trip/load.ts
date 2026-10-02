@@ -2,6 +2,7 @@ import "server-only";
 import { and, asc, eq, getTableColumns, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
 import * as t from "@/db/schema";
+import { tripMapTypes } from "./map-types";
 import { TRAY, type Stop, type TripData } from "./types";
 
 /** The trip if `userId` owns it, else null. */
@@ -69,6 +70,7 @@ export async function loadTrip(userId: string, tripId: string): Promise<TripData
     startDate: trip.startDate,
     endDate: trip.endDate,
     maxDriveHours: trip.maxDriveHoursPerDay,
+    mapTypes: tripMapTypes(trip.mapTypes),
     fuelPrices: { diesel: trip.dieselPrice, petrol: trip.petrolPrice },
     icon: trip.icon,
     coverVersion: trip.coverUpdatedAt ? trip.coverUpdatedAt.getTime() : null,

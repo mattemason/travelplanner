@@ -5,6 +5,7 @@ import { DayMap, type DayMapPoint, type DayMapRoute } from "@/components/planner
 import { currentUser } from "@/lib/auth";
 import { getSegments } from "@/lib/google/routes";
 import { estimatedArrivals } from "@/lib/trip/eta";
+import { NAV_MAX_WAYPOINTS, navigateRoute, navigateTo } from "@/lib/trip/maps-link";
 import {
   dayRoute,
   dayStart,
@@ -93,7 +94,7 @@ export default async function DayViewPage({ params }: PageProps<"/trips/[tripId]
       </div>
 
       <div className="mb-3">
-        <DayMap points={mapPoints} routes={mapRoutes} legHex={leg?.colour ?? "#1F5A7A"} />
+        <DayMap points={mapPoints} routes={mapRoutes} legHex={leg?.colour ?? "#1F5A7A"} mapTypes={trip.mapTypes} />
       </div>
 
       <div className="flex gap-2 px-[18px] pb-3">
@@ -101,6 +102,16 @@ export default async function DayViewPage({ params }: PageProps<"/trips/[tripId]
         <Stat value={String(stops.length)} label={stops.length === 1 ? "stop" : "stops"} />
         <Stat value={overnight ?? "–"} label="tonight" />
       </div>
+      {navigateRoute(route.slice(1)) && (
+        <div className="px-[18px] pb-3">
+          <a href={navigateRoute(route.slice(1))!} target="_blank" rel="noopener noreferrer" className="btn btn-primary w-full">
+            Navigate this day in Google Maps
+          </a>
+          {route.length - 2 > NAV_MAX_WAYPOINTS && (
+            <p className="mt-1 text-[12.5px] text-muted">Google takes up to {NAV_MAX_WAYPOINTS} stops on the way, so later stops are left off.</p>
+          )}
+        </div>
+      )}
       {!travel && staySummary(day.stay) && (
         <p className="px-[18px] pb-3 text-[13.5px] text-muted">Stay: {staySummary(day.stay)}</p>
       )}
@@ -122,7 +133,7 @@ export default async function DayViewPage({ params }: PageProps<"/trips/[tripId]
           const seg = segBefore(stop.id);
           const nav =
             place?.lat != null && place.lng != null
-              ? `https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}`
+              ? navigateTo({ lat: place.lat, lng: place.lng })
               : null;
           return (
             <li key={stop.id}>

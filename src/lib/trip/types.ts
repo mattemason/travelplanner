@@ -1,3 +1,4 @@
+import type { MapType } from "./map-types";
 /** Plain data the planner UI works with. Built on the server by loadTrip(). */
 
 export const TAGS = [
@@ -104,6 +105,7 @@ export type TripData = {
   startDate: string;
   endDate: string;
   maxDriveHours: number;
+  mapTypes: MapType[]; // offered in the map's type menu, in menu order
   fuelPrices: { diesel: number | null; petrol: number | null }; // $ per litre
   icon: string | null; // emoji
   coverVersion: number | null; // cover photo timestamp, for cache-busting; null = no photo

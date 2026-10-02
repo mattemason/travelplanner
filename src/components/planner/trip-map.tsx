@@ -2,6 +2,7 @@
 
 import { AdvancedMarker, AdvancedMarkerAnchorPoint, Map, Polyline, useMap } from "@vis.gl/react-google-maps";
 import { useEffect, useState } from "react";
+import { MAP_TYPE_IDS, MAP_TYPES, type MapType } from "@/lib/trip/map-types";
 
 export type MapPoint = {
   id: string;
@@ -32,18 +33,11 @@ type Props = {
   onBoundsChanged?: (bounds: MapBounds) => void;
   dark?: boolean; // the app's theme, so the map matches Light/Dark choices
   onPlaceClick?: (googlePlaceId: string) => void; // a tap on one of Google's own map icons
+  mapTypes?: readonly MapType[]; // the trip's choices for the type menu; all when not given
 };
 
 const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID;
 
-type MapType = "roadmap" | "terrain" | "hybrid" | "list" | "opentopo";
-const MAP_TYPES: { id: MapType; label: string; group?: string }[] = [
-  { id: "roadmap", label: "Map" },
-  { id: "terrain", label: "Terrain" },
-  { id: "hybrid", label: "Satellite" },
-  { id: "list", label: "Tas topo (LIST)", group: "Off-road" },
-  { id: "opentopo", label: "OpenTopoMap" },
-];
 
 /**
  * Free off-road topo maps (4WD tracks, fire trails, gravel roads, contours), laid over Google's
@@ -77,7 +71,7 @@ const MAP_TYPE_KEY = "trip-map-type";
 function savedMapType(): MapType {
   try {
     const v = typeof window === "undefined" ? null : localStorage.getItem(MAP_TYPE_KEY);
-    return MAP_TYPES.some((t) => t.id === v) ? (v as MapType) : "roadmap";
+    return (MAP_TYPE_IDS as string[]).includes(v ?? "") ? (v as MapType) : "roadmap";
   } catch {
     return "roadmap";
   }
@@ -88,7 +82,10 @@ const TASMANIA = { lat: -42.0, lng: 146.6 };
 export function TripMap(props: Props) {
   const { points, routes, selectedId, onSelect, fitKey, className, labels = true, onBoundsChanged, dark = false } = props;
   const { onPlaceClick, labelSelectedOnly = false } = props;
-  const [mapType, setMapType] = useState<MapType>(savedMapType);
+  const offered = props.mapTypes?.length ? props.mapTypes : MAP_TYPE_IDS;
+  const [savedType, setMapType] = useState<MapType>(savedMapType);
+  // The device remembers one choice for all trips; a trip that doesn't offer it uses its first type.
+  const mapType = offered.includes(savedType) ? savedType : offered[0];
   const [typeMenuOpen, setTypeMenuOpen] = useState(false);
   const outlined = mapType !== "roadmap" && mapType !== "terrain";
   const chooseType = (t: MapType) => {
@@ -238,8 +235,8 @@ export function TripMap(props: Props) {
       <div className="absolute bottom-7 left-2.5">
         {typeMenuOpen && (
           <div role="menu" className="absolute bottom-full left-0 mb-1.5 flex flex-col overflow-hidden rounded-xl border border-line bg-paper shadow-lg">
-            {MAP_TYPES.map((t) => [
-              t.group && (
+            {MAP_TYPES.filter((t) => offered.includes(t.id)).map((t) => [
+              "group" in t && (
                 <span key={`g-${t.group}`} className="border-t border-line px-3.5 pt-2 pb-0.5 text-[11px] font-bold tracking-wide text-muted uppercase">
                   {t.group}
                 </span>

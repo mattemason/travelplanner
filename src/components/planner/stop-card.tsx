@@ -3,6 +3,7 @@
 import { formatDistance, formatDuration } from "@/lib/trip/drive";
 import { timeLabel } from "@/lib/trip/format";
 import { transportSummary } from "@/lib/trip/details";
+import { navigateTo } from "@/lib/trip/maps-link";
 import { arriveByLabel, BOOKED_MODES, tagLabel, type ArriveBy, type Place, type Segment, type Stop } from "@/lib/trip/types";
 import { CopyIcon, GripIcon, InfoIcon, PencilIcon, TrashIcon } from "./icons";
 
@@ -51,6 +52,18 @@ export function StopCard(props: Props) {
               : "mode" in driveIn
                 ? arriveByLabel(driveIn.mode)
                 : `${formatDuration(driveIn.durationS)} · ${formatDistance(driveIn.distanceM)}`}
+          {place?.lat != null && place.lng != null && (
+            <a
+              href={navigateTo({ lat: place.lat, lng: place.lng })}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="ml-auto font-bold text-ocean underline-offset-2 hover:underline"
+              title={`Turn-by-turn to ${stop.name} in Google Maps, from where you are`}
+            >
+              Navigate ›
+            </a>
+          )}
         </div>
       )}
       <div

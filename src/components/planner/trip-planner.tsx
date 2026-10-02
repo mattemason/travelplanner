@@ -54,7 +54,7 @@ import { StopInfo } from "./stop-info";
 import { SyncDialog } from "./sync-dialog";
 import { StopMoveCard } from "./stop-move-card";
 import { PlanDialog } from "./plan-dialog";
-import { googleMapsLink, hipcampLink } from "@/lib/trip/maps-link";
+import { googleMapsLink, hipcampLink, NAV_MAX_WAYPOINTS, navigateRoute } from "@/lib/trip/maps-link";
 import { TripEditor } from "./trip-editor";
 import { MapSearch, ResultCard, type SearchResult } from "./map-search";
 import {
@@ -1108,6 +1108,8 @@ export function TripPlanner({
       onDeleteStop={deleteStopById}
       onAddStop={openNew}
       onReroute={reroute}
+      navigateUrl={navigateRoute((routes[i] ?? []).slice(1))}
+      navigateStops={Math.min((routes[i]?.length ?? 1) - 1, NAV_MAX_WAYPOINTS + 1)}
       rerouting={rerouting === day.id}
       fuelCost={fuelCost(drives[i].totalM, vehicle, trip.fuelPrices)}
     />
@@ -1232,6 +1234,7 @@ export function TripPlanner({
         className={className}
         labels={labels || mapMode === "stops"}
         labelSelectedOnly={mapMode === "stops"}
+        mapTypes={trip.mapTypes}
       />
     ) : (
       <div
