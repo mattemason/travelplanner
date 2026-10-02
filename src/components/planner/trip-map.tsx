@@ -36,12 +36,43 @@ type Props = {
 
 const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID;
 
-type MapType = "roadmap" | "terrain" | "hybrid";
-const MAP_TYPES: { id: MapType; label: string }[] = [
+type MapType = "roadmap" | "terrain" | "hybrid" | "list" | "opentopo";
+const MAP_TYPES: { id: MapType; label: string; group?: string }[] = [
   { id: "roadmap", label: "Map" },
   { id: "terrain", label: "Terrain" },
   { id: "hybrid", label: "Satellite" },
+  { id: "list", label: "Tas topo (LIST)", group: "Off-road" },
+  { id: "opentopo", label: "OpenTopoMap" },
 ];
+
+/**
+ * Free off-road topo maps (4WD tracks, fire trails, gravel roads, contours), laid over Google's
+ * map as tile overlays. Outside a layer's coverage or zoom range, Google's map shows through.
+ */
+type Topo = {
+  url: (x: number, y: number, z: number) => string;
+  maxZoom: number;
+  credit: string;
+  link: string;
+  bounds?: { north: number; south: number; west: number; east: number }; // skip tiles outside it
+};
+const TOPO: Partial<Record<MapType, Topo>> = {
+  // Land Tasmania's topographic basemap: Tasmania only. ArcGIS tiles are z/y/x. CC BY 3.0 AU.
+  list: {
+    url: (x, y, z) => `https://services.thelist.tas.gov.au/arcgis/rest/services/Basemaps/Topographic/MapServer/tile/${z}/${y}/${x}`,
+    maxZoom: 18,
+    bounds: { north: -39.2, south: -44.0, west: 143.5, east: 148.7 }, // blank tiles elsewhere would hide Google's map
+    credit: "the LIST © State of Tasmania (CC BY 3.0 AU)",
+    link: "https://www.thelist.tas.gov.au/",
+  },
+  // OpenStreetMap tracks with contours, all of Australia. CC BY-SA.
+  opentopo: {
+    url: (x, y, z) => `https://${"abc"[(x + y) % 3]}.tile.opentopomap.org/${z}/${x}/${y}.png`,
+    maxZoom: 17,
+    credit: "© OpenStreetMap contributors, SRTM · style © OpenTopoMap (CC BY-SA)",
+    link: "https://opentopomap.org/about",
+  },
+};
 const MAP_TYPE_KEY = "trip-map-type";
 function savedMapType(): MapType {
   try {
@@ -71,7 +102,7 @@ export function TripMap(props: Props) {
   return (
     <div className={`relative ${className ?? ""}`}>
       <Map
-        mapTypeId={mapType}
+        mapTypeId={TOPO[mapType] ? "roadmap" : mapType}
         key={dark ? "dark" : "light"} // the colour scheme is fixed when the map is created
         mapId={MAP_ID}
         defaultCenter={TASMANIA}
@@ -80,7 +111,7 @@ export function TripMap(props: Props) {
         gestureHandling="cooperative"
         disableDefaultUI
         zoomControl
-        clickableIcons={!!onPlaceClick}
+        clickableIcons={!!onPlaceClick && !TOPO[mapType]} // Google's place icons stay off non-Google maps
         onClick={(e) => {
           if (!e.detail.placeId || !onPlaceClick) return;
           e.stop(); // show our card instead of Google's default popup
@@ -171,12 +202,28 @@ export function TripMap(props: Props) {
           );
         })}
         <FitBounds points={points} fitKey={fitKey} />
+        <TopoLayer type={mapType} />
       </Map>
+      {TOPO[mapType] && (
+        <a
+          href={TOPO[mapType].link}
+          target="_blank"
+          rel="noreferrer"
+          className="absolute right-14 bottom-[18px] max-w-[60%] truncate rounded bg-paper/85 px-1 text-[10px] text-muted"
+        >
+          {TOPO[mapType].credit}
+        </a>
+      )}
       {/* Map type: plain map, terrain or satellite (with labels). Remembered on this device. */}
       <div className="absolute bottom-7 left-2.5">
         {typeMenuOpen && (
           <div role="menu" className="absolute bottom-full left-0 mb-1.5 flex flex-col overflow-hidden rounded-xl border border-line bg-paper shadow-lg">
-            {MAP_TYPES.map((t) => (
+            {MAP_TYPES.map((t) => [
+              t.group && (
+                <span key={`g-${t.group}`} className="border-t border-line px-3.5 pt-2 pb-0.5 text-[11px] font-bold tracking-wide text-muted uppercase">
+                  {t.group}
+                </span>
+              ),
               <button
                 key={t.id}
                 type="button"
@@ -188,8 +235,8 @@ export function TripMap(props: Props) {
                 }`}
               >
                 {t.label}
-              </button>
-            ))}
+              </button>,
+            ])}
           </div>
         )}
         <button
@@ -229,3 +276,36 @@ function FitBounds({ points: all, fitKey }: { points: MapPoint[]; fitKey: string
   }, [map, fitKey]);
   return null;
 }
+
+/** Lays an off-road topo map's tiles over the Google map while that map type is chosen. */
+function TopoLayer({ type }: { type: MapType }) {
+  const map = useMap();
+  useEffect(() => {
+    const layer = TOPO[type];
+    if (!map || !layer) return;
+    const tiles = new google.maps.ImageMapType({
+      getTileUrl: ({ x, y }, z) => {
+        const n = 2 ** z;
+        if (y < 0 || y >= n) return null;
+        const tx = ((x % n) + n) % n;
+        const b = layer.bounds;
+        if (b && (tileLng(tx + 1, n) < b.west || tileLng(tx, n) > b.east || tileLat(y, n) < b.south || tileLat(y + 1, n) > b.north))
+          return null;
+        return layer.url(tx, y, z);
+      },
+      tileSize: new google.maps.Size(256, 256),
+      maxZoom: layer.maxZoom,
+      name: type,
+    });
+    map.overlayMapTypes.push(tiles);
+    return () => {
+      const i = map.overlayMapTypes.getArray().indexOf(tiles);
+      if (i >= 0) map.overlayMapTypes.removeAt(i);
+    };
+  }, [map, type]);
+  return null;
+}
+
+// Web Mercator tile edges, in degrees.
+const tileLng = (x: number, n: number) => (x / n) * 360 - 180;
+const tileLat = (y: number, n: number) => (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n))) * 180) / Math.PI;
