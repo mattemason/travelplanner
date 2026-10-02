@@ -104,9 +104,14 @@ export default async function DayViewPage({ params }: PageProps<"/trips/[tripId]
       </div>
       {navigateRoute(route.slice(1)) && (
         <div className="px-[18px] pb-3">
-          <a href={navigateRoute(route.slice(1))!} target="_blank" rel="noopener noreferrer" className="btn btn-primary w-full">
-            Navigate this day in Google Maps
-          </a>
+          <div className="flex gap-2">
+            <Link href={`/trips/${trip.id}/drive/${day.date}`} className="btn btn-primary flex-1">
+              Drive mode
+            </Link>
+            <a href={navigateRoute(route.slice(1))!} target="_blank" rel="noopener noreferrer" className="btn flex-1">
+              Navigate in Google Maps
+            </a>
+          </div>
           {route.length - 2 > NAV_MAX_WAYPOINTS && (
             <p className="mt-1 text-[12.5px] text-muted">Google takes up to {NAV_MAX_WAYPOINTS} stops on the way, so later stops are left off.</p>
           )}

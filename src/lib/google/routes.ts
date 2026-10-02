@@ -4,6 +4,7 @@ import { getDb } from "@/db";
 import { routeSegments } from "@/db/schema";
 import type { LatLng, Segment } from "@/lib/trip/types";
 import { pairKey, pointKey } from "@/lib/trip/drive";
+import type { Directions } from "@/lib/trip/navigation";
 
 // Google's terms limit how long Maps content may be cached; keep route results for 30 days.
 const CACHE_DAYS = 30;
@@ -131,5 +132,59 @@ async function computeRoute(a: LatLng, b: LatLng): Promise<Segment | null> {
     durationS: Number.parseInt(route.duration, 10),
     distanceM: route.distanceMeters ?? 0,
     polyline: route.polyline?.encodedPolyline ?? null,
+  };
+}
+
+/** Turn-by-turn driving directions from a to b, for drive mode. Not cached: `a` is usually where you are. */
+export async function getDirections(a: LatLng, b: LatLng): Promise<Directions | null> {
+  const res = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Goog-Api-Key": serverKey(),
+      "X-Goog-FieldMask": [
+        "routes.duration",
+        "routes.distanceMeters",
+        "routes.polyline.encodedPolyline",
+        "routes.legs.steps.distanceMeters",
+        "routes.legs.steps.staticDuration",
+        "routes.legs.steps.polyline.encodedPolyline",
+        "routes.legs.steps.navigationInstruction",
+      ].join(","),
+    },
+    body: JSON.stringify({
+      origin: latLng(a),
+      destination: latLng(b),
+      travelMode: "DRIVE",
+      languageCode: "en-AU",
+      units: "METRIC",
+    }),
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Routes API ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  type Step = {
+    distanceMeters?: number;
+    staticDuration?: string;
+    polyline?: { encodedPolyline?: string };
+    navigationInstruction?: { maneuver?: string; instructions?: string };
+  };
+  const body = (await res.json()) as {
+    routes?: { duration?: string; distanceMeters?: number; polyline?: { encodedPolyline?: string }; legs?: { steps?: Step[] }[] }[];
+  };
+  const route = body.routes?.[0];
+  if (!route?.duration) return null;
+  return {
+    distanceM: route.distanceMeters ?? 0,
+    durationS: Number.parseInt(route.duration, 10),
+    polyline: route.polyline?.encodedPolyline ?? "",
+    steps: (route.legs ?? []).flatMap((leg) =>
+      (leg.steps ?? []).map((s) => ({
+        instruction: s.navigationInstruction?.instructions ?? "",
+        maneuver: s.navigationInstruction?.maneuver ?? "",
+        distanceM: s.distanceMeters ?? 0,
+        durationS: Number.parseInt(s.staticDuration ?? "0", 10),
+        polyline: s.polyline?.encodedPolyline ?? "",
+      })),
+    ),
   };
 }

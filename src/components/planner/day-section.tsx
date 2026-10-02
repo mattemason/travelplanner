@@ -162,6 +162,11 @@ export function DaySection({ sectionRef, ...p }: Props) {
           {p.rerouting ? "Re-routing…" : "Re-route"}
         </button>
         {p.navigateUrl && (
+          <Link href={`/trips/${p.tripId}/drive/${p.day.date}`} className="btn" title="Full-screen turn-by-turn for this day, with spoken directions">
+            Drive mode
+          </Link>
+        )}
+        {p.navigateUrl && (
           <a
             href={p.navigateUrl}
             target="_blank"
