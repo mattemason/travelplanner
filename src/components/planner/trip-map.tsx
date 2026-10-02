@@ -90,6 +90,7 @@ export function TripMap(props: Props) {
   const { onPlaceClick, labelSelectedOnly = false } = props;
   const [mapType, setMapType] = useState<MapType>(savedMapType);
   const [typeMenuOpen, setTypeMenuOpen] = useState(false);
+  const outlined = mapType !== "roadmap" && mapType !== "terrain";
   const chooseType = (t: MapType) => {
     setMapType(t);
     setTypeMenuOpen(false);
@@ -120,23 +121,42 @@ export function TripMap(props: Props) {
         className="h-full w-full"
         onCameraChanged={(e) => onBoundsChanged?.(e.detail.bounds)}
       >
+        {/* On busy topo and satellite maps, routes get a white outline and a thicker line to stand out. */}
         {routes.map((r, i) =>
           r.dashed ? (
             <Polyline
-              key={`d${i}-${r.points.map((p) => p.lat).join()}`}
+              key={`d${i}-${outlined}-${r.points.map((p) => p.lat).join()}`}
               path={r.points}
               strokeColor={r.colour}
               strokeOpacity={0}
-              icons={DASH.map((d) => ({ ...d, icon: { ...d.icon, strokeColor: r.colour } }))}
+              icons={DASH.map((d) => ({
+                ...d,
+                icon: outlined
+                  ? { ...d.icon, strokeColor: r.colour, scale: 4, strokeWeight: 4 }
+                  : { ...d.icon, strokeColor: r.colour },
+              }))}
             />
           ) : (
-            <Polyline
-              key={`${i}-${r.path.slice(0, 12)}`}
-              encodedPath={r.path}
-              strokeColor={r.colour}
-              strokeWeight={4}
-              strokeOpacity={0.9}
-            />
+            [
+              outlined && (
+                <Polyline
+                  key={`o${i}-${r.path.slice(0, 12)}`}
+                  encodedPath={r.path}
+                  strokeColor="#ffffff"
+                  strokeWeight={10}
+                  strokeOpacity={0.95}
+                  zIndex={1}
+                />
+              ),
+              <Polyline
+                key={`${i}-${outlined}-${r.path.slice(0, 12)}`}
+                encodedPath={r.path}
+                strokeColor={r.colour}
+                strokeWeight={outlined ? 6 : 4}
+                strokeOpacity={outlined ? 1 : 0.9}
+                zIndex={2}
+              />,
+            ]
           ),
         )}
         {points.map((p) => {
