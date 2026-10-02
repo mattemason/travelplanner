@@ -99,6 +99,13 @@
       "when": 1790967443912,
       "tag": "0013_trip_map_types",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1790967978819,
+      "tag": "0014_trip_sort_order",
+      "breakpoints": true
     }
   ]
 }

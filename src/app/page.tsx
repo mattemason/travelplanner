@@ -1,4 +1,4 @@
-import { and, asc, count, eq, inArray, isNotNull } from "drizzle-orm";
+import { and, asc, count, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { CSSProperties } from "react";
@@ -11,6 +11,7 @@ import { dateRange, dayCount, daysUntil } from "@/lib/trip/format";
 import { SignOutButton } from "./sign-out-button";
 import { DeleteTripButton } from "@/components/trips/delete-trip-button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { TripGrid } from "@/components/trips/trip-grid";
 
 type TripCard = {
   id: string;
@@ -36,7 +37,7 @@ async function loadCards(userId: string): Promise<TripCard[]> {
     })
     .from(trips)
     .where(eq(trips.ownerId, userId))
-    .orderBy(asc(trips.startDate));
+    .orderBy(sql`${trips.sortOrder} asc nulls last`, asc(trips.startDate));
   if (!rows.length) return [];
   const ids = rows.map((r) => r.id);
   const [legRows, stopCounts] = await Promise.all([
@@ -74,7 +75,8 @@ export default async function HomePage() {
   const [cards, profile] = await Promise.all([loadCards(user.id), getProfile(user.id)]);
   const upcoming = cards.filter((c) => daysUntil(c.endDate) >= 0);
   const past = cards.filter((c) => daysUntil(c.endDate) < 0).reverse();
-  const [next, ...later] = upcoming;
+  // The headline is about the soonest trip, whatever order the tiles are in.
+  const next = [...upcoming].sort((a, b) => a.startDate.localeCompare(b.startDate))[0];
   const firstName = profile?.name.split(" ")[0];
 
   return (
@@ -102,31 +104,33 @@ export default async function HomePage() {
         </p>
       </section>
 
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {next && <TripTile trip={next} featured />}
-        {later.map((t) => (
-          <TripTile key={t.id} trip={t} />
-        ))}
-        <Link
-          href="/trips/new"
-          className="grid min-h-[260px] place-items-center rounded-2xl border-2 border-dashed border-line bg-paper/40 p-6 text-center hover:border-muted hover:bg-paper"
-        >
-          <span>
-            <span className="mx-auto mb-2 grid h-12 w-12 place-items-center rounded-full bg-ink text-[26px] leading-none text-paper">
-              +
+      {upcoming.length > 1 && <p className="-mt-4 mb-3 text-[13px] text-muted">Drag a trip to change the order.</p>}
+      <TripGrid
+        tiles={upcoming.map((t) => ({ id: t.id, tile: <TripTile trip={t} /> }))}
+        after={
+          <Link
+            href="/trips/new"
+            className="grid min-h-[260px] place-items-center rounded-2xl border-2 border-dashed border-line bg-paper/40 p-6 text-center hover:border-muted hover:bg-paper"
+          >
+            <span>
+              <span className="mx-auto mb-2 grid h-12 w-12 place-items-center rounded-full bg-ink text-[26px] leading-none text-paper">
+                +
+              </span>
+              <span className="block font-display text-[22px] font-bold">Plan a new trip</span>
+              <span className="text-[14px] text-muted">Name it, set the dates, add stops</span>
             </span>
-            <span className="block font-display text-[22px] font-bold">Plan a new trip</span>
-            <span className="text-[14px] text-muted">Name it, set the dates, add stops</span>
-          </span>
-        </Link>
-      </div>
+          </Link>
+        }
+      />
 
       {past.length > 0 && (
         <section className="mt-12">
           <h2 className="mb-4 text-[26px] font-bold">Past trips</h2>
           <div className="grid gap-5 opacity-80 sm:grid-cols-2 lg:grid-cols-3">
             {past.map((t) => (
-              <TripTile key={t.id} trip={t} />
+              <div key={t.id} className="flex">
+                <TripTile trip={t} />
+              </div>
             ))}
           </div>
         </section>
@@ -135,7 +139,8 @@ export default async function HomePage() {
   );
 }
 
-function TripTile({ trip, featured }: { trip: TripCard; featured?: boolean }) {
+/** One trip's tile. Every tile is the same size; the grid stretches them to equal heights. */
+function TripTile({ trip }: { trip: TripCard }) {
   const when = whenLabel(trip);
   const days = dayCount(trip.startDate, trip.endDate);
   const url = coverUrl(trip.id, trip.coverVersion);
@@ -143,11 +148,9 @@ function TripTile({ trip, featured }: { trip: TripCard; featured?: boolean }) {
 
   return (
     <article
-      className={`group relative overflow-hidden rounded-2xl border border-line bg-paper shadow-[0_1px_2px_rgba(10,20,22,0.06)] transition-shadow hover:shadow-[0_10px_30px_rgba(10,20,22,0.12)] ${
-        featured ? "sm:col-span-2" : ""
-      }`}
+      className="group relative flex w-full flex-col overflow-hidden rounded-2xl border border-line bg-paper shadow-[0_1px_2px_rgba(10,20,22,0.06)] transition-shadow hover:shadow-[0_10px_30px_rgba(10,20,22,0.12)]"
     >
-      <div className={`relative ${featured ? "h-56 sm:h-72" : "h-40"} overflow-hidden`}>
+      <div className="relative h-44 overflow-hidden">
         {url ? (
           // eslint-disable-next-line @next/next/no-img-element -- private, auth-gated image
           <img
@@ -171,7 +174,7 @@ function TripTile({ trip, featured }: { trip: TripCard; featured?: boolean }) {
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/95 text-[26px] shadow">{trip.icon}</span>
           )}
           <div className="min-w-0">
-            <h2 className={`${featured ? "text-[36px]" : "text-[26px]"} leading-none font-bold drop-shadow`}>
+            <h2 className="text-[28px] leading-none font-bold drop-shadow">
               <Link href={`/trips/${trip.id}`} className="after:absolute after:inset-0">
                 {trip.name}
               </Link>
@@ -183,7 +186,7 @@ function TripTile({ trip, featured }: { trip: TripCard; featured?: boolean }) {
         </div>
       </div>
 
-      <div className="px-4 pt-3 pb-4">
+      <div className="flex flex-1 flex-col px-4 pt-3 pb-4">
         {trip.legs.length > 0 && (
           <>
             <div className="flex h-2 overflow-hidden rounded-full bg-soft" aria-hidden="true">
@@ -201,7 +204,7 @@ function TripTile({ trip, featured }: { trip: TripCard; featured?: boolean }) {
             </ul>
           </>
         )}
-        <div className="mt-2.5 flex items-center gap-4 text-[13.5px]">
+        <div className="mt-auto flex items-center gap-4 pt-2.5 text-[13.5px]">
           <span>
             <b className="font-display text-[18px]">{days}</b> <span className="text-muted">days</span>
           </span>
