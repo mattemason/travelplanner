@@ -1,9 +1,11 @@
 import { desc, gte, sql } from "drizzle-orm";
 import Link from "next/link";
+import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 import { getDb } from "@/db";
 import { apiUsage, places, routeSegments, stopAttachments, stops, trips, users } from "@/db/schema";
 import { currentUser } from "@/lib/auth";
+import { ProviderBilling } from "./provider-billing";
 import { CLAUDE_FEATURES, GOOGLE_SKUS, isAdmin, type GoogleSku } from "@/lib/usage";
 
 export const metadata = { title: "Admin" };
@@ -171,8 +173,12 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
         />
       </section>
 
+      <Suspense fallback={<p className="mt-8 text-[14px] text-muted">Loading usage from Anthropic and Google…</p>}>
+        <ProviderBilling />
+      </Suspense>
+
       <section className="mt-8">
-        <h2 className="text-[24px] font-bold">Daily cost, last 30 days</h2>
+        <h2 className="text-[24px] font-bold">Logged by the app: daily cost, last 30 days</h2>
         <div className="mt-3 flex h-40 items-end gap-[3px] rounded-xl border border-line bg-paper p-3" role="img" aria-label="Daily estimated cost bars">
           {days.map((d) => (
             <div key={d.d} className="flex h-full flex-1 flex-col justify-end" title={`${d.d}: Google ${usd(d.g)}, Claude ${usd(d.c)}`}>
