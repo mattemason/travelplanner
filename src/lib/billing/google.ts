@@ -17,7 +17,8 @@ const METHOD_INFO: Record<string, { label: string; low: number; high: number }> 
 function methodInfo(service: string, method: string) {
   const short = method.split(".").pop() ?? method;
   if (METHOD_INFO[short]) return { key: short, ...METHOD_INFO[short] };
-  if (service === "maps-backend.googleapis.com") return { key: `maps:${short}`, label: `Maps JavaScript: ${short}`, low: 0, high: 7 };
+  // google.maps.BaseMap.Javascript is a Dynamic Maps load.
+  if (service === "maps-backend.googleapis.com") return { key: `maps:${short}`, label: "Maps JavaScript: map loads", low: 7, high: 7 };
   return { key: `${service}:${short}`, label: `${service.split(".")[0]}: ${short}`, low: 0, high: 0 };
 }
 
