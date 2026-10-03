@@ -93,6 +93,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
         routes: sql<number>`(select count(*) from ${routeSegments})::int`,
         files: sql<number>`(select count(*) from ${stopAttachments})::int`,
         fileBytes: sql<number>`(select coalesce(sum(${stopAttachments.size}), 0) from ${stopAttachments})::float`,
+        firstLogged: sql<string | null>`(select to_char(min(${apiUsage.at}) at time zone 'Australia/Hobart', 'YYYY-MM-DD') from ${apiUsage})`,
       })
       .from(sql`(select 1) as one`),
   ]);
@@ -129,6 +130,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
   });
   const maxDay = Math.max(0.01, ...days.map((d) => d.g + d.c));
   const c = counts[0];
+  const unlogged = c.firstLogged ? days.filter((d) => d.d < c.firstLogged!).length : days.length;
 
   return (
     <main className="mx-auto w-full max-w-[1100px] flex-1 px-4 pt-[calc(20px+env(safe-area-inset-top))] pb-20 sm:px-6">
@@ -179,13 +181,29 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
 
       <section className="mt-8">
         <h2 className="text-[24px] font-bold">Logged by the app: daily cost, last 30 days</h2>
-        <div className="mt-3 flex h-40 items-end gap-[3px] rounded-xl border border-line bg-paper p-3" role="img" aria-label="Daily estimated cost bars">
-          {days.map((d) => (
-            <div key={d.d} className="flex h-full flex-1 flex-col justify-end" title={`${d.d}: Google ${usd(d.g)}, Claude ${usd(d.c)}`}>
-              <div className="rounded-t-sm bg-[#C2662D]" style={{ height: `${(d.c / maxDay) * 100}%` }} />
-              <div className="bg-ocean" style={{ height: `${(d.g / maxDay) * 100}%` }} />
-            </div>
-          ))}
+        <div className="mt-3 rounded-xl border border-line bg-paper px-3 pt-3 pb-2">
+          <div className="relative flex h-36 items-end gap-[3px] border-b border-line" role="img" aria-label="Daily estimated cost bars">
+            {unlogged > 0 && (
+              // Days before the app started logging: shaded, so empty doesn't read as "free".
+              <div
+                className="absolute inset-y-0 left-0 grid place-items-center rounded-md bg-[repeating-linear-gradient(135deg,var(--soft)_0_6px,transparent_6px_12px)] text-center text-[12.5px] text-muted"
+                style={{ width: `calc(${(unlogged / days.length) * 100}% - 3px)` }}
+              >
+                <span className="rounded bg-paper/90 px-1.5 py-0.5">Not logged yet</span>
+              </div>
+            )}
+            {days.map((d) => (
+              <div key={d.d} className="flex h-full flex-1 flex-col justify-end" title={`${d.d}: Google ${usd(d.g)}, Claude ${usd(d.c)}`}>
+                <div className="rounded-t-sm bg-[#C2662D]" style={{ height: `${(d.c / maxDay) * 100}%` }} />
+                <div className={d.c ? "bg-ocean" : "rounded-t-sm bg-ocean"} style={{ height: `${(d.g / maxDay) * 100}%` }} />
+              </div>
+            ))}
+          </div>
+          <div className="mt-1 flex justify-between text-[11.5px] text-muted">
+            <span>{shortDay(days[0].d)}</span>
+            <span>{shortDay(days[15].d)}</span>
+            <span>Today</span>
+          </div>
         </div>
         <p className="mt-1.5 flex gap-4 text-[12.5px] text-muted">
           <span className="flex items-center gap-1.5">
@@ -336,6 +354,9 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
     </main>
   );
 }
+
+/** "5 Sep" from "2026-09-05" */
+const shortDay = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short" });
 
 /** The last n dates in Hobart time, oldest first, as YYYY-MM-DD. */
 function lastDays(n: number): string[] {
