@@ -3,6 +3,7 @@
 import { AdvancedMarker, AdvancedMarkerAnchorPoint, Map, Polyline, useMap } from "@vis.gl/react-google-maps";
 import { useEffect, useState } from "react";
 import { MAP_TYPE_IDS, MAP_TYPES, type MapType } from "@/lib/trip/map-types";
+import { CountMapLoad } from "./count-map-load";
 
 export type MapPoint = {
   id: string;
@@ -220,6 +221,7 @@ export function TripMap(props: Props) {
         })}
         <FitBounds points={points} fitKey={fitKey} />
         <TopoLayer type={mapType} />
+        <CountMapLoad />
       </Map>
       {TOPO[mapType] && (
         <a

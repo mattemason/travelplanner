@@ -6,6 +6,7 @@ import { z } from "zod";
 import { getDb } from "@/db";
 import { planProposals } from "@/db/schema";
 import { currentUser } from "@/lib/auth";
+import { recordClaude } from "@/lib/usage";
 import { getSegments } from "@/lib/google/routes";
 import { getProfile } from "@/lib/profile";
 import { dayRoute, formatDuration, pairKey } from "@/lib/trip/drive";
@@ -85,6 +86,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/trips/[trip
             { signal: request.signal },
           );
           const final = await response.finalMessage();
+          recordClaude("claude.plan", final.model, final.usage, { userId: user.id });
           if (final.stop_reason === "refusal") throw new Error("Claude declined to plan this trip.");
           if (final.stop_reason === "max_tokens") throw new Error("The plan was too long to finish. Lock more days and try again.");
           if (!final.parsed_output) throw new Error("Claude's plan couldn't be read. Try again.");

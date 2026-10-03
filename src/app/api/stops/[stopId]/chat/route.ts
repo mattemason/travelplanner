@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getDb } from "@/db";
 import { stopChats } from "@/db/schema";
 import { currentUser } from "@/lib/auth";
+import { recordClaude } from "@/lib/usage";
 import { stopContext } from "@/lib/stop-info";
 
 // AI briefing and follow-up chat about one stop. The Anthropic key stays on the server; each
@@ -114,6 +115,7 @@ export async function POST(request: Request, ctx: RouteContext<"/api/stops/[stop
             }
           }
           const final = await response.finalMessage();
+          recordClaude("claude.stop_info", final.model, final.usage, { userId: user.id });
           if (final.stop_reason === "refusal") {
             send("\n\nSorry, I can't help with that one. Try asking another way.");
             break;

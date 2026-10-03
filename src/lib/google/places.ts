@@ -1,4 +1,5 @@
 import "server-only";
+import { gfetch } from "@/lib/usage";
 
 // Places API (New). Autocomplete and details share a session token, so Google bills a
 // search-then-pick as one session.
@@ -31,7 +32,7 @@ const rectangle = (b: Bounds) => ({
 });
 
 export async function autocomplete(input: string, sessionToken: string, bias: Bounds | null): Promise<Suggestion[]> {
-  const res = await fetch("https://places.googleapis.com/v1/places:autocomplete", {
+  const res = await gfetch("places.autocomplete", "https://places.googleapis.com/v1/places:autocomplete", {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-Goog-Api-Key": key() },
     body: JSON.stringify({
@@ -71,7 +72,7 @@ export async function placeDetails(placeId: string, sessionToken?: string): Prom
   const url = new URL(`https://places.googleapis.com/v1/places/${placeId}`);
   if (sessionToken) url.searchParams.set("sessionToken", sessionToken);
   url.searchParams.set("languageCode", "en-AU");
-  const res = await fetch(url, {
+  const res = await gfetch("places.details.pro", url, {
     headers: {
       "X-Goog-Api-Key": key(),
       "X-Goog-FieldMask": "id,displayName,location,formattedAddress,businessStatus,googleMapsUri",
@@ -118,7 +119,7 @@ export type SearchResult = {
  * ("campground", "gas_station") only places of exactly that type come back.
  */
 export async function searchInArea(query: string, area: Bounds, includedType?: string): Promise<SearchResult[]> {
-  const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
+  const res = await gfetch("places.text.enterprise", "https://places.googleapis.com/v1/places:searchText", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -182,7 +183,7 @@ export async function searchInArea(query: string, area: Bounds, includedType?: s
 /** A single place as a search-style result (for Google's own map icons when tapped). */
 export async function placeAsResult(placeId: string): Promise<SearchResult | null> {
   if (!/^[A-Za-z0-9_-]{10,300}$/.test(placeId)) return null;
-  const res = await fetch(`https://places.googleapis.com/v1/places/${placeId}?languageCode=en-AU`, {
+  const res = await gfetch("places.details.enterprise", `https://places.googleapis.com/v1/places/${placeId}?languageCode=en-AU`, {
     headers: {
       "X-Goog-Api-Key": key(),
       "X-Goog-FieldMask":
@@ -220,7 +221,7 @@ export async function placeAsResult(placeId: string): Promise<SearchResult | nul
 
 /** The Places entry for a name at known coordinates (within ~500 m), or null. */
 export async function findNear(name: string, lat: number, lng: number): Promise<FoundPlace | null> {
-  const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
+  const res = await gfetch("places.text.pro", "https://places.googleapis.com/v1/places:searchText", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

@@ -4,6 +4,7 @@ import { AdvancedMarker, AdvancedMarkerAnchorPoint, APIProvider, Map, Polyline, 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useIsDark } from "@/components/theme";
+import { CountMapLoad } from "@/components/planner/count-map-load";
 import { navigateTo } from "@/lib/trip/maps-link";
 import { formatDuration } from "@/lib/trip/drive";
 import { timeLabel } from "@/lib/trip/format";
@@ -272,6 +273,7 @@ export function DriveMode(props: Props) {
             </AdvancedMarker>
           )}
           <Follow to={following ? fix : null} />
+          <CountMapLoad />
         </Map>
 
         {/* Top: the next turn, or what's happening. */}

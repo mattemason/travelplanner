@@ -12,6 +12,7 @@ import { SignOutButton } from "./sign-out-button";
 import { DeleteTripButton } from "@/components/trips/delete-trip-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { TripGrid } from "@/components/trips/trip-grid";
+import { isAdmin } from "@/lib/usage";
 
 type TripCard = {
   id: string;
@@ -90,6 +91,11 @@ export default async function HomePage() {
           <Link href="/profile" className="rounded-full px-3 py-2 font-bold text-ink hover:bg-paper">
             Profile
           </Link>
+          {isAdmin(user.email) && (
+            <Link href="/admin" className="rounded-full px-3 py-2 font-bold text-ink hover:bg-paper">
+              Admin
+            </Link>
+          )}
           <ThemeToggle />
           <SignOutButton />
         </nav>

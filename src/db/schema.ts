@@ -325,3 +325,22 @@ export const stopAttachments = pgTable(
   },
   (t) => [index("stop_attachments_stop").on(t.stopId)],
 );
+
+// One row per paid API call (Google Maps Platform, Claude), with an estimated cost in USD at
+// list price, for the admin page. `units` > 1 groups calls, e.g. drive times served from cache.
+export const apiUsage = pgTable(
+  "api_usage",
+  {
+    id: id(),
+    at: timestamp("at", { withTimezone: true }).notNull().defaultNow(),
+    service: text("service").notNull(), // google | claude
+    sku: text("sku").notNull(),
+    units: integer("units").notNull().default(1),
+    costUsd: numeric("cost_usd", { precision: 12, scale: 6, mode: "number" }).notNull().default(0),
+    ok: boolean("ok").notNull().default(true),
+    ms: integer("ms"),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    detail: jsonb("detail").$type<Record<string, unknown>>(),
+  },
+  (t) => [index("api_usage_at").on(t.at)],
+);

@@ -5,6 +5,7 @@ import { routeSegments } from "@/db/schema";
 import type { LatLng, Segment } from "@/lib/trip/types";
 import { pairKey, pointKey } from "@/lib/trip/drive";
 import type { Directions } from "@/lib/trip/navigation";
+import { gfetch, recordRouteCacheHits } from "@/lib/usage";
 
 // Google's terms limit how long Maps content may be cached; keep route results for 30 days.
 const CACHE_DAYS = 30;
@@ -39,6 +40,7 @@ export async function getSegments(pairs: [LatLng, LatLng][]): Promise<Record<str
   }
 
   const missing = [...unique].filter(([key]) => !result[key]);
+  recordRouteCacheHits(cached.length);
   for (let i = 0; i < missing.length; i += MAX_CONCURRENT) {
     const batch = missing.slice(i, i + MAX_CONCURRENT);
     const fetched = await Promise.all(batch.map(([, [a, b]]) => computeRoute(a, b)));
@@ -75,7 +77,7 @@ const latLng = (p: LatLng) => ({ location: { latLng: { latitude: p.lat, longitud
 export async function optimiseOrder(origin: LatLng, destination: LatLng, stops: LatLng[]): Promise<number[] | null> {
   if (stops.length < 2) return stops.map((_, i) => i);
   if (stops.length > 25) throw new Error("Too many stops to optimise (25 max)");
-  const res = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
+  const res = await gfetch("routes.pro", "https://routes.googleapis.com/directions/v2:computeRoutes", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -105,7 +107,7 @@ function serverKey() {
 
 async function computeRoute(a: LatLng, b: LatLng): Promise<Segment | null> {
   const key = serverKey();
-  const res = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
+  const res = await gfetch("routes.essentials", "https://routes.googleapis.com/directions/v2:computeRoutes", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -137,7 +139,7 @@ async function computeRoute(a: LatLng, b: LatLng): Promise<Segment | null> {
 
 /** Turn-by-turn driving directions from a to b, for drive mode. Not cached: `a` is usually where you are. */
 export async function getDirections(a: LatLng, b: LatLng): Promise<Directions | null> {
-  const res = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
+  const res = await gfetch("routes.essentials", "https://routes.googleapis.com/directions/v2:computeRoutes", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
