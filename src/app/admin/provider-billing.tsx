@@ -24,7 +24,7 @@ export async function ProviderBilling() {
                 <Stat label="This month" value={usd(claude.monthUsd)} />
                 <Stat label="Last 31 days" value={usd(claude.totalUsd)} />
               </div>
-              <Bars values={claude.days.map((d) => ({ key: d.date, v: d.usd, title: `${d.date}: ${usd(d.usd)}` }))} colour="#C2662D" />
+              <Bars values={fillDays(claude.days, 31, (d) => d.usd).map(([date, v]) => ({ key: date, v, title: `${date}: ${usd(v)}` }))} colour="#C2662D" />
               <table className="mt-3 w-full text-[13px]">
                 <tbody>
                   {claude.lines.slice(0, 10).map((l) => (
@@ -63,7 +63,7 @@ export async function ProviderBilling() {
                 <Stat label="This month" value={num(google.methods.reduce((n, m) => n + m.month, 0))} />
                 <Stat label="Last 30 days" value={num(google.methods.reduce((n, m) => n + m.last30, 0))} />
               </div>
-              <Bars values={google.days.map((d) => ({ key: d.date, v: d.count, title: `${d.date}: ${num(d.count)} requests` }))} colour="var(--ocean)" />
+              <Bars values={fillDays(google.days, 30, (d) => d.count).map(([date, v]) => ({ key: date, v, title: `${date}: ${num(v)} requests` }))} colour="var(--ocean)" />
               <table className="mt-3 w-full text-[13px]">
                 <thead className="text-left text-muted">
                   <tr>
@@ -124,6 +124,16 @@ export async function ProviderBilling() {
   );
 }
 
+/** Every day in the last n (UTC dates, oldest first), with 0 for days that had no usage. */
+function fillDays<T extends { date: string }>(rows: T[], n: number, value: (r: T) => number): [string, number][] {
+  const by = new Map(rows.map((r) => [r.date, value(r)]));
+  const today = Date.parse(`${new Date().toISOString().slice(0, 10)}T00:00:00Z`);
+  return Array.from({ length: n }, (_, i) => {
+    const date = new Date(today - (n - 1 - i) * 86_400_000).toISOString().slice(0, 10);
+    return [date, by.get(date) ?? 0];
+  });
+}
+
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -139,7 +149,12 @@ function Bars({ values, colour }: { values: { key: string; v: number; title: str
   return (
     <div className="mt-3 flex h-20 items-end gap-[2px]" role="img" aria-label="Daily bars">
       {values.map((x) => (
-        <div key={x.key} title={x.title} className="flex-1 rounded-t-sm" style={{ height: `${Math.max(2, (x.v / max) * 100)}%`, background: colour }} />
+        <div
+          key={x.key}
+          title={x.title}
+          className="flex-1 rounded-t-sm"
+          style={{ height: x.v ? `${Math.max(3, (x.v / max) * 100)}%` : "1px", background: x.v ? colour : "var(--line)" }}
+        />
       ))}
     </div>
   );
